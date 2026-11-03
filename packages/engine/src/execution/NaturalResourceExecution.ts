@@ -84,7 +84,7 @@ export class NaturalResourceExecution implements Execution {
     const upgradeMultiplier = 1 + (level - 1) * 0.30;
     const gold = Math.floor(
       RESOURCE_BASE_GOLD[site.resource] * qualityMultiplier *
-      upgradeMultiplier * factoryMultiplier * this.game.config().goldMultiplier()
+      upgradeMultiplier * factoryMultiplier * this.game.config().productionGoldMultiplier(this.structure.owner())
     );
     if (gold > 0) {
       const payout = BigInt(gold);

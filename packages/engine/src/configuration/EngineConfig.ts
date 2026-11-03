@@ -426,6 +426,11 @@ export class EngineConfig extends Config {
     );
   }
 
+  /** Apply the same player-specific gold multipliers as trade and work. */
+  productionGoldMultiplier(player: PlayerLike): number {
+    return this.goldMultiplierFor(player);
+  }
+
   private goldMultiplierFor(player: PlayerLike): number {
     const base = this.goldMultiplier();
     const hc = this._gameConfig.hostCheats;
