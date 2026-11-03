@@ -32,6 +32,7 @@ import { ChatModal } from "./layers/ChatModal";
 import { ControlPanel } from "./layers/ControlPanel";
 import { EmojiTable } from "./layers/EmojiTable";
 import { EventsDisplay } from "./layers/EventsDisplay";
+import { FrontierChronicle } from "./layers/FrontierChronicle";
 import { GameLeftSidebar } from "./layers/GameLeftSidebar";
 import { GameRightSidebar } from "./layers/GameRightSidebar";
 import { HeadsUpMessage } from "./layers/HeadsUpMessage";
@@ -120,6 +121,14 @@ export function createRenderer(
   eventsDisplay.eventBus = eventBus;
   eventsDisplay.game = game;
   eventsDisplay.uiState = uiState;
+
+  const frontierChronicle = document.querySelector(
+    "frontier-chronicle",
+  ) as FrontierChronicle;
+  if (!(frontierChronicle instanceof FrontierChronicle)) {
+    console.error("frontier chronicle not found");
+  }
+  frontierChronicle.game = game;
 
   const actionableEvents = document.querySelector(
     "actionable-events",
@@ -333,6 +342,9 @@ export function createRenderer(
   onboardingOverlay.transformHandler = transformHandler;
   onboardingOverlay.uiState = uiState;
 
+  const frontierHud =
+    game.config().gameConfig().gameType === GameType.Singleplayer;
+
   const layers: Controller[] = [
     new WarshipSelectionController(game, eventBus, transformHandler, view),
     new BuildPreviewController(
@@ -355,6 +367,7 @@ export function createRenderer(
     actionableEvents,
     attacksDisplay,
     chatDisplay,
+    ...(frontierHud ? [frontierChronicle] : []),
     buildMenu,
     new MainRadialMenu(
       eventBus,
@@ -385,9 +398,6 @@ export function createRenderer(
     alertFrame,
     performanceOverlay,
   ];
-
-  const frontierHud =
-    game.config().gameConfig().gameType === GameType.Singleplayer;
 
   return new GameRenderer(
     transformHandler,
