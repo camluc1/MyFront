@@ -22,6 +22,7 @@ import {
 } from "@openfront/engine-lib/execution/NukeAlliance";
 import { EventBus } from "@openfront/shared/EventBus";
 import { Controller } from "../Controller";
+import { ToggleResourcesEvent } from "./MapLayerController";
 import {
   ConfirmGhostStructureEvent,
   MouseMoveEvent,
@@ -1329,6 +1330,9 @@ export class BuildPreviewController implements Controller {
     this.ghostResolved = false;
     this.resolvedGhostTile = undefined;
     this.resetCursorCaches();
+    const resourceBuilding = type === UnitType.Farm || type === UnitType.Mine ||
+      type === UnitType.OilWell || type === UnitType.GasPlant;
+    this.eventBus.emit(new ToggleResourcesEvent(resourceBuilding, true));
     this.ghostUnit = {
       buildableUnit: {
         type,
@@ -1342,6 +1346,7 @@ export class BuildPreviewController implements Controller {
   }
 
   private clearGhostStructure(): void {
+    this.eventBus.emit(new ToggleResourcesEvent(false, true));
     this.querySeq++;
     this.ghostGeneration++;
     this.isQueryInFlight = false;

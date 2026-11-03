@@ -19,7 +19,7 @@ import { UserSettings } from "../UserSettings";
 
 export const RESOURCE_LAYER_ID = "frontier-resources";
 export class ToggleResourcesEvent {
-  constructor(public readonly enabled: boolean) {}
+  constructor(public readonly enabled: boolean, public readonly temporary = false) {}
 }
 const resourceColors: Record<NaturalResource, string> = {
   fertile_soil: "#80cc62", oil: "#d89d36", gas: "#e28d38",
@@ -58,6 +58,7 @@ async function buildResourceLayer(map: TerrainMapData["gameMap"], type: GameMapT
 }
 export class MapLayerController implements Controller {
   private resourcesEnabled = false;
+  private temporaryResourcesEnabled = false;
   constructor(
     private readonly view: MapRenderer,
     private readonly gameMap: TerrainMapData,
@@ -71,8 +72,13 @@ export class MapLayerController implements Controller {
 
   init() {
     this.eventBus.on(ToggleResourcesEvent, (event) => {
-      this.resourcesEnabled = event.enabled;
-      this.view.setLayerVisible(RESOURCE_LAYER_ID, this.resourcesEnabled);
+      if (event.temporary) {
+        this.temporaryResourcesEnabled = event.enabled;
+      } else {
+        this.resourcesEnabled = event.enabled;
+      }
+      this.view.setLayerVisible(RESOURCE_LAYER_ID,
+        this.resourcesEnabled || this.temporaryResourcesEnabled);
     });
     const normalLayers = this.gameMap.layers ?? [];
     const allLayers: MapLayer[] = [
@@ -91,7 +97,8 @@ export class MapLayerController implements Controller {
         (id, visible) => this.view.setLayerVisible(id, visible),
         (id, alpha) => this.view.setLayerAlpha(id, alpha),
       );
-      this.view.setLayerVisible(RESOURCE_LAYER_ID, this.resourcesEnabled);
+      this.view.setLayerVisible(RESOURCE_LAYER_ID,
+        this.resourcesEnabled || this.temporaryResourcesEnabled);
       this.view.setLayerAlpha(RESOURCE_LAYER_ID, 0.83);
     }).catch((e) =>
       console.warn("[MapLayerController] Failed to prepare map/resource layers:", e)
