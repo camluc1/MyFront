@@ -42,6 +42,7 @@ import { NationWarshipBehavior } from "./nation/NationWarshipBehavior";
 import { tutorialCollapse } from "./nation/TutorialCollapse";
 import { tutorialSilo, tutorialWarship } from "./nation/TutorialSilo";
 import { SpawnExecution } from "./SpawnExecution";
+import { getNationDoctrine, type NationDoctrine } from "./nation/NationDoctrine";
 
 export class NationExecution implements Execution {
   private active = true;
@@ -57,6 +58,7 @@ export class NationExecution implements Execution {
   private structureBehavior!: NationStructureBehavior;
   private mg: Game;
   private player: Player | null = null;
+  private doctrine!: NationDoctrine;
 
   private attackRate: number;
   private attackTick: number;
@@ -70,12 +72,34 @@ export class NationExecution implements Execution {
     private gameID: GameID,
     private nation: Nation, // Nation contains PlayerInfo with PlayerType.Nation
   ) {
+    this.doctrine = getNationDoctrine(
+      nation.playerInfo.nationFlag,
+      nation.playerInfo.name,
+    );
     this.random = new PseudoRandom(
       simpleHash(nation.playerInfo.id) + simpleHash(gameID),
     );
-    this.triggerRatio = this.random.nextInt(50, 60) / 100;
-    this.reserveRatio = this.random.nextInt(30, 40) / 100;
-    this.expandRatio = this.random.nextInt(10, 20) / 100;
+    this.triggerRatio = Math.min(
+      0.7,
+      Math.max(
+        0.1,
+        this.random.nextInt(50, 60) / 100 + this.doctrine.triggerRatioOffset,
+      ),
+    );
+    this.reserveRatio = Math.min(
+      0.6,
+      Math.max(
+        0.1,
+        this.random.nextInt(30, 40) / 100 + this.doctrine.reserveRatioOffset,
+      ),
+    );
+    this.expandRatio = Math.min(
+      0.35,
+      Math.max(
+        0.05,
+        this.random.nextInt(10, 20) / 100 + this.doctrine.expandRatioOffset,
+      ),
+    );
   }
 
   init(mg: Game) {
@@ -94,13 +118,33 @@ export class NationExecution implements Execution {
     const { difficulty } = this.mg.config().gameConfig();
     switch (difficulty) {
       case Difficulty.Easy:
-        return this.random.nextInt(65, 100); // Slower reactions
+        return Math.max(
+          20,
+          Math.round(
+            this.random.nextInt(65, 100) * this.doctrine.attackCadenceMultiplier,
+          ),
+        ); // Slower reactions
       case Difficulty.Medium:
-        return this.random.nextInt(55, 70);
+        return Math.max(
+          20,
+          Math.round(
+            this.random.nextInt(55, 70) * this.doctrine.attackCadenceMultiplier,
+          ),
+        );
       case Difficulty.Hard:
-        return this.random.nextInt(45, 60);
+        return Math.max(
+          20,
+          Math.round(
+            this.random.nextInt(45, 60) * this.doctrine.attackCadenceMultiplier,
+          ),
+        );
       case Difficulty.Impossible:
-        return this.random.nextInt(30, 50); // Faster reactions
+        return Math.max(
+          20,
+          Math.round(
+            this.random.nextInt(30, 50) * this.doctrine.attackCadenceMultiplier,
+          ),
+        ); // Faster reactions
       default:
         assertNever(difficulty);
     }
@@ -265,6 +309,7 @@ export class NationExecution implements Execution {
       this.mg,
       this.player,
       this.emojiBehavior,
+      this.doctrine,
     );
     this.warshipBehavior = new NationWarshipBehavior(
       this.random,
@@ -282,6 +327,7 @@ export class NationExecution implements Execution {
       this.allianceBehavior,
       this.emojiBehavior,
       this.warshipBehavior,
+      this.doctrine,
     );
     this.nukeBehavior = new NationNukeBehavior(
       this.random,
@@ -294,6 +340,7 @@ export class NationExecution implements Execution {
       this.random,
       this.mg,
       this.player,
+      this.doctrine,
     );
     this.behaviorsInitialized = true;
   }
@@ -453,6 +500,10 @@ export class NationExecution implements Execution {
         readPlayerInfo(s.nation.playerInfo, r),
       );
     }
+    this.doctrine = getNationDoctrine(
+      this.nation.playerInfo.nationFlag,
+      this.nation.playerInfo.name,
+    );
     // One PRNG shared with every behavior, as in a live game.
     const random = r.random(s.random);
     this.random = random;
@@ -480,7 +531,7 @@ export class NationExecution implements Execution {
     const structure = shell(NationStructureBehavior);
     emoji.restoreSnapshot(b.emoji, r, random, player);
     mirv.restoreSnapshot(b.mirv, r, random, player, emoji);
-    alliance.restoreSnapshot(b.alliance, r, random, player, emoji);
+    alliance.restoreSnapshot(b.alliance, r, random, player, emoji, this.doctrine);
     warship.restoreSnapshot(b.warship, r, random, player, emoji);
     attack.restoreSnapshot(
       b.attack,
@@ -490,9 +541,10 @@ export class NationExecution implements Execution {
       alliance,
       emoji,
       warship,
+      this.doctrine,
     );
     nuke.restoreSnapshot(b.nuke, r, random, player, attack, emoji);
-    structure.restoreSnapshot(b.structure, r, random, player);
+    structure.restoreSnapshot(b.structure, r, random, player, this.doctrine);
     this.emojiBehavior = emoji;
     this.mirvBehavior = mirv;
     this.allianceBehavior = alliance;

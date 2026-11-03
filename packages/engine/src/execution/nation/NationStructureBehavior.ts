@@ -26,6 +26,10 @@ import { ConstructionExecution } from "../ConstructionExecution";
 import { UpgradeStructureExecution } from "../UpgradeStructureExecution";
 import { isMirvWorthSavingFor } from "./NationMIRVBehavior";
 import { NationStructurePlacement } from "./NationStructurePlacement";
+import {
+  DEFAULT_NATION_DOCTRINE,
+  type NationDoctrine,
+} from "./NationDoctrine";
 import { hasHighStartingGold, isSaveUpWithinReach } from "./NationUtils";
 
 /**
@@ -227,6 +231,7 @@ export class NationStructureBehavior {
     private random: PseudoRandom,
     private game: Game,
     private player: Player,
+    private doctrine: NationDoctrine = DEFAULT_NATION_DOCTRINE,
   ) {
     this.placement = new NationStructurePlacement(random, game, player);
   }
@@ -251,11 +256,13 @@ export class NationStructureBehavior {
     r: SnapshotReader,
     random: PseudoRandom,
     player: Player,
+    doctrine: NationDoctrine = DEFAULT_NATION_DOCTRINE,
   ): void {
     const s = readVersioned(NationStructureBehaviorSnapshot, raw);
     this.random = random;
     this.game = r.game;
     this.player = player;
+    this.doctrine = doctrine;
     this.placement = new NationStructurePlacement(random, r.game, player);
     this.mirvWorthSavingMemo = null;
     this.lastStructureTick = s.lastStructureTick;
@@ -649,13 +656,29 @@ export class NationStructureBehavior {
       return true;
     }
 
-    // Build order for non-city structures (priority order)
-    const buildOrder: UnitType[] = [
-      UnitType.Port,
-      UnitType.Factory,
-      UnitType.SAMLauncher,
-      UnitType.MissileSilo,
-    ];
+    // The nation's doctrine changes its development emphasis without
+    // replacing the common economy or removing any buildable structure.
+    const buildOrder: UnitType[] =
+      this.doctrine.structurePreference === "industry"
+        ? [
+            UnitType.Factory,
+            UnitType.Port,
+            UnitType.SAMLauncher,
+            UnitType.MissileSilo,
+          ]
+        : this.doctrine.structurePreference === "military"
+          ? [
+              UnitType.SAMLauncher,
+              UnitType.Factory,
+              UnitType.Port,
+              UnitType.MissileSilo,
+            ]
+          : [
+              UnitType.Port,
+              UnitType.Factory,
+              UnitType.SAMLauncher,
+              UnitType.MissileSilo,
+            ];
 
     const nukesEnabled =
       !config.isUnitDisabled(UnitType.AtomBomb) ||

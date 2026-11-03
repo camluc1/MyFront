@@ -27,6 +27,10 @@ import {
   NationEmojiBehavior,
 } from "./NationEmojiBehavior";
 import { findJuiciestTarget, findRunawayLeader } from "./NationUtils";
+import {
+  DEFAULT_NATION_DOCTRINE,
+  type NationDoctrine,
+} from "./NationDoctrine";
 
 export class NationAllianceBehavior {
   constructor(
@@ -34,6 +38,7 @@ export class NationAllianceBehavior {
     private game: Game,
     private player: Player,
     private emojiBehavior: NationEmojiBehavior,
+    private doctrine: NationDoctrine = DEFAULT_NATION_DOCTRINE,
   ) {}
 
   /** No state of its own; the owner supplies the shared references. */
@@ -48,12 +53,14 @@ export class NationAllianceBehavior {
     random: PseudoRandom,
     player: Player,
     emojiBehavior: NationEmojiBehavior,
+    doctrine: NationDoctrine = DEFAULT_NATION_DOCTRINE,
   ): void {
     readVersioned(NationAllianceBehaviorSnapshot, raw);
     this.random = random;
     this.game = r.game;
     this.player = player;
     this.emojiBehavior = emojiBehavior;
+    this.doctrine = doctrine;
   }
 
   handleAllianceRequests() {
@@ -103,7 +110,7 @@ export class NationAllianceBehavior {
 
     for (const enemy of borderingEnemies) {
       if (
-        this.random.chance(30) &&
+        this.random.chance(this.doctrine.allianceRequestChance) &&
         isAcceptablePlayerType(enemy) &&
         this.player.canSendAllianceRequest(enemy) &&
         this.getAllianceDecision(enemy, false)

@@ -38,6 +38,11 @@ import { AiAttackBehavior, BoatRoute } from "../utils/AiAttackBehavior";
 import { planBotAttacks, walledInBots } from "./BotAnnexation";
 import { NationAllianceBehavior } from "./NationAllianceBehavior";
 import {
+  DEFAULT_NATION_DOCTRINE,
+  type NationAttackStrategy,
+  type NationDoctrine,
+} from "./NationDoctrine";
+import {
   EMOJI_ASSIST_ACCEPT,
   EMOJI_ASSIST_RELATION_TOO_LOW,
   EMOJI_ASSIST_TARGET_ALLY,
@@ -77,6 +82,7 @@ export class NationAttackBehavior extends AiAttackBehavior {
     private allianceBehavior: NationAllianceBehavior,
     private emojiBehavior: NationEmojiBehavior,
     private warshipBehavior: NationWarshipBehavior,
+    private doctrine: NationDoctrine = DEFAULT_NATION_DOCTRINE,
   ) {
     super(random, game, player, triggerRatio, reserveRatio, expandRatio);
   }
@@ -94,11 +100,13 @@ export class NationAttackBehavior extends AiAttackBehavior {
     allianceBehavior: NationAllianceBehavior,
     emojiBehavior: NationEmojiBehavior,
     warshipBehavior: NationWarshipBehavior,
+    doctrine: NationDoctrine = DEFAULT_NATION_DOCTRINE,
   ): void {
     const s = this.restoreRecord(raw, r, random, player);
     this.allianceBehavior = allianceBehavior;
     this.emojiBehavior = emojiBehavior;
     this.warshipBehavior = warshipBehavior;
+    this.doctrine = doctrine;
     // Only set during a maybeAttack call, so always null between ticks.
     this.landNeighbors = null;
     this.botAttackTroopsSent = s.botAttackTroopsSent;
@@ -206,11 +214,21 @@ export class NationAttackBehavior extends AiAttackBehavior {
 
     const holdBoats = this.holdsBoatsUnderAttack();
     if (borderingEnemies.length === 0) {
-      if (!holdBoats && this.random.chance(5)) {
+      if (
+        !holdBoats &&
+        this.random.chance(
+          Math.min(35, Math.round(5 * this.doctrine.navalAttackMultiplier)),
+        )
+      ) {
         this.attackWithRandomBoat();
       }
     } else {
-      if (!holdBoats && this.random.chance(10)) {
+      if (
+        !holdBoats &&
+        this.random.chance(
+          Math.min(40, Math.round(10 * this.doctrine.navalAttackMultiplier)),
+        )
+      ) {
         this.attackWithRandomBoat(borderingEnemies);
         return;
       }
@@ -557,27 +575,102 @@ export class NationAttackBehavior extends AiAttackBehavior {
       );
     };
 
-    // Return strategies in order based on difficulty
-    // Easy nations get the dumbest order, impossible nations get the smartest order
-    // Medium and up retaliate in attackBestTarget, ahead of the ratio checks
+    // Preserve the difficulty's strategy pool and baseline order, then let
+    // the country's doctrine move its favored behaviors to the front.
+    const strategyByName: Record<NationAttackStrategy, () => boolean> = {
+      retaliate,
+      bots,
+      assist,
+      traitor,
+      afk,
+      betray,
+      nuked,
+      victim,
+      juicy,
+      hated,
+      veryWeak,
+      weakest,
+      island,
+      donate,
+      crown,
+    };
+    let strategyOrder: NationAttackStrategy[];
     switch (difficulty) {
       case Difficulty.Easy:
-        // So dumb, they cant even find islanders
-        // prettier-ignore
-        return [nuked, bots, retaliate, assist, betray, hated, weakest];
+        strategyOrder = [
+          "nuked",
+          "bots",
+          "retaliate",
+          "assist",
+          "betray",
+          "hated",
+          "weakest",
+        ];
+        break;
       case Difficulty.Medium:
-        // prettier-ignore
-        return [bots, nuked, assist, betray, hated, afk, traitor, crown, weakest, island, donate];
+        strategyOrder = [
+          "bots",
+          "nuked",
+          "assist",
+          "betray",
+          "hated",
+          "afk",
+          "traitor",
+          "crown",
+          "weakest",
+          "island",
+          "donate",
+        ];
+        break;
       case Difficulty.Hard:
-        // Strong veryWeak and juicy strats after the distracting hated strat, to make the nations weaker than impossible
-        // prettier-ignore
-        return [bots, assist, betray, nuked, traitor, afk, hated, veryWeak, juicy, victim, crown, weakest, island, donate];
+        strategyOrder = [
+          "bots",
+          "assist",
+          "betray",
+          "nuked",
+          "traitor",
+          "afk",
+          "hated",
+          "veryWeak",
+          "juicy",
+          "victim",
+          "crown",
+          "weakest",
+          "island",
+          "donate",
+        ];
+        break;
       case Difficulty.Impossible:
-        // prettier-ignore
-        return [bots, veryWeak, betray, assist, victim, crown, traitor, juicy, afk, nuked, hated, weakest, island, donate];
+        strategyOrder = [
+          "bots",
+          "veryWeak",
+          "betray",
+          "assist",
+          "victim",
+          "crown",
+          "traitor",
+          "juicy",
+          "afk",
+          "nuked",
+          "hated",
+          "weakest",
+          "island",
+          "donate",
+        ];
+        break;
       default:
         assertNever(difficulty);
     }
+
+    const preferred = this.doctrine.preferredAttackStrategies.filter((name) =>
+      strategyOrder.includes(name),
+    );
+    const preferredSet = new Set(preferred);
+    strategyOrder = [
+      ...preferred,
+      ...strategyOrder.filter((name) => !preferredSet.has(name)),
+    ];
+    return strategyOrder.map((name) => strategyByName[name]);
   }
 
   private hasNeighboringBotWithStructures(): boolean {
