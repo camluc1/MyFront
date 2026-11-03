@@ -159,6 +159,35 @@ describe("FrontierChronicleTracker", () => {
     expect(entries.map((entry) => entry.kind)).toContain("military-hegemony");
   });
 
+  it("announces an incoming naval transport once while it remains in flight", () => {
+    const tracker = new FrontierChronicleTracker();
+    tracker.observe(
+      [
+        player(1, { isHuman: true, isAI: false, incomingNavalAttackers: [] }),
+        player(2, { isNation: true }),
+      ],
+      0,
+    );
+
+    const detected = tracker.observe(
+      [
+        player(1, { isHuman: true, isAI: false, incomingNavalAttackers: [2] }),
+        player(2, { isNation: true }),
+      ],
+      10,
+    );
+    const repeated = tracker.observe(
+      [
+        player(1, { isHuman: true, isAI: false, incomingNavalAttackers: [2] }),
+        player(2, { isNation: true }),
+      ],
+      20,
+    );
+
+    expect(detected.map((entry) => entry.kind)).toContain("naval-threat");
+    expect(repeated.map((entry) => entry.kind)).not.toContain("naval-threat");
+  });
+
   it("announces the first nuclear launch by a nation exactly once", () => {
     const tracker = new FrontierChronicleTracker();
     tracker.observe(

@@ -65,6 +65,22 @@ export class FrontierChronicle extends LitElement implements Controller {
       Math.ceil(peaceMinutes * 60 - tick / 10),
     );
     const players = this.game.playerViews();
+    const myPlayer = this.game.myPlayer();
+    const incomingNavalAttackers =
+      myPlayer === null
+        ? []
+        : players
+            .filter((candidate) => candidate.smallID() !== myPlayer.smallID())
+            .filter((candidate) =>
+              candidate.units(UnitType.TransportShip).some((ship) => {
+                const destination = ship.targetTile();
+                return (
+                  destination !== undefined &&
+                  this.game.owner(destination) === myPlayer
+                );
+              }),
+            )
+            .map((candidate) => candidate.smallID());
     const smallIDByPlayerID = new Map<string, number>(
       players.map(
         (player) => [String(player.id()), player.smallID()] as const,
@@ -90,16 +106,19 @@ export class FrontierChronicle extends LitElement implements Controller {
         troops: player.troops(),
         maxTroops: this.game.config().maxTroops(player),
         atomBombCount: player.units(UnitType.AtomBomb).length,
+        incomingNavalAttackers: player.isMe() ? incomingNavalAttackers : [],
       };
     });
 
     const newEntries = this.tracker.observe(snapshotPlayers, tick);
     if (newEntries.length > 0) {
       this.entries = [...this.entries, ...newEntries].slice(-24);
-      const nuclearNotice = newEntries.find(
-        (entry) => entry.kind === "nuclear-development",
+      const priorityNotice = newEntries.find(
+        (entry) =>
+          entry.kind === "nuclear-development" ||
+          entry.kind === "naval-threat",
       );
-      if (nuclearNotice) this.showPriorityNotice(nuclearNotice);
+      if (priorityNotice) this.showPriorityNotice(priorityNotice);
     }
     if (!this.active) this.active = true;
   }
@@ -166,6 +185,8 @@ export class FrontierChronicle extends LitElement implements Controller {
         return { icon: "♜", label: "LIDERAZGO MILITAR", color: "text-rose-200" };
       case "nuclear-development":
         return { icon: "☢", label: "HITO NUCLEAR", color: "text-amber-200" };
+      case "naval-threat":
+        return { icon: "⚓", label: "AMENAZA NAVAL", color: "text-cyan-200" };
       default:
         return { icon: "•", label: "MUNDO", color: "text-slate-300" };
     }
@@ -189,7 +210,7 @@ export class FrontierChronicle extends LitElement implements Controller {
       ${this.priorityNotice
         ? html`<div class="pointer-events-none fixed top-4 left-1/2 z-[1002] -translate-x-1/2">
             <div class="w-[min(92vw,30rem)] rounded-xl border border-amber-300/40 bg-slate-950/96 px-5 py-4 text-center text-white shadow-2xl backdrop-blur-xl">
-              <div class="text-[9px] font-black tracking-[0.24em] text-amber-200">ACONTECIMIENTO MUNDIAL · FRONTIER</div>
+              <div class="text-[9px] font-black tracking-[0.24em] text-amber-200">${this.priorityNotice.kind === "naval-threat" ? "ALERTA MILITAR · FRONTIER" : "ACONTECIMIENTO MUNDIAL · FRONTIER"}</div>
               <div class="mt-1 text-base font-black">${this.priorityNotice.headline}</div>
               <div class="mt-1 text-xs leading-relaxed text-slate-300">${this.priorityNotice.detail}</div>
             </div>

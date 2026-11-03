@@ -15,6 +15,8 @@ export interface FrontierChroniclePlayer {
   maxTroops?: number;
   /** Active atom-bomb units observed on the map; used to detect a nation's first nuclear launch. */
   atomBombCount?: number;
+  /** Nation IDs currently sending transport ships toward this player. */
+  incomingNavalAttackers?: readonly number[];
 }
 
 export type FrontierChronicleKind =
@@ -29,7 +31,8 @@ export type FrontierChronicleKind =
   | "power-decline"
   | "economic-hegemony"
   | "military-hegemony"
-  | "nuclear-development";
+  | "nuclear-development"
+  | "naval-threat";
 
 export interface FrontierChronicleEntry {
   id: string;
@@ -43,6 +46,7 @@ interface Snapshot {
   players: Map<number, FrontierChroniclePlayer>;
   alliances: Map<string, readonly [number, number]>;
   attacks: Map<string, readonly [number, number]>;
+  navalThreats: Map<string, readonly [number, number]>;
   leadingNationID: number | null;
   leadingEconomicNationID: number | null;
   leadingMilitaryNationID: number | null;
@@ -60,6 +64,7 @@ function createSnapshot(
   );
   const alliances = new Map<string, readonly [number, number]>();
   const attacks = new Map<string, readonly [number, number]>();
+  const navalThreats = new Map<string, readonly [number, number]>();
 
   for (const player of players) {
     if (!player.isAlive) continue;
@@ -79,6 +84,13 @@ function createSnapshot(
       if (!target?.isAlive || targetID === player.smallID) continue;
       const key = String(player.smallID) + ">" + String(targetID);
       attacks.set(key, [player.smallID, targetID]);
+    }
+
+    for (const attackerID of player.incomingNavalAttackers ?? []) {
+      const attacker = byID.get(attackerID);
+      if (!attacker?.isAlive || attackerID === player.smallID) continue;
+      const key = String(attackerID) + "~>" + String(player.smallID);
+      navalThreats.set(key, [attackerID, player.smallID]);
     }
   }
 
@@ -110,6 +122,7 @@ function createSnapshot(
     players: byID,
     alliances,
     attacks,
+    navalThreats,
     leadingNationID: leadingNation?.smallID ?? null,
     leadingEconomicNationID: leadingEconomicNation?.smallID ?? null,
     leadingMilitaryNationID: leadingMilitaryNation?.smallID ?? null,
@@ -230,6 +243,18 @@ export class FrontierChronicleTracker {
             " realizó su primer lanzamiento de bomba atómica. El equilibrio militar mundial cambió.",
         );
       }
+    }
+
+    for (const [key, pair] of current.navalThreats) {
+      if (previous.navalThreats.has(key)) continue;
+      const attacker = current.players.get(pair[0]);
+      const target = current.players.get(pair[1]);
+      if (!attacker || !target || !target.isHuman) continue;
+      push(
+        "naval-threat",
+        "Invasión naval detectada",
+        attacker.name + " envió un transporte hacia las costas de " + target.name + ".",
+      );
     }
 
     for (const [key, pair] of current.attacks) {
