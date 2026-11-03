@@ -2,6 +2,7 @@ import { TileRef } from "@openfront/engine-api/game/GameMap";
 import {
   Difficulty,
   GameMode,
+  GameType,
   Gold,
   PlayerType,
   Relation,
@@ -143,6 +144,14 @@ const MAX_UPGRADES_AT_ONCE: Record<Difficulty, number> = {
   [Difficulty.Medium]: 3,
   [Difficulty.Hard]: 5,
   [Difficulty.Impossible]: 10,
+};
+
+/** Preserve the upstream bulk-upgrade policy outside FRONTIER single-player. */
+const MULTIPLAYER_MAX_UPGRADES_AT_ONCE: Record<Difficulty, number> = {
+  [Difficulty.Easy]: 3,
+  [Difficulty.Medium]: 10,
+  [Difficulty.Hard]: Infinity,
+  [Difficulty.Impossible]: Infinity,
 };
 
 /** Structures counted for that density; cheap defense posts would push nations into upgrading early */
@@ -976,7 +985,7 @@ export class NationStructureBehavior {
 
   /** One level, or as many as the gold beyond the save-up target pays for and the structure ratios ask for. */
   private upgradeAmount(type: UnitType): number {
-    const { difficulty } = this.game.config().gameConfig();
+    const { difficulty, gameType } = this.game.config().gameConfig();
     // Cities set the ratios, so only gold limits them
     const due =
       type === UnitType.City
@@ -986,7 +995,11 @@ export class NationStructureBehavior {
             this.cityCount(),
             this.placement.hasCoastalTiles(),
           );
-    const max = Math.min(MAX_UPGRADES_AT_ONCE[difficulty], due);
+    const maxUpgradesAtOnce =
+      gameType === GameType.Singleplayer
+        ? MAX_UPGRADES_AT_ONCE[difficulty]
+        : MULTIPLAYER_MAX_UPGRADES_AT_ONCE[difficulty];
+    const max = Math.min(maxUpgradesAtOnce, due);
     let spare = this.player.gold() - this.getSaveUpTarget();
     let amount = 0;
     while (amount < max) {

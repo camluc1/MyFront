@@ -1927,6 +1927,7 @@ export class PlayerImpl implements Player {
       attackerIsNationState &&
       targetIsNationState &&
       nationIsInvolved &&
+      this.mg.config().gameConfig().gameType === GameType.Singleplayer &&
       this.mg.isNationSpawnImmunityActive()
     ) {
       return false;

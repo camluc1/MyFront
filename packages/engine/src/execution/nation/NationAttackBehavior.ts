@@ -138,6 +138,7 @@ export class NationAttackBehavior extends AiAttackBehavior {
   private isProtectedNationTarget(target: Player | TerraNullius): boolean {
     return (
       target.isPlayer() &&
+      this.game.config().gameConfig().gameType === GameType.Singleplayer &&
       this.game.isNationSpawnImmunityActive() &&
       (target.type() === PlayerType.Nation || target.type() === PlayerType.Human)
     );
@@ -145,7 +146,10 @@ export class NationAttackBehavior extends AiAttackBehavior {
 
   /** Keep the surprise of naval raids, but cap simultaneous pressure on the human nation. */
   private canStartNavalPressure(target: Player): boolean {
-    if (target.type() !== PlayerType.Human) return true;
+    if (
+      this.game.config().gameConfig().gameType !== GameType.Singleplayer ||
+      target.type() !== PlayerType.Human
+    ) return true;
     if (this.isProtectedNationTarget(target)) return false;
 
     const now = this.game.ticks();
@@ -188,7 +192,10 @@ export class NationAttackBehavior extends AiAttackBehavior {
   }
 
   private recordNavalPressure(target: Player): void {
-    if (target.type() !== PlayerType.Human) return;
+    if (
+      this.game.config().gameConfig().gameType !== GameType.Singleplayer ||
+      target.type() !== PlayerType.Human
+    ) return;
     const difficulty = this.game.config().gameConfig().difficulty;
     const cooldownSeconds: Record<Difficulty, number> = {
       [Difficulty.Easy]: 45,
