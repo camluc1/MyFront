@@ -90,7 +90,7 @@ describe("LocalServer replay speed", () => {
 
     vi.advanceTimersByTime(1000);
     const atNormalSpeed = turns;
-    // 100ms interval at the default 1x multiplier: ~10 turns a second.
+    // The default 1.25x interval multiplier is a relaxed 0.8x game speed.
     expect(atNormalSpeed).toBeGreaterThanOrEqual(4);
 
     bus.emit(new ReplaySpeedChangeEvent(ReplaySpeedMultiplier.slow));

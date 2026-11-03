@@ -85,7 +85,7 @@ export class TribeAttackBehavior extends AiAttackBehavior {
     const { gameType, difficulty } = this.game.config().gameConfig();
     if (
       gameType !== GameType.Singleplayer ||
-      difficulty !== Difficulty.Easy && difficulty !== Difficulty.Medium ||
+      (difficulty !== Difficulty.Easy && difficulty !== Difficulty.Medium) ||
       !other.isPlayer() ||
       this.player.sharesBorderWith(other)
     ) {
