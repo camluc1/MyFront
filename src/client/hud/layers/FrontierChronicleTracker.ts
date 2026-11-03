@@ -162,7 +162,7 @@ export class FrontierChronicleTracker {
       this.announcedNuclearSmallIDs.clear();
       for (const player of players) {
         if (
-          (player.isNation ?? player.isAI) &&
+          (player.isNation || player.isHuman) &&
           (player.atomBombCount ?? 0) > 0
         ) {
           this.announcedNuclearSmallIDs.add(player.smallID);
