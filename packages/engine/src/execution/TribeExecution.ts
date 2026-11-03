@@ -1,4 +1,7 @@
-﻿import { Structures } from "@openfront/engine-api/game/GameTypes";
+﻿import {
+  Difficulty,
+  Structures,
+} from "@openfront/engine-api/game/GameTypes";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import {
   VersionedSchema,
@@ -17,7 +20,11 @@ import type {
 } from "../snapshot/SnapshotContext";
 import { AllianceExtensionExecution } from "./alliance/AllianceExtensionExecution";
 import { DeleteUnitExecution } from "./DeleteUnitExecution";
-import { TribeAttackBehavior } from "./TribeAttackBehavior";
+import {
+  getTribeAIDifficulty,
+  TRIBE_AI_DIFFICULTY_PROFILES,
+  TribeAttackBehavior,
+} from "./TribeAttackBehavior";
 
 export class TribeExecution implements Execution {
   private active = true;
@@ -47,6 +54,21 @@ export class TribeExecution implements Execution {
 
   init(mg: Game) {
     this.mg = mg;
+
+    const difficulty = getTribeAIDifficulty(mg.config().gameConfig());
+    if (difficulty !== Difficulty.Easy) {
+      const profile = TRIBE_AI_DIFFICULTY_PROFILES[difficulty];
+
+      // Re-seed from the same stable tribe ID before drawing the chosen profile.
+      // That keeps the result deterministic and leaves the Easy constructor
+      // sequence unchanged for existing games and snapshots.
+      this.random = new PseudoRandom(simpleHash(this.tribe.id()));
+      this.attackRate = this.random.nextInt(...profile.attackRate);
+      this.attackTick = this.random.nextInt(0, this.attackRate);
+      this.triggerRatio = this.random.nextInt(...profile.triggerRatio) / 100;
+      this.reserveRatio = this.random.nextInt(...profile.reserveRatio) / 100;
+      this.expandRatio = this.random.nextInt(...profile.expandRatio) / 100;
+    }
   }
 
   tick(ticks: number) {
