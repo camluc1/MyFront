@@ -151,16 +151,32 @@
       "Missile Silo": {
         "scale": 1.55,
         "iconFill": 0.85
+      },
+      "Farm": {
+        "scale": 1.1,
+        "iconFill": 0.92
+      },
+      "Mine": {
+        "scale": 1.12,
+        "iconFill": 0.9
+      },
+      "Oil Well": {
+        "scale": 1.12,
+        "iconFill": 0.9
+      },
+      "Gas Plant": {
+        "scale": 1.12,
+        "iconFill": 0.9
       }
     },
     "highlightOutlineWidth": 0.04,
     "highlightDimAlpha": 0.3,
     "fillDarken": 0.65,
     "borderDarken": 0.1,
-    "iconAlpha": 1.0,
-    "iconR": 1.0,
-    "iconG": 1.0,
-    "iconB": 1.0,
+    "iconAlpha": 1,
+    "iconR": 1,
+    "iconG": 1,
+    "iconB": 1,
     "iconDarken": 0
   },
   "structureLevel": {
@@ -197,9 +213,9 @@
     "veterancyPipGap": 1,
     "veterancyPipOffsetX": 1.5,
     "veterancyPipOffsetY": 3.5,
-    "veterancyR": 1.0,
+    "veterancyR": 1,
     "veterancyG": 0.84,
-    "veterancyB": 0.0
+    "veterancyB": 0
   },
   "unit": {
     "unitSize": 13,
@@ -208,7 +224,7 @@
     "angryG": 0,
     "angryB": 0,
     "hBombGlowScale": 2.2,
-    "hBombGlowR": 1.0,
+    "hBombGlowR": 1,
     "hBombGlowG": 0.72,
     "hBombGlowB": 0.15,
     "hBombGlowStrength": 0.5,
@@ -217,15 +233,15 @@
   },
   "name": {
     "lerpSpeed": 10,
-    "cullThreshold": 0.008,
-    "nameScaleFactor": 0.4,
+    "cullThreshold": 0,
+    "nameScaleFactor": 0.48,
     "nameScaleCap": 3,
-    "troopSizeMultiplier": 0.6,
-    "outlineWidth": 1.4,
-    "outlineR": 0.0,
-    "outlineG": 0.0,
-    "outlineB": 0.0,
-    "outlineUsePlayerColor": true,
+    "troopSizeMultiplier": 0.85,
+    "outlineWidth": 1.35,
+    "outlineR": 0,
+    "outlineG": 0,
+    "outlineB": 0,
+    "outlineUsePlayerColor": false,
     "fillUsePlayerColor": false,
     "nameShadeNation": 0.3,
     "nameShadeBot": 0.4,
@@ -330,7 +346,7 @@
   },
   "spawnOverlay": {
     "highlightRadius": 9,
-    "highlightAlpha": 1.0,
+    "highlightAlpha": 1,
     "selfMinRad": 10,
     "selfMaxRad": 30,
     "mateMinRad": 5,
@@ -340,7 +356,11 @@
     "gradientSolidEnd": 0.1
   },
   "smallPlayerGlow": {
-    "color": [1.0, 0.12, 0.1],
+    "color": [
+      1,
+      0.12,
+      0.1
+    ],
     "alpha": 0.9,
     "pulseSpeed": 0.003,
     "strength": 0.35

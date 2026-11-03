@@ -24,6 +24,8 @@ const int MAX_CHARS_PER_LINE = MAX_CHARS;
 const int LINES = LINES_PER_PLAYER;
 uniform float uLerpSpeed;
 uniform float uCullThreshold;
+// 11 CSS px in normalized device coordinates: names must remain legible.
+uniform float uMinScreenSize;
 uniform float uNameScaleFactor;
 uniform float uNameScaleCap;
 uniform float uTroopSizeMultiplier;
@@ -115,21 +117,17 @@ void main() {
   // uCamera[0][0] is the x-scale component of the camera matrix
   float cameraScale = length(vec2(uCamera[0][0], uCamera[1][0]));
   float screenSize = nameWorldScale * uBase * cameraScale;
-  // Targeted names bypass the cull, boosted to the smallest size that
-  // survives it, so a mark set from across the map is still visible.
-  if (isTargeted && screenSize < uCullThreshold) {
-    float boost = uCullThreshold / screenSize;
+  // Previously tiny names were culled or reduced to unreadable vertical
+  // bars. Keep every alive player visible and enlarge small text, but cap
+  // enlargement to avoid flooding the world view at extreme zoom-out.
+  float minSize = isTargeted
+    ? max(uMinScreenSize * 1.25, uCullThreshold)
+    : uMinScreenSize;
+  if (screenSize > 0.000001 && screenSize < minSize) {
+    float boost = min(minSize / screenSize, isTargeted ? 12.0 : 6.0);
     nameWorldScale *= boost;
     worldScale *= boost;
-    screenSize = uCullThreshold;
-  }
-  if (screenSize < uCullThreshold && !isHighlighted) {
-    gl_Position = vec4(0.0);
-    vUV = vec2(0.0);
-    vPlayerColor = vec4(0.0);
-    vNameShade = 0.0;
-    vHighlight = 0.0;
-    return;
+    screenSize *= boost;
   }
 
   // 6. Read pre-computed centered cursor X position

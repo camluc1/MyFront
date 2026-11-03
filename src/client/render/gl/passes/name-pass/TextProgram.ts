@@ -42,6 +42,7 @@ export class TextProgram {
   private uDistRange: WebGLUniformLocation;
   private uLerpSpeed: WebGLUniformLocation;
   private uCullThreshold: WebGLUniformLocation;
+  private uMinScreenSize: WebGLUniformLocation;
   private uNameScaleFactor: WebGLUniformLocation;
   private uNameScaleCap: WebGLUniformLocation;
   private uTroopSizeMultiplier: WebGLUniformLocation;
@@ -108,6 +109,7 @@ export class TextProgram {
       this.program,
       "uCullThreshold",
     )!;
+    this.uMinScreenSize = gl.getUniformLocation(this.program, "uMinScreenSize")!;
     this.uNameScaleFactor = gl.getUniformLocation(
       this.program,
       "uNameScaleFactor",
@@ -188,6 +190,8 @@ export class TextProgram {
     gl.uniform1f(this.uDistRange, this.distanceRange);
     gl.uniform1f(this.uLerpSpeed, ns.lerpSpeed);
     gl.uniform1f(this.uCullThreshold, ns.cullThreshold);
+    const dpr = typeof window === "undefined" ? 1 : (window.devicePixelRatio || 1);
+    gl.uniform1f(this.uMinScreenSize, (2 * 11 * dpr) / Math.max(1, gl.drawingBufferHeight));
     gl.uniform1f(this.uNameScaleFactor, ns.nameScaleFactor);
     gl.uniform1f(this.uNameScaleCap, ns.nameScaleCap);
     gl.uniform1f(this.uTroopSizeMultiplier, ns.troopSizeMultiplier);

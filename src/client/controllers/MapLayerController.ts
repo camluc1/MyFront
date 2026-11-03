@@ -39,13 +39,17 @@ async function buildResourceLayer(map: TerrainMapData["gameMap"], type: GameMapT
   if (!ctx) throw new Error("Resources overlay requires a 2D canvas");
   for (const deposit of resourceDeposits(map, type)) {
     ctx.fillStyle = resourceColors[deposit.resource];
-    ctx.globalAlpha = 0.76;
+    // Thin translucent geological outlines, never an opaque wash over
+    // players' colors. Territorial borders remain the visual priority.
     ctx.beginPath();
     ctx.arc(deposit.x + 0.5, deposit.y + 0.5, deposit.radius, 0, Math.PI * 2);
+    ctx.globalAlpha = 0.14;
     ctx.fill();
-    ctx.globalAlpha = 0.95;
+    ctx.globalAlpha = 0.92;
+    ctx.lineWidth = Math.max(1.5, deposit.radius / 9);
+    ctx.stroke();
     if (deposit.radius >= 5) {
-      ctx.fillStyle = "#122032";
+      ctx.fillStyle = "#091827";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.font = `bold ${Math.max(5, Math.floor(deposit.radius * 0.68))}px sans-serif`;
@@ -83,7 +87,7 @@ export class MapLayerController implements Controller {
     const normalLayers = this.gameMap.layers ?? [];
     const allLayers: MapLayer[] = [
       ...normalLayers,
-      { id: RESOURCE_LAYER_ID, placement: "land", nukeable: false, alpha: 0.83 },
+      { id: RESOURCE_LAYER_ID, placement: "land", nukeable: false, alpha: 0.65 },
     ];
     void Promise.all([
       loadLayerImages(this.gameMapType, this.gameMapSize, this.mapLoader, normalLayers),
@@ -99,7 +103,7 @@ export class MapLayerController implements Controller {
       );
       this.view.setLayerVisible(RESOURCE_LAYER_ID,
         this.resourcesEnabled || this.temporaryResourcesEnabled);
-      this.view.setLayerAlpha(RESOURCE_LAYER_ID, 0.83);
+      this.view.setLayerAlpha(RESOURCE_LAYER_ID, 0.65);
     }).catch((e) =>
       console.warn("[MapLayerController] Failed to prepare map/resource layers:", e)
     );

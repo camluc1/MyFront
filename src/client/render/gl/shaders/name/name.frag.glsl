@@ -30,9 +30,13 @@ void main() {
   float t = 1.0 - uNightAmbient;
   float borderT = t * t;
 
-  // Compute fill color: player color, or per-type grayscale shade
-  // (black for human, grayer for nation/bot). Applies in day and night.
-  vec3 defaultFill = vec3(vNameShade);
+  // High-contrast legibility on any country color. Dark nations get
+  // white text and a charcoal edge; pale nations get charcoal text and a
+  // near-white edge. The player's chosen color-name override still wins.
+  float territoryLuma = dot(vPlayerColor.rgb, vec3(0.299, 0.587, 0.114));
+  float onDark = 1.0 - smoothstep(0.39, 0.54, territoryLuma);
+  vec3 defaultFill = mix(vec3(0.08), vec3(0.98), onDark);
+  vec3 legibleOutline = mix(vec3(0.96), vec3(0.04), onDark);
   vec3 fillColor = mix(defaultFill, vPlayerColor.rgb, uFillUsePlayerColor);
 
   vec3 msd = texture(uAtlas, vUV).rgb;
@@ -56,8 +60,9 @@ void main() {
     float outlineDist = screenPxDist + effectiveOutline;
     float outlineAlpha = clamp(outlineDist + 0.5, 0.0, 1.0);
 
-    vec3 nightOutlineColor = mix(vec3(0.0), uOutlineColor, borderT);
-    vec3 borderColor = mix(nightOutlineColor, vPlayerColor.rgb, uOutlineUsePlayerColor);
+    // Keep names/troop figures readable at night too; don't let an
+    // ambient-daylight transition make the outline blend into its fill.
+    vec3 borderColor = mix(legibleOutline, vPlayerColor.rgb, uOutlineUsePlayerColor);
     color = mix(borderColor, fillColor, fillAlpha);
     coverage = outlineAlpha;
   } else {

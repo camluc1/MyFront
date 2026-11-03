@@ -778,11 +778,15 @@ export class NamePass {
       let nameWorldScale = (nameSize * nameScale) / this.fontSize;
       let lineH = this.fontBase * nameWorldScale;
       const screenSize = lineH * cameraScale;
-      // The shaders enlarge targeted nameplates to the cull threshold so they
-      // stay visible at any zoom. Apply the same boost to the hit-test bounds.
-      if (slot.target && screenSize < ns.cullThreshold) {
-        const boost = ns.cullThreshold / screenSize;
-        nameWorldScale *= boost;
+      // Match the text shader's 11 CSS-px minimum and bounded scaling,
+      // so pointer hover/click regions track the visible name and troop line.
+      const dpr = typeof window === "undefined" ? 1 : (window.devicePixelRatio || 1);
+      const minimum = (2 * 11 * dpr) / Math.max(1, this.gl.drawingBufferHeight);
+      const minSize = slot.target
+        ? Math.max(minimum * 1.25, ns.cullThreshold)
+        : minimum;
+      if (screenSize > 0.000001 && screenSize < minSize) {
+        nameWorldScale *= Math.min(minSize / screenSize, slot.target ? 12 : 6);
         lineH = this.fontBase * nameWorldScale;
       }
 
