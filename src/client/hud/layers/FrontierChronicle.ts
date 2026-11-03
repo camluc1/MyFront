@@ -178,7 +178,7 @@ export class FrontierChronicle extends LitElement implements Controller {
 
     return html`
       ${this.peaceRemainingSeconds > 0
-        ? html`<div class="pointer-events-none fixed top-4 left-1/2 z-[1001] -translate-x-1/2">
+        ? html`<div class="pointer-events-none fixed top-[5.5rem] left-1/2 z-[1001] -translate-x-1/2">
             <div class="rounded-xl border border-cyan-300/30 bg-slate-950/95 px-5 py-2.5 text-center text-white shadow-2xl backdrop-blur-xl">
               <div class="text-[9px] font-black tracking-[0.22em] text-cyan-200">PAZ ENTRE NACIONES</div>
               <div class="mt-0.5 text-lg font-black tabular-nums text-white">${this.formatCountdown(this.peaceRemainingSeconds)}</div>

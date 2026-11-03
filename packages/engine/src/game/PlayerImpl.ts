@@ -1915,8 +1915,25 @@ export class PlayerImpl implements Player {
     player: Player,
     treatAFKFriendly: boolean = false,
   ): boolean {
+    const attackerIsNationState =
+      this.type() === PlayerType.Nation || this.type() === PlayerType.Human;
+    const targetIsNationState =
+      player.type() === PlayerType.Nation || player.type() === PlayerType.Human;
+    const nationIsInvolved =
+      this.type() === PlayerType.Nation || player.type() === PlayerType.Nation;
+
+    // Peace is mutual between nation-states, but deliberately excludes tribes/bots.
+    if (
+      attackerIsNationState &&
+      targetIsNationState &&
+      nationIsInvolved &&
+      this.mg.isNationSpawnImmunityActive()
+    ) {
+      return false;
+    }
+
     if (this.type() !== PlayerType.Human) {
-      // Only human attackers respect PVP immunity
+      // Only human attackers respect ordinary PVP immunity.
       return !this.isFriendly(player, treatAFKFriendly);
     }
     return !player.isImmune() && !this.isFriendly(player, treatAFKFriendly);
