@@ -10,6 +10,7 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
+import { resourceAt, resourceDeposits } from "@openfront/engine-lib/game/NaturalResources";
 import {
   readVersioned,
   snapshotType,
@@ -665,6 +666,12 @@ export class NationStructureBehavior {
       return true;
     }
 
+    // Natural-resource investments share the same money, cooldown and
+    // construction execution as every existing nation build.
+    if (this.placementsCount > 1 && this.maybeDevelopNaturalResources()) {
+      return true;
+    }
+
     // The nation's doctrine changes its development emphasis without
     // replacing the common economy or removing any buildable structure.
     const buildOrder: UnitType[] =
@@ -733,6 +740,68 @@ export class NationStructureBehavior {
     }
 
     return false;
+  }
+
+  /**
+   * Invest in high-quality deposits after a nation has established its normal
+   * economic structures. Deterministic, low-frequency, bounded search.
+   * This does not modify attack priorities or create a second currency.
+   */
+  private maybeDevelopNaturalResources(): boolean {
+    const { difficulty } = this.game.config().gameConfig();
+    const chance: Record<Difficulty, number> = {
+      [Difficulty.Easy]: 12,
+      [Difficulty.Medium]: 22,
+      [Difficulty.Hard]: 32,
+      [Difficulty.Impossible]: 42,
+    };
+    if (this.random.nextInt(0, 100) >= chance[difficulty]) return false;
+    const player = this.player;
+    const game = this.game;
+    const types = [UnitType.Farm, UnitType.Mine, UnitType.OilWell, UnitType.GasPlant] as const;
+    const current = types.flatMap((type) => player.units(type));
+    const limit = Math.max(1, Math.min(9, Math.ceil(this.cityCount() * 0.8)));
+    if (current.length >= limit) {
+      // Upgrade an established, productive site instead of filling the map.
+      for (const unit of current) {
+        const deposit = resourceAt(game.map(), game.config().gameConfig().gameMap, unit.tile());
+        if (deposit?.resource !== "fertile_soil" &&
+            deposit && game.resourceRemaining(deposit.id, deposit.capacity) <= 0) continue;
+        if (player.canUpgradeUnit(unit) && player.gold() >= this.cost(unit.type()) * 2n) {
+          game.addExecution(new UpgradeStructureExecution(player, unit.id(), 1));
+          return true;
+        }
+      }
+      return false;
+    }
+    const map = game.map();
+    const mapType = game.config().gameConfig().gameMap;
+    const deposits = resourceDeposits(map, mapType);
+    let best: { type: UnitType; tile: TileRef; score: number } | null = null;
+    for (const site of deposits) {
+      if (site.resource !== "fertile_soil" &&
+          game.resourceRemaining(site.id, site.capacity) <= 0) continue;
+      const type =
+        site.resource === "fertile_soil" ? UnitType.Farm :
+        site.resource === "oil" ? UnitType.OilWell :
+        site.resource === "gas" ? UnitType.GasPlant : UnitType.Mine;
+      if (game.config().isUnitDisabled(type)) continue;
+      const center = map.ref(site.x, site.y);
+      if (game.owner(center) !== player) continue;
+      const price = this.cost(type);
+      if (player.gold() < price * 2n) continue;
+      const tile = player.canBuild(type, center);
+      if (tile === false) continue;
+      const score = site.quality * 100 + (
+        site.resource === "oil" ? 55 :
+        site.resource === "gold" ? 45 :
+        site.resource === "gas" ? 30 : 0
+      ) - Number(price / 10000n);
+      if (!best || score > best.score) best = { type, tile, score };
+    }
+    if (!best) return false;
+    game.addExecution(new ConstructionExecution(player, best.type, best.tile));
+    return true;
   }
 
   // Cities owned, or a territory-based equivalent when cities are disabled
