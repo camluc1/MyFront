@@ -118,6 +118,7 @@ export class StructurePass {
   private paletteTex: WebGLTexture;
   private effectTex: WebGLTexture;
   private atlasTex: WebGLTexture;
+  private disposed = false;
   private affiliationTex: WebGLTexture | null = null;
   private altView = false;
 
@@ -286,43 +287,80 @@ export class StructurePass {
     gl.bindVertexArray(null);
   }
 
+  /**
+   * Construct the ten-column atlas without mutating WebGL state while any
+   * image is loading. A previous version bound TEXTURE1 BEFORE awaiting
+   * four SVG decodes, then wrote texImage2D to whichever texture the render
+   * loop had selected in the meantime. That corrupted borders, font data or
+   * other shared GPU textures and left icon quads looking like solid squares.
+   */
   private async loadAtlas(): Promise<void> {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = iconAtlasUrl;
-    await img.decode();
-    const gl = this.gl;
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, this.atlasTex);
-    // Extend the six-column original atlas without re-ordering existing glyphs.
-    const icons = await Promise.all([
-      "FarmIconWhite.svg", "MineIconWhite.svg",
-      "OilWellIconWhite.svg", "GasPlantIconWhite.svg",
-    ].map(async (name) => {
-      const symbol = new Image();
-      symbol.src = assetUrl("images/" + name);
-      await symbol.decode();
-      return symbol;
-    }));
-    const columns = 6;
-    const colW = img.width / columns;
-    const composite = document.createElement("canvas");
-    composite.width = Math.round(colW * ATLAS_COLS);
-    composite.height = img.height;
-    const ctx = composite.getContext("2d");
-    if (!ctx) throw new Error("Cannot create resource structure atlas");
-    ctx.drawImage(img, 0, 0);
-    for (let i = 0; i < icons.length; i++) {
-      ctx.drawImage(icons[i], Math.round((columns + i) * colW), 0,
-        Math.round(colW), img.height);
+    try {
+      const original = new Image();
+      original.crossOrigin = "anonymous";
+      original.src = iconAtlasUrl;
+      await original.decode();
+
+      const names = [
+        "FarmIconWhite.svg", "MineIconWhite.svg",
+        "OilWellIconWhite.svg", "GasPlantIconWhite.svg",
+      ];
+      const icons = await Promise.all(names.map(async (name): Promise<HTMLImageElement | null> => {
+        const icon = new Image();
+        icon.crossOrigin = "anonymous";
+        icon.src = assetUrl("images/" + name);
+        try {
+          await icon.decode();
+          return icon;
+        } catch (error) {
+          // A missing new pictogram must not blank the old six icons.
+          console.warn("[StructurePass] Cannot load icon:", name, error);
+          return null;
+        }
+      }));
+      if (this.disposed) return;
+
+      const oldColumns = 6;
+      const colW = original.width / oldColumns;
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(colW * ATLAS_COLS);
+      canvas.height = original.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Cannot create structure icon canvas");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(original, 0, 0);
+      for (let k = 0; k < icons.length; k++) {
+        const icon = icons[k];
+        if (icon !== null) {
+          ctx.drawImage(icon, Math.round((oldColumns + k) * colW),
+            0, Math.round(colW), canvas.height);
+        }
+      }
+
+      // IMPORTANT: only bind/upload AFTER every await. Preserve the active
+      // texture unit, bound texture and unpack flags for the rest of WebGL.
+      const gl = this.gl;
+      const previousActive = gl.getParameter(gl.ACTIVE_TEXTURE) as number;
+      gl.activeTexture(gl.TEXTURE1);
+      const previousBinding = gl.getParameter(gl.TEXTURE_BINDING_2D) as WebGLTexture | null;
+      const oldFlip = gl.getParameter(gl.UNPACK_FLIP_Y_WEBGL) as boolean;
+      const oldPremultiply = gl.getParameter(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL) as boolean;
+      try {
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+        gl.bindTexture(gl.TEXTURE_2D, this.atlasTex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      } finally {
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, oldFlip);
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, oldPremultiply);
+        gl.bindTexture(gl.TEXTURE_2D, previousBinding);
+        gl.activeTexture(previousActive);
+      }
+    } catch (error) {
+      console.error("[StructurePass] Failed to load icon atlas:", error);
     }
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, composite);
-    gl.generateMipmap(gl.TEXTURE_2D);
-    gl.texParameteri(
-      gl.TEXTURE_2D,
-      gl.TEXTURE_MIN_FILTER,
-      gl.LINEAR_MIPMAP_LINEAR,
-    );
   }
 
   setLocalPlayer(smallID: number): void {
@@ -519,6 +557,7 @@ export class StructurePass {
   }
 
   dispose(): void {
+    this.disposed = true;
     const gl = this.gl;
     gl.deleteProgram(this.program);
     this.instanceBuf.dispose();

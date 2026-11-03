@@ -665,6 +665,8 @@ export class UnitDisplay extends LitElement implements Controller {
       return html``;
     }
     const selected = this.uiState.ghostStructure === unitType;
+    const naturalResource = unitType === UnitType.Farm || unitType === UnitType.Mine ||
+      unitType === UnitType.OilWell || unitType === UnitType.GasPlant;
     const displayHotkey = hotkey
       .replace("Digit", "")
       .replace("Key", "")
@@ -693,13 +695,16 @@ export class UnitDisplay extends LitElement implements Controller {
         <div
           class="${
             this.canBuild(unitType) ? "" : "opacity-40"
-          } border border-slate-500 rounded-sm min-h-11 w-full px-1 pb-0.5 flex items-center justify-center gap-0.5 cursor-pointer lg:min-h-0 lg:px-0.5 lg:justify-start landscape:px-0.5
+          } border ${naturalResource
+            ? "border-emerald-400/60 rounded-xl bg-slate-800/50"
+            : "border-slate-500 rounded-sm"
+          } min-h-11 w-full px-1 pb-0.5 flex items-center justify-center gap-0.5 cursor-pointer lg:min-h-0 lg:px-0.5 lg:justify-start landscape:px-0.5
              ${
             selected
               ? "pointer-fine:hover:bg-gray-400/10"
               : "pointer-fine:hover:bg-gray-800"
           }
-             rounded-sm text-white ${selected ? "bg-slate-400/20" : ""}
+             text-white ${selected ? "bg-slate-400/20" : ""}
              ${this.tutorialHighlight === unitType ? "tutorial-highlight" : ""}"
           @click=${(event: Event) => {
             const item = (event.currentTarget as HTMLElement).closest(
