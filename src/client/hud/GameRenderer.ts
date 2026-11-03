@@ -1,3 +1,4 @@
+import { GameType } from "@openfront/engine-api/game/GameTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { Controller } from "../Controller";
 import { AmbienceController } from "../controllers/AmbienceController";
@@ -385,11 +386,15 @@ export function createRenderer(
     performanceOverlay,
   ];
 
+  const frontierHud =
+    game.config().gameConfig().gameType === GameType.Singleplayer;
+
   return new GameRenderer(
     transformHandler,
     uiState,
     layers,
     performanceOverlay,
+    frontierHud,
   );
 }
 
@@ -401,6 +406,7 @@ export class GameRenderer {
     public uiState: UIState,
     private layers: Controller[],
     private performanceOverlay: PerformanceOverlay,
+    private frontierHud: boolean,
   ) {}
 
   private onResize = () => {
@@ -408,6 +414,8 @@ export class GameRenderer {
   };
 
   initialize() {
+    document.body.classList.toggle("frontier-hud", this.frontierHud);
+
     loadAllSprites().catch((err) =>
       console.warn("Failed to preload sprites:", err),
     );
@@ -422,6 +430,9 @@ export class GameRenderer {
 
   dispose() {
     window.removeEventListener("resize", this.onResize);
+    if (this.frontierHud) {
+      document.body.classList.remove("frontier-hud");
+    }
   }
 
   tick() {
