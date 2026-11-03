@@ -5,6 +5,7 @@ import {
 } from "@openfront/engine-api/game/GameUpdates";
 import {
   intToUnitType,
+  PACKED_UNIT_TYPES,
   PackedUnitUpdateDecoder,
   packUnitUpdates as packUnitUpdatesFn,
   unpackUnitUpdates as unpackUnitUpdatesFn,
@@ -13,6 +14,48 @@ import {
 import { describe, expect, it } from "vitest";
 
 describe("PackedUnitUpdates", () => {
+  it("registers every engine unit type in the packed wire format", () => {
+    // A new building without a wire ID throws in packUnitUpdates and stops
+    // the match immediately after the player places it.
+    expect(new Set(PACKED_UNIT_TYPES)).toEqual(new Set(Object.values(UnitType)));
+    expect(PACKED_UNIT_TYPES.length).toBeLessThanOrEqual(31); // 5-bit field
+  });
+
+  it("round-trips every new resource building without changing old IDs", () => {
+    expect(unitTypeToInt(UnitType.Factory)).toBe(16);
+    const resources = [
+      UnitType.Farm, UnitType.Mine, UnitType.OilWell, UnitType.GasPlant,
+    ];
+    for (const [index, type] of resources.entries()) {
+      expect(unitTypeToInt(type)).toBe(17 + index);
+      expect(intToUnitType(17 + index)).toBe(type);
+      const original: UnitUpdate = {
+        type: GameUpdateType.Unit,
+        unitType: type,
+        troops: 0,
+        id: 100 + index,
+        ownerID: 2,
+        lastOwnerID: undefined,
+        pos: 400 + index,
+        lastPos: 400 + index,
+        isActive: true,
+        reachedTarget: false,
+        targetable: true,
+        markedForDeletion: false,
+        targetUnitId: undefined,
+        targetTile: undefined,
+        health: 1,
+        underConstruction: true,
+        level: 1,
+        hasTrainStation: false,
+        trainType: undefined,
+        loaded: undefined,
+        missileTimerQueue: [],
+      };
+      const { packedUnitUpdates, packedMissileTimers } = packUnitUpdatesFn([original]);
+      expect(unpackUnitUpdatesFn(packedUnitUpdates, packedMissileTimers)).toEqual([original]);
+    }
+  });
   it("packs and unpacks a complex UnitUpdate without fidelity loss", () => {
     const original: UnitUpdate = {
       type: GameUpdateType.Unit,

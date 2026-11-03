@@ -5,6 +5,7 @@ import {
 } from "@openfront/engine-api/game/GameTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { describe, expect, test, vi } from "vitest";
+import { ToggleResourcesEvent } from "../../src/client/controllers/MapLayerController";
 import type { UnitDisplay } from "../../src/client/hud/layers/UnitDisplay";
 import "../../src/client/hud/layers/UnitDisplay";
 import {
@@ -86,6 +87,34 @@ function dispatchTouch(target: EventTarget, type: string, identifier: number) {
 }
 
 describe("mobile UnitDisplay layout", () => {
+  test("shows a persistent resource toggle outside the scrolling build list", async () => {
+    const { display, eventBus } = makeDisplay();
+    const events: ToggleResourcesEvent[] = [];
+    eventBus.on(ToggleResourcesEvent, (e) => events.push(e));
+    try {
+      await display.updateComplete;
+      const button = display.querySelector<HTMLButtonElement>(
+        "[data-frontier-resources-toggle]",
+      );
+      expect(button).not.toBeNull();
+      expect(button!.closest(".unit-display-scroll")).toBeNull();
+      expect(button!.getAttribute("aria-pressed")).toBe("false");
+      button!.click();
+      await display.updateComplete;
+      expect(events).toHaveLength(1);
+      expect(events[0].enabled).toBe(true);
+      expect(events[0].temporary).toBe(false);
+      expect(button!.getAttribute("aria-pressed")).toBe("true");
+      button!.click();
+      await display.updateComplete;
+      expect(events).toHaveLength(2);
+      expect(events[1].enabled).toBe(false);
+      expect(button!.getAttribute("aria-pressed")).toBe("false");
+    } finally {
+      display.remove();
+    }
+  });
+
   test("keeps the quick-build items in one horizontally scrollable row", async () => {
     const { display } = makeDisplay();
     try {
@@ -106,8 +135,8 @@ describe("mobile UnitDisplay layout", () => {
       expect(grid?.classList.contains("max-[360px]:auto-cols-[44px]")).toBe(
         true,
       );
-      expect(grid?.children).toHaveLength(10);
-      expect(grid?.style.getPropertyValue("--unit-display-columns")).toBe("10");
+      expect(grid?.children).toHaveLength(BuildMenus.types.length);
+      expect(grid?.style.getPropertyValue("--unit-display-columns")).toBe(String(BuildMenus.types.length));
     } finally {
       display.remove();
     }

@@ -9,8 +9,9 @@ import { renderNumber } from "@openfront/engine-lib/Format";
 import { EventBus } from "@openfront/shared/EventBus";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, LitElement, nothing } from "lit";
-import { customElement } from "lit/decorators.js";
+import { customElement, state } from "lit/decorators.js";
 import { Controller } from "../../Controller";
+import { ToggleResourcesEvent } from "../../controllers/MapLayerController";
 import {
   InputHandler,
   ToggleStructureEvent,
@@ -55,6 +56,13 @@ export class UnitDisplay extends LitElement implements Controller {
   public uiState: UIState;
   public inputHandler: InputHandler;
   private playerBuildables: BuildableUnit[] | null = null;
+  // Visible outside the horizontally scrolling quick-build item list.
+  @state() private resourcesVisible = false;
+
+  private toggleResources(): void {
+    this.resourcesVisible = !this.resourcesVisible;
+    this.eventBus.emit(new ToggleResourcesEvent(this.resourcesVisible));
+  }
   private keybinds: Record<string, { value: string; key: string }> = {};
   private keyboardLayout = new KeyboardLayoutController(this);
   private _cities = 0;
@@ -505,6 +513,23 @@ export class UnitDisplay extends LitElement implements Controller {
         data-radial-click-through
         @contextmenu=${(event: Event) => event.preventDefault()}
       >
+        <div class="flex justify-end px-1 pb-1">
+          <button
+            type="button"
+            data-frontier-resources-toggle
+            data-radial-click-through
+            aria-pressed=${this.resourcesVisible}
+            title=${this.resourcesVisible ? "Ocultar recursos naturales" : "Mostrar recursos naturales"}
+            class="shrink-0 rounded-md border border-sky-400/70 bg-slate-900/90 px-3 py-1 text-xs font-semibold text-white
+              pointer-fine:hover:bg-slate-700 active:bg-slate-600"
+            @click=${(event: MouseEvent) => {
+              event.stopPropagation();
+              this.toggleResources();
+            }}
+          >
+            ${this.resourcesVisible ? "◉ Ocultar recursos" : "◎ Ver recursos"}
+          </button>
+        </div>
         <div
           class="unit-display-scroll w-full overflow-x-auto overflow-y-hidden overscroll-x-contain touch-pan-x lg:overflow-visible"
           @scroll=${this.onScroll}
