@@ -32,6 +32,20 @@ function mapsInCategory(category: MapCategory): MapInfo[] {
   return listedMaps.filter((m) => m.categories.includes(category));
 }
 
+const frontierRegionTypes: GameMapType[] = [
+  GameMapType.World,
+  GameMapType.NorthAmerica,
+  GameMapType.SouthAmerica,
+  GameMapType.Europe,
+  GameMapType.Africa,
+  GameMapType.Asia,
+  GameMapType.Oceania,
+];
+
+const frontierRegionMaps = frontierRegionTypes
+  .map((type) => listedMaps.find((map) => map.type === type))
+  .filter((map): map is MapInfo => map !== undefined);
+
 @customElement("map-picker")
 export class MapPicker extends LitElement {
   @property({ type: String }) selectedMap: GameMapType = GameMapType.World;
@@ -192,9 +206,27 @@ export class MapPicker extends LitElement {
     ) {
       featuredMapList = [selected, ...featuredMaps];
     }
-    return html`<div class="w-full">
-      ${this.renderSectionHeading(translateText("map_categories.featured"))}
-      ${this.renderMapGrid(featuredMapList)}
+    return html`<div class="w-full space-y-8">
+      <section class="space-y-4">
+        <div class="flex items-end justify-between gap-3">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-malibu-blue">
+              FRONTIER
+            </p>
+            <h3 class="mt-1 text-sm font-black uppercase tracking-[0.16em] text-white">
+              ${translateText("map.earth")}
+            </h3>
+          </div>
+          <span class="text-[10px] font-semibold uppercase tracking-widest text-white/35">
+            ${frontierRegionMaps.length} ${translateText("map.map")}
+          </span>
+        </div>
+        ${this.renderMapGrid(frontierRegionMaps)}
+      </section>
+      <section class="space-y-4">
+        ${this.renderSectionHeading(translateText("map_categories.featured"))}
+        ${this.renderMapGrid(featuredMapList)}
+      </section>
     </div>`;
   }
 
