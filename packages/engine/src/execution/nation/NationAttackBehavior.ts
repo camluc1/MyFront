@@ -1143,7 +1143,28 @@ export class NationAttackBehavior extends AiAttackBehavior {
     const candidates = enemies.filter(
       (enemy) => enemy.troops() <= this.player.troops() * 0.75,
     );
-    return findJuiciestTarget(this.game, candidates);
+    const original = findJuiciestTarget(this.game, candidates);
+    // Hard/Impossible nations consider existing productive infrastructure
+    // as a strategic target, without overriding the battle-strength checks.
+    // In particular, rich mines have more appeal than empty land.
+    if (candidates.length === 0) return original;
+    let richTarget: Player | null = null;
+    let richScore = 0;
+    for (const enemy of candidates) {
+      const infrastructure = enemy.units([
+        UnitType.Mine, UnitType.Farm, UnitType.OilWell, UnitType.GasPlant,
+      ]);
+      const score = infrastructure.reduce(
+        (sum, unit) => sum + (unit.isActive() && !unit.isUnderConstruction()
+          ? unit.level() : 0), 0
+      );
+      if (score > richScore) {
+        richTarget = enemy;
+        richScore = score;
+      }
+    }
+    // One building alone is not worth breaking existing target preferences.
+    return richScore >= 3 ? richTarget : original;
   }
 
   private findNearestIslandEnemy(): Player | null {

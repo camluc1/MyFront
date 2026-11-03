@@ -120,6 +120,10 @@ const SAM_PROTECTED_TYPES: readonly UnitType[] = [
   UnitType.Factory,
   UnitType.MissileSilo,
   UnitType.Port,
+  UnitType.Mine,
+  UnitType.Farm,
+  UnitType.OilWell,
+  UnitType.GasPlant,
 ];
 
 /** Percent chance to upgrade a SAM instead of building one when SAMs already cover every structure */
