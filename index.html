@@ -543,6 +543,7 @@
 
     <!-- Bottom HUD: <sm=column, sm..lg=2col (HUD left | events right), lg+=3col grid centered -->
     <div
+      data-frontier-hud="bottom"
       class="fixed bottom-0 left-0 w-full z-[200] flex flex-col pointer-events-none sm:flex-row sm:items-end lg:grid lg:grid-cols-[1fr_500px_1fr] lg:items-end min-[1200px]:px-4"
       style="
         padding-bottom: env(safe-area-inset-bottom);
@@ -561,6 +562,7 @@
           class="hidden w-full order-3 sm:order-none"
         ></tutorial-panel>
         <div
+          data-frontier-hud-panel="command"
           class="pointer-events-auto bg-gray-800/92 backdrop-blur-sm sm:rounded-tr-lg lg:rounded-t-lg min-[1200px]:rounded-lg shadow-lg order-3 sm:order-none z-10"
         >
           <control-panel class="w-full"></control-panel>
@@ -596,6 +598,7 @@
          sidebar: the card is centered when it fits and shifts right or narrows
          to clear the open leaderboard instead of covering it. -->
     <div
+      data-frontier-hud="top"
       class="contents lg:fixed lg:top-0 lg:inset-x-0 lg:z-1000 lg:grid lg:grid-cols-[minmax(max-content,1fr)_minmax(0,max-content)_minmax(max-content,1fr)] lg:items-start lg:pointer-events-none"
     >
       <game-left-sidebar
