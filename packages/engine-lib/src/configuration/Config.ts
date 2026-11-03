@@ -149,6 +149,13 @@ export class Config {
     );
   }
   nationSpawnImmunityDuration(): Tick {
+    const peaceMinutes = this._gameConfig.nationPeaceTimeMinutes;
+    if (
+      this._gameConfig.gameType === GameType.Singleplayer &&
+      typeof peaceMinutes === "number"
+    ) {
+      return peaceMinutes * 60 * 10;
+    }
     return DEFAULT_SPAWN_IMMUNITY_TICKS;
   }
   hasExtendedSpawnImmunity(): boolean {

@@ -59,6 +59,7 @@ export abstract class AiAttackBehavior {
     w: SnapshotWriter,
     botAttackTroopsSent: number,
     followedLandings: Attack[],
+    navalPressureCooldowns: Array<[number, number]> = [],
   ): Versioned {
     return w.versioned(AiAttackBehaviorSnapshot, {
       botAttackTroopsSent,
@@ -66,6 +67,7 @@ export abstract class AiAttackBehavior {
       triggerRatio: this.triggerRatio,
       reserveRatio: this.reserveRatio,
       expandRatio: this.expandRatio,
+      navalPressureCooldowns,
     });
   }
 
@@ -469,15 +471,22 @@ const AiAttackStateSchema = z.object({
   triggerRatio: zNum(),
   reserveRatio: zNum(),
   expandRatio: zNum(),
+  navalPressureCooldowns: z.array(z.tuple([zNum(), zNum()])).optional(),
 });
 type AiAttackState = z.infer<typeof AiAttackStateSchema>;
 
 export const AiAttackBehaviorSnapshot = snapshotType({
   name: "AiAttackBehavior",
-  version: 2,
+  version: 3,
   schema: AiAttackStateSchema,
   migrations: {
-    // v1 nations never followed up landings
-    1: (d) => ({ ...d, followedLandings: [] }),
+    // v1 nations never followed up landings and had no naval cooldown state.
+    1: (d) => ({
+      ...d,
+      followedLandings: [],
+      navalPressureCooldowns: [],
+    }),
+    // v2 added landing follow-ups but predates persisted naval pressure limits.
+    2: (d) => ({ ...d, navalPressureCooldowns: [] }),
   },
 });

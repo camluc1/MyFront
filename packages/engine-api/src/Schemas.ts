@@ -258,6 +258,8 @@ export type PoolConfig = z.infer<typeof PoolConfigSchema>;
 export const GameConfigSchema = z.object({
   gameMap: z.enum(GameMapType),
   difficulty: z.enum(Difficulty),
+  /** Initial non-aggression period between nations in single-player, in minutes. */
+  nationPeaceTimeMinutes: zb.uint({ min: 1, max: 5 }).optional(),
   donateGold: z.boolean(), // Configures donations to humans only
   donateTroops: z.boolean(), // Configures donations to humans only
   gameType: z.enum(GameType),
