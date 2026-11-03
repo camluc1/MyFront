@@ -1,3 +1,5 @@
+import type { GameMap } from "@openfront/engine-api/game/GameMap";
+
 /** Resource design profiles for all nation/region entries in the world map.
  * NOT active gameplay or geographic deposits. Ownership MUST NOT determine geology.
  * The next stage must author sparse, static per-tile resource zones independently.
@@ -97,4 +99,419 @@ export function worldResourceProfile(region: string): readonly NaturalResource[]
   return Object.prototype.hasOwnProperty.call(WORLD_RESOURCE_PROFILES, region)
     ? WORLD_RESOURCE_PROFILES[region as WorldResourceRegion]
     : [];
+}
+
+/** Fixed world-map reference points, from the authored map manifest.
+ * These are geographic anchors, never ownership or political borders.
+ */
+export const WORLD_REGION_ANCHORS = {
+  "United States": [
+    484,
+    284
+  ],
+  "Canada": [
+    374,
+    186
+  ],
+  "Mexico": [
+    375,
+    374
+  ],
+  "Cuba": [
+    500,
+    378
+  ],
+  "Colombia": [
+    527,
+    487
+  ],
+  "Venezuela": [
+    576,
+    466
+  ],
+  "Argentina": [
+    565,
+    737
+  ],
+  "Brazil": [
+    684,
+    574
+  ],
+  "Antarctica": [
+    1280,
+    975
+  ],
+  "Greenland": [
+    709,
+    57
+  ],
+  "Iceland": [
+    831,
+    112
+  ],
+  "United Kingdom": [
+    925,
+    186
+  ],
+  "Ireland": [
+    887,
+    183
+  ],
+  "Spain": [
+    908,
+    264
+  ],
+  "Italy": [
+    1004,
+    250
+  ],
+  "France": [
+    948,
+    221
+  ],
+  "Germany": [
+    990,
+    195
+  ],
+  "Sweden": [
+    1014,
+    137
+  ],
+  "Poland": [
+    1031,
+    193
+  ],
+  "Belarus": [
+    1102,
+    183
+  ],
+  "Romania": [
+    1073,
+    230
+  ],
+  "Türkiye": [
+    1123,
+    272
+  ],
+  "Norway": [
+    969,
+    133
+  ],
+  "Finland": [
+    1082,
+    126
+  ],
+  "Ukraine": [
+    1135,
+    210
+  ],
+  "Russia": [
+    1351,
+    134
+  ],
+  "Mongolia": [
+    1500,
+    203
+  ],
+  "China": [
+    1527,
+    303
+  ],
+  "India": [
+    1331,
+    353
+  ],
+  "Kazakhstan": [
+    1279,
+    207
+  ],
+  "Iran": [
+    1238,
+    309
+  ],
+  "Saudi Arabia": [
+    1178,
+    351
+  ],
+  "Australia": [
+    1679,
+    657
+  ],
+  "New Zealand": [
+    1890,
+    775
+  ],
+  "Algeria": [
+    957,
+    295
+  ],
+  "Libya": [
+    1024,
+    340
+  ],
+  "Egypt": [
+    1094,
+    340
+  ],
+  "Niger": [
+    956,
+    389
+  ],
+  "Sudan": [
+    1101,
+    400
+  ],
+  "DR Congo": [
+    1051,
+    513
+  ],
+  "Ethiopia": [
+    1153,
+    451
+  ],
+  "South Africa": [
+    1075,
+    707
+  ],
+  "Madagascar": [
+    1194,
+    627
+  ],
+  "Chad": [
+    1036,
+    420
+  ],
+  "Namibia": [
+    1039,
+    646
+  ],
+  "Philippines": [
+    1632,
+    465
+  ],
+  "Thailand": [
+    1502,
+    415
+  ],
+  "Taiwan": [
+    1610,
+    364
+  ],
+  "Japan": [
+    1710,
+    290
+  ],
+  "Siberia": [
+    1626,
+    118
+  ],
+  "Nunavut": [
+    422,
+    95
+  ],
+  "West Antarctica": [
+    419,
+    975
+  ],
+  "Peru": [
+    516,
+    567
+  ],
+  "Zambia": [
+    1097,
+    598
+  ],
+  "Latvia": [
+    1067,
+    168
+  ],
+  "Bhutan": [
+    1419,
+    338
+  ],
+  "Indonesia": [
+    1511,
+    524
+  ],
+  "East Antarctica": [
+    1809,
+    977
+  ],
+  "Oman": [
+    1255,
+    382
+  ],
+  "Morocco": [
+    886,
+    327
+  ],
+  "Uruguay": [
+    626,
+    704
+  ],
+  "Bolivia": [
+    581,
+    620
+  ],
+  "Alaska": [
+    95,
+    115
+  ],
+  "Yukon": [
+    243,
+    131
+  ],
+  "California": [
+    264,
+    276
+  ],
+  "Texas": [
+    371,
+    299
+  ],
+  "Quebec": [
+    532,
+    191
+  ],
+  "Benin": [
+    932,
+    476
+  ],
+  "Senegal": [
+    845,
+    425
+  ],
+  "Kenya": [
+    1152,
+    522
+  ],
+  "Pakistan": [
+    1320,
+    282
+  ],
+  "Sri Lanka": [
+    1384,
+    466
+  ]
+} as const satisfies Readonly<Record<WorldResourceRegion, readonly [number, number]>>;
+
+export interface ResourceDeposit {
+  /** A deterministic, map-local deposit ID (stable across clients/saves). */
+  id: number;
+  resource: NaturalResource;
+  x: number;
+  y: number;
+  radius: number;
+  quality: 1 | 2 | 3 | 4;
+  /** Production cycles available. Fertile soil does not deplete. */
+  capacity: number;
+}
+
+const depositCache = new WeakMap<GameMap, Map<string, readonly ResourceDeposit[]>>();
+
+function hash32(value: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    h ^= value.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+function clampInt(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, Math.round(value)));
+}
+function candidateOnLand(map: GameMap, x: number, y: number, radius: number): [number, number] | null {
+  if (map.isLand(map.ref(x,y))) return [x,y];
+  for (let r = 1; r <= Math.max(3, radius); r++) {
+    const steps = Math.max(8, r * 8);
+    for (let s = 0; s < steps; s++) {
+      const angle = (s * 2 * Math.PI) / steps;
+      const xx = clampInt(x + r * Math.cos(angle), 0, map.width()-1);
+      const yy = clampInt(y + r * Math.sin(angle), 0, map.height()-1);
+      if (map.isLand(map.ref(xx,yy))) return [xx,yy];
+    }
+  }
+  return null;
+}
+/** Same deterministic distribution on the engine worker and the client.
+ * The World map is authored country/region by country/region. Other maps
+ * use seeded regional clusters rather than a random value for every tile.
+ */
+export function resourceDeposits(map: GameMap, mapType: string): readonly ResourceDeposit[] {
+  let byMap = depositCache.get(map);
+  if (!byMap) {
+    byMap = new Map();
+    depositCache.set(map, byMap);
+  }
+  const cached = byMap.get(mapType);
+  if (cached) return cached;
+  const sites: ResourceDeposit[] = [];
+  const add = (resource: NaturalResource, tx: number, ty: number, radius: number, seed: number): void => {
+    const x = clampInt(tx, 0, map.width()-1);
+    const y = clampInt(ty, 0, map.height()-1);
+    const land = candidateOnLand(map, x, y, radius);
+    if (!land) return;
+    sites.push({
+      id: sites.length,
+      resource,
+      x: land[0],
+      y: land[1],
+      radius,
+      quality: ((seed % 4) + 1) as 1 | 2 | 3 | 4,
+      capacity: resource === "fertile_soil" ? Number.MAX_SAFE_INTEGER : 240 + (seed % 4) * 140,
+    });
+  };
+  if (mapType === "World") {
+    const sx = map.width() / 2000;
+    const sy = map.height() / 1000;
+    for (const [region, resources] of Object.entries(WORLD_RESOURCE_PROFILES)) {
+      const anchor = WORLD_REGION_ANCHORS[region as WorldResourceRegion];
+      const [ax, ay] = anchor;
+      for (const resource of resources) {
+        const count = resource === "fertile_soil" ? 3 : resource === "oil" || resource === "gas" ? 2 : 1;
+        for (let i = 0; i < count; i++) {
+          const seed = hash32(region + "|" + resource + "|" + i);
+          const angle = (seed % 6283) / 1000;
+          const offset = i === 0 ? 10 + (seed % 15) : 24 + (seed % 32);
+          const radius = Math.max(3, Math.round(
+            (resource === "fertile_soil" ? 19 : resource === "oil" || resource === "gas" ? 13 : 10) * sx
+          ));
+          add(resource, (ax + Math.cos(angle) * offset) * sx,
+            (ay + Math.sin(angle) * offset) * sy, radius, seed);
+        }
+      }
+    }
+  } else {
+    const cols = Math.max(5, Math.min(20, Math.ceil(map.width() / 90)));
+    const rows = Math.max(5, Math.min(20, Math.ceil(map.height() / 90)));
+    const stepX = map.width() / cols;
+    const stepY = map.height() / rows;
+    const genericTypes: readonly NaturalResource[] = NATURAL_RESOURCES;
+    for (let row=0; row<rows; row++) {
+      for (let col=0; col<cols; col++) {
+        const seed=hash32(mapType+"|"+col+"|"+row);
+        // Intentionally leave most terrain without exploitable resources.
+        if (seed%100 < 45) continue;
+        const res=genericTypes[(seed >>> 8) % genericTypes.length];
+        const radius=Math.max(2, Math.round(Math.min(stepX,stepY) * (res==="fertile_soil"?0.42:0.28)));
+        const px=(col+0.25+((seed>>>16)%50)/100)*stepX;
+        const py=(row+0.25+((seed>>>24)%50)/100)*stepY;
+        add(res,px,py,radius,seed);
+      }
+    }
+  }
+  byMap.set(mapType, sites);
+  return sites;
+}
+/** The overlay draws in site order; later overlapping circles win, as here. */
+export function resourceAt(map: GameMap, mapType: string, tile: number): ResourceDeposit | null {
+  if (!map.isValidRef(tile) || !map.isLand(tile)) return null;
+  const x=map.x(tile), y=map.y(tile);
+  const sites=resourceDeposits(map,mapType);
+  for(let i=sites.length-1; i>=0; i--) {
+    const site=sites[i];
+    const dx=x-site.x, dy=y-site.y;
+    if (dx*dx+dy*dy<=site.radius*site.radius) return site;
+  }
+  return null;
 }
