@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NATURAL_RESOURCES, RESOURCE_CATEGORY, WORLD_RESOURCE_PROFILES, worldResourceProfile } from "../../packages/engine-lib/src/game/NaturalResources";
+import { NATURAL_RESOURCES, RESOURCE_CATEGORY, WORLD_RESOURCE_PROFILES, worldResourceProfile } from "../packages/engine-lib/src/game/NaturalResources";
 describe("world natural resource profiles", () => {
   it("covers the 72 world-map entries", () => {
     expect(Object.keys(WORLD_RESOURCE_PROFILES)).toHaveLength(72);
