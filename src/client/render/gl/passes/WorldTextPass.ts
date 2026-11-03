@@ -12,6 +12,7 @@ import type { BonusEvent, ConquestFx } from "../../types";
 import type { RenderSettings } from "../RenderSettings";
 import { renderDpr } from "../utils/Dpr";
 import { createProgram } from "../utils/GlUtils";
+import { loadMsdfAtlasTexture } from "../utils/LoadMsdfAtlas";
 import type { GlyphTables } from "./name-pass/AtlasData";
 import { buildGlyphTables, parseAtlasData } from "./name-pass/AtlasData";
 import { buildGlyphMetricsTex } from "./name-pass/DataTextures";
@@ -109,6 +110,8 @@ export class WorldTextPass {
   private glyphMetricsTex: WebGLTexture;
   private atlasTex: WebGLTexture | null = null;
   private atlasReady = false;
+  private disposed = false;
+  private atlasScaleW: number;
 
   // CPU-side glyph tables for layoutString
   private glyph: GlyphTables;
@@ -168,6 +171,7 @@ export class WorldTextPass {
     this.distanceRange = atlas.distanceRange;
     this.fontSize = atlas.fontSize;
     this.atlasScaleH = atlas.scaleH;
+    this.atlasScaleW = atlas.scaleW;
     this.base = atlas.base;
 
     // Compile shaders
@@ -250,21 +254,18 @@ export class WorldTextPass {
   }
 
   private loadAtlas(): void {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      const gl = this.gl;
-      const tex = gl.createTexture()!;
-      gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      this.atlasTex = tex;
+    void loadMsdfAtlasTexture(
+      this.gl, atlasUrl, this.atlasScaleW, this.atlasScaleH,
+    ).then((texture) => {
+      if (this.disposed) {
+        this.gl.deleteTexture(texture);
+        return;
+      }
+      this.atlasTex = texture;
       this.atlasReady = true;
-    };
-    img.src = atlasUrl;
+    }).catch((error) => {
+      console.error("[WorldTextPass] MSDF font loading failed:", error);
+    });
   }
 
   setMapWidth(w: number): void {
@@ -620,6 +621,7 @@ export class WorldTextPass {
   }
 
   dispose(): void {
+    this.disposed = true;
     const gl = this.gl;
     gl.deleteProgram(this.program);
     gl.deleteBuffer(this.instanceBuf);

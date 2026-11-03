@@ -11,6 +11,7 @@ import type { RenderSettings } from "../../RenderSettings";
 import nameFragSrc from "../../shaders/name/name.frag.glsl?raw";
 import nameVertSrc from "../../shaders/name/name.vert.glsl?raw";
 import { createProgram, shaderSrc } from "../../utils/GlUtils";
+import { loadMsdfAtlasTexture } from "../../utils/LoadMsdfAtlas";
 import type { ParsedAtlas } from "./Types";
 import { LINES_PER_PLAYER, MAX_CHARS } from "./Types";
 
@@ -31,6 +32,9 @@ export class TextProgram {
   // Async-loaded MSDF atlas
   private atlasTex: WebGLTexture | null = null;
   private atlasReady = false;
+  private disposed = false;
+  private readonly atlasWidth: number;
+  private readonly atlasHeight: number;
 
   // Uniform locations
   private uCamera: WebGLUniformLocation;
@@ -62,6 +66,8 @@ export class TextProgram {
     this.gl = gl;
     this.textures = textures;
     this.distanceRange = atlas.distanceRange;
+    this.atlasWidth = atlas.scaleW;
+    this.atlasHeight = atlas.scaleH;
 
     this.program = createProgram(
       gl,
@@ -148,21 +154,18 @@ export class TextProgram {
   }
 
   private loadAtlas(): void {
-    const gl = this.gl;
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      const tex = gl.createTexture()!;
-      gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      this.atlasTex = tex;
+    void loadMsdfAtlasTexture(
+      this.gl, atlasUrl, this.atlasWidth, this.atlasHeight,
+    ).then((texture) => {
+      if (this.disposed) {
+        this.gl.deleteTexture(texture);
+        return;
+      }
+      this.atlasTex = texture;
       this.atlasReady = true;
-    };
-    img.src = atlasUrl;
+    }).catch((error) => {
+      console.error("[TextProgram] MSDF font loading failed:", error);
+    });
   }
 
   draw(
@@ -223,6 +226,7 @@ export class TextProgram {
   }
 
   dispose(): void {
+    this.disposed = true;
     const gl = this.gl;
     gl.deleteProgram(this.program);
     if (this.atlasTex) gl.deleteTexture(this.atlasTex);

@@ -25,6 +25,7 @@ import {
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import type { RenderSettings } from "../RenderSettings";
 import { createProgram } from "../utils/GlUtils";
+import { loadMsdfAtlasTexture } from "../utils/LoadMsdfAtlas";
 import type { GlyphTables } from "./name-pass/AtlasData";
 import { buildGlyphTables, parseAtlasData } from "./name-pass/AtlasData";
 import { buildGlyphMetricsTex } from "./name-pass/DataTextures";
@@ -136,6 +137,7 @@ export class StructureLevelPass {
   // Both fonts are loaded; draw() selects per settings.structureLevel.classicFont.
   private classic: FontBundle;
   private msdf: FontBundle;
+  private disposed = false;
   private kernTable: Int8Array; // shared zero table — digits don't kern
   private mapW: number;
 
@@ -285,6 +287,22 @@ export class StructureLevelPass {
   }
 
   private loadAtlas(url: string, bundle: FontBundle): void {
+    if (bundle === this.msdf) {
+      const atlas = parseAtlasData();
+      void loadMsdfAtlasTexture(this.gl, url, atlas.scaleW, atlas.scaleH)
+        .then((tex) => {
+          if (this.disposed) {
+            this.gl.deleteTexture(tex);
+            return;
+          }
+          bundle.atlasTex = tex;
+          bundle.atlasReady = true;
+        })
+        .catch((error) => {
+          console.error("[StructureLevelPass] MSDF font loading failed:", error);
+        });
+      return;
+    }
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
@@ -412,6 +430,7 @@ export class StructureLevelPass {
   }
 
   dispose(): void {
+    this.disposed = true;
     const gl = this.gl;
     gl.deleteProgram(this.program);
     this.instanceBuf.dispose();
