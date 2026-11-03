@@ -86,7 +86,13 @@ export class NaturalResourceExecution implements Execution {
       RESOURCE_BASE_GOLD[site.resource] * qualityMultiplier *
       upgradeMultiplier * factoryMultiplier * this.game.config().goldMultiplier()
     );
-    if (gold > 0) this.structure.owner().addGold(BigInt(gold));
+    if (gold > 0) {
+      const payout = BigInt(gold);
+      const owner = this.structure.owner();
+      owner.addGold(payout);
+      // Record resource earnings in the existing work-income statistics.
+      this.game.stats().goldWork(owner, payout);
+    }
   }
   isActive(): boolean { return this.active; }
   activeDuringSpawnPhase(): boolean { return false; }
