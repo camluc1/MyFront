@@ -120,6 +120,7 @@ const TUTORIAL_DISABLED_UNITS: UnitType[] = [
 const DEFAULT_OPTIONS = {
   selectedMap: GameMapType.World,
   selectedDifficulty: Difficulty.Easy,
+  nationPeaceTimeMinutes: 2,
   bots: 400,
   infiniteGold: false,
   infiniteTroops: false,
@@ -194,6 +195,8 @@ export class SinglePlayerModal extends BaseModal {
   @state() private selectedMap: GameMapType = DEFAULT_OPTIONS.selectedMap;
   @state() private selectedDifficulty: Difficulty =
     DEFAULT_OPTIONS.selectedDifficulty;
+  @state() private nationPeaceTimeMinutes: number =
+    DEFAULT_OPTIONS.nationPeaceTimeMinutes;
   @state() private nations: number = 0;
   @state() private defaultNationCount: number = 0;
   @state() private bots: number = DEFAULT_OPTIONS.bots;
@@ -488,6 +491,31 @@ export class SinglePlayerModal extends BaseModal {
 
   protected renderBody() {
     const inputCards = [
+      ...(this.nations > 0
+        ? [
+            html`<div class="col-span-2 rounded-xl p-4 border border-cyan-400/20 bg-cyan-400/[0.04] flex flex-col justify-center gap-2">
+              <label for="nation-peace-time" class="text-xs font-bold uppercase tracking-[0.16em] text-cyan-100">
+                Tiempo de paz entre naciones
+              </label>
+              <div class="flex items-center gap-3">
+                <select
+                  id="nation-peace-time"
+                  class="min-w-0 flex-1 rounded-lg border border-white/15 bg-slate-900 px-3 py-2 text-sm text-white"
+                  .value=${String(this.nationPeaceTimeMinutes)}
+                  @change=${this.handleNationPeaceTimeChange}
+                >
+                  ${[1, 2, 3, 4, 5].map(
+                    (minutes) => html`<option value=${minutes}>${minutes} minuto${minutes === 1 ? "" : "s"}</option>`,
+                  )}
+                </select>
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Solo naciones</span>
+              </div>
+              <p class="text-[11px] leading-relaxed text-slate-400">
+                Las naciones no podrán iniciar guerras entre sí ni contra vos durante este período. Las tribus y bots siguen actuando normalmente.
+              </p>
+            </div>`,
+          ]
+        : []),
       html`<toggle-input-card
         .labelKey=${"game_settings.max_timer"}
         .checked=${this.maxTimer}
@@ -700,6 +728,7 @@ export class SinglePlayerModal extends BaseModal {
   private hasOptionsChanged(): boolean {
     return (
       this.nations !== this.defaultNationCount ||
+      this.nationPeaceTimeMinutes !== DEFAULT_OPTIONS.nationPeaceTimeMinutes ||
       this.bots !== DEFAULT_OPTIONS.bots ||
       this.infiniteGold !== DEFAULT_OPTIONS.infiniteGold ||
       this.infiniteTroops !== DEFAULT_OPTIONS.infiniteTroops ||
@@ -822,6 +851,7 @@ export class SinglePlayerModal extends BaseModal {
     this.starting = false;
     this.selectedMap = DEFAULT_OPTIONS.selectedMap;
     this.selectedDifficulty = DEFAULT_OPTIONS.selectedDifficulty;
+    this.nationPeaceTimeMinutes = DEFAULT_OPTIONS.nationPeaceTimeMinutes;
     this.gameMode = DEFAULT_OPTIONS.gameMode;
     this.useRandomMap = DEFAULT_OPTIONS.useRandomMap;
     this.bots = DEFAULT_OPTIONS.bots;
@@ -1019,6 +1049,13 @@ export class SinglePlayerModal extends BaseModal {
   ) => {
     this.overtime = checked;
     this.overtimeStartMinutes = toOptionalNumber(value);
+  };
+
+  private handleNationPeaceTimeChange = (e: Event) => {
+    const value = Number((e.target as HTMLSelectElement).value);
+    if (Number.isInteger(value) && value >= 1 && value <= 5) {
+      this.nationPeaceTimeMinutes = value;
+    }
   };
 
   private handleOvertimeMinutesKeyDown = (e: KeyboardEvent) => {
@@ -1249,6 +1286,7 @@ export class SinglePlayerModal extends BaseModal {
             gameMode: this.gameMode,
             playerTeams: this.teamCount,
             difficulty: this.selectedDifficulty,
+            nationPeaceTimeMinutes: this.nationPeaceTimeMinutes,
             maxTimerValue: finalMaxTimerValue,
             bots: this.bots,
             infiniteGold: this.infiniteGold,

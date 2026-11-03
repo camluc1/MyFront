@@ -72,6 +72,8 @@ export class NationAttackBehavior extends AiAttackBehavior {
   // Only set during a maybeAttack call: our land neighbors
   private landNeighbors: Set<Player> | null = null;
   private strategicTarget: Player | null = null;
+  /** Per-target cooldowns prevent one nation from repeatedly reopening the same naval front. */
+  private navalPressureCooldownUntil = new Map<number, number>();
 
   constructor(
     random: PseudoRandom,
@@ -89,7 +91,12 @@ export class NationAttackBehavior extends AiAttackBehavior {
   }
 
   snapshot(w: SnapshotWriter): Versioned {
-    return this.writeRecord(w, this.botAttackTroopsSent, this.followedLandings);
+    return this.writeRecord(
+      w,
+      this.botAttackTroopsSent,
+      this.followedLandings,
+      [...this.navalPressureCooldownUntil.entries()],
+    );
   }
 
   /** Fills a prototype-only shell; only assigns (see README). */
@@ -113,11 +120,90 @@ export class NationAttackBehavior extends AiAttackBehavior {
     this.strategicTarget = null;
     this.botAttackTroopsSent = s.botAttackTroopsSent;
     this.followedLandings = s.followedLandings.map((i) => r.attack(i));
+    this.navalPressureCooldownUntil = new Map(
+      s.navalPressureCooldowns ?? [],
+    );
   }
 
   /** Set by NationExecution's single-player War Director before each campaign decision. */
   setStrategicTarget(target: Player | null): void {
     this.strategicTarget = target;
+  }
+
+  /** The initial peace applies to nation-states (including the human player), never to tribes/bots. */
+  override shouldAttack(other: Player | TerraNullius): boolean {
+    return !this.isProtectedNationTarget(other) && super.shouldAttack(other);
+  }
+
+  private isProtectedNationTarget(target: Player | TerraNullius): boolean {
+    return (
+      target.isPlayer() &&
+      this.game.isNationSpawnImmunityActive() &&
+      (target.type() === PlayerType.Nation || target.type() === PlayerType.Human)
+    );
+  }
+
+  /** Keep the surprise of naval raids, but cap simultaneous pressure on the human nation. */
+  private canStartNavalPressure(target: Player): boolean {
+    if (target.type() !== PlayerType.Human) return true;
+    if (this.isProtectedNationTarget(target)) return false;
+
+    const now = this.game.ticks();
+    if ((this.navalPressureCooldownUntil.get(target.smallID()) ?? 0) > now) {
+      return false;
+    }
+
+    const difficulty = this.game.config().gameConfig().difficulty;
+    const maxConcurrent: Record<Difficulty, number> = {
+      [Difficulty.Easy]: 1,
+      [Difficulty.Medium]: 2,
+      [Difficulty.Hard]: 3,
+      [Difficulty.Impossible]: 4,
+    };
+
+    let activeOperations = 0;
+    for (const nation of this.game.players()) {
+      if (nation.type() !== PlayerType.Nation) continue;
+
+      activeOperations += nation
+        .units(UnitType.TransportShip)
+        .filter((ship) => {
+          const destination = ship.targetTile();
+          return (
+            destination !== undefined &&
+            this.game.owner(destination) === target
+          );
+        }).length;
+
+      // A landed naval assault remains an active operation until its beachhead resolves.
+      activeOperations += nation
+        .outgoingAttacks()
+        .filter(
+          (attack) =>
+            attack.target() === target && attack.sourceTile() !== null,
+        ).length;
+    }
+
+    return activeOperations < maxConcurrent[difficulty];
+  }
+
+  private recordNavalPressure(target: Player): void {
+    if (target.type() !== PlayerType.Human) return;
+    const difficulty = this.game.config().gameConfig().difficulty;
+    const cooldownSeconds: Record<Difficulty, number> = {
+      [Difficulty.Easy]: 45,
+      [Difficulty.Medium]: 30,
+      [Difficulty.Hard]: 20,
+      [Difficulty.Impossible]: 12,
+    };
+    const now = this.game.ticks();
+    this.navalPressureCooldownUntil.set(
+      target.smallID(),
+      now + cooldownSeconds[difficulty] * 10,
+    );
+    for (const [smallID, expiresAt] of this.navalPressureCooldownUntil) {
+      if (expiresAt <= now) this.navalPressureCooldownUntil.delete(smallID);
+    }
   }
 
   maybeAttack() {
@@ -282,8 +368,10 @@ export class NationAttackBehavior extends AiAttackBehavior {
     if (this.sail(launch, dst).blocker !== null) return;
 
     const owner = this.game.owner(dst);
+    if (owner.isPlayer() && !this.canStartNavalPressure(owner)) return;
     if (this.landsBeachheads()) {
-      this.sendBeachhead(owner, dst);
+      const sent = this.sendBeachhead(owner, dst);
+      if (sent && owner.isPlayer()) this.recordNavalPressure(owner);
       return;
     }
     const cap = owner.isPlayer()
@@ -300,6 +388,7 @@ export class NationAttackBehavior extends AiAttackBehavior {
     this.game.addExecution(
       new TransportShipExecution(this.player, dst, troops),
     );
+    if (owner.isPlayer()) this.recordNavalPressure(owner);
   }
 
   private findRandomBoatTarget(
@@ -326,6 +415,9 @@ export class NationAttackBehavior extends AiAttackBehavior {
       }
       const owner = this.game.owner(randTile);
       if (owner === this.player) {
+        continue;
+      }
+      if (this.isProtectedNationTarget(owner)) {
         continue;
       }
       // Skip players we already know are unreachable (Performance optimization)
@@ -1266,6 +1358,8 @@ export class NationAttackBehavior extends AiAttackBehavior {
     nonBotTroops: (reserveTroops: number) => number,
     opponent?: Player,
   ): number | null {
+    // Final guard for land attacks, forced retaliation, beachheads and nuclear strikes.
+    if (this.isProtectedNationTarget(target)) return null;
     const reserveTroops = this.reserveTroops(target);
 
     let troops;
@@ -1314,16 +1408,25 @@ export class NationAttackBehavior extends AiAttackBehavior {
 
   // A beachhead boat is cheap enough to risk past a warship, one at a time
   protected override sendBoatAttack(target: Player): boolean {
-    if (!this.landsBeachheads()) return super.sendBoatAttack(target);
-    const route = this.boatRoute(target);
-    if (route === null) return false;
-    if (
-      route.blocker !== null &&
-      this.player.unitCount(UnitType.TransportShip) > 0
-    ) {
-      return false;
+    if (!this.canStartNavalPressure(target)) return false;
+
+    let sent: boolean;
+    if (!this.landsBeachheads()) {
+      sent = super.sendBoatAttack(target);
+    } else {
+      const route = this.boatRoute(target);
+      if (route === null) return false;
+      if (
+        route.blocker !== null &&
+        this.player.unitCount(UnitType.TransportShip) > 0
+      ) {
+        return false;
+      }
+      sent = this.sendBeachhead(target, route.landing);
     }
-    return this.sendBeachhead(target, route.landing);
+
+    if (sent) this.recordNavalPressure(target);
+    return sent;
   }
 
   protected override sendExpansionBoat(tile: TileRef): boolean {

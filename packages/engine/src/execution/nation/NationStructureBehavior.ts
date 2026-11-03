@@ -140,9 +140,9 @@ const UPGRADE_DENSITY_THRESHOLD = 1 / 1500;
 /** Most levels bought in one upgrade, as far as the gold beyond the save-up target pays for them, keyed by difficulty */
 const MAX_UPGRADES_AT_ONCE: Record<Difficulty, number> = {
   [Difficulty.Easy]: 3,
-  [Difficulty.Medium]: 10,
-  [Difficulty.Hard]: Infinity,
-  [Difficulty.Impossible]: Infinity,
+  [Difficulty.Medium]: 3,
+  [Difficulty.Hard]: 5,
+  [Difficulty.Impossible]: 10,
 };
 
 /** Structures counted for that density; cheap defense posts would push nations into upgrading early */
