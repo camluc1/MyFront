@@ -50,7 +50,7 @@ describe("Nation doctrines", () => {
       ).toBe(true);
       expect(doctrine.attackCadenceMultiplier).toBeLessThanOrEqual(1.04);
       expect(doctrine.triggerRatioOffset).toBeLessThanOrEqual(0.01);
-      expect(doctrine.expandRatioOffset).toBeGreaterThan(0);
+      expect(doctrine.expandRatioOffset).toBeLessThan(0);
     }
   });
 });

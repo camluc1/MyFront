@@ -44,6 +44,7 @@ export interface NationDoctrine {
   /** Additive adjustments to the normal troop commitment ratios. */
   readonly triggerRatioOffset: number;
   readonly reserveRatioOffset: number;
+  /** Negative values retain fewer troops at home when expanding into free land or weak bots. */
   readonly expandRatioOffset: number;
   /** Multiplies the existing low-probability overseas attack checks. */
   readonly navalAttackMultiplier: number;
@@ -60,7 +61,7 @@ const DOCTRINES: Readonly<Record<NationDoctrineId, NationDoctrine>> = {
     attackCadenceMultiplier: 0.9,
     triggerRatioOffset: -0.04,
     reserveRatioOffset: -0.02,
-    expandRatioOffset: 0.025,
+    expandRatioOffset: -0.025,
     navalAttackMultiplier: 1.05,
     allianceRequestChance: 18,
     structurePreference: "balanced",
@@ -77,7 +78,7 @@ const DOCTRINES: Readonly<Record<NationDoctrineId, NationDoctrine>> = {
     attackCadenceMultiplier: 0.86,
     triggerRatioOffset: -0.025,
     reserveRatioOffset: 0,
-    expandRatioOffset: 0.015,
+    expandRatioOffset: -0.015,
     navalAttackMultiplier: 1,
     allianceRequestChance: 12,
     structurePreference: "military",
@@ -94,7 +95,7 @@ const DOCTRINES: Readonly<Record<NationDoctrineId, NationDoctrine>> = {
     attackCadenceMultiplier: 0.98,
     triggerRatioOffset: -0.01,
     reserveRatioOffset: 0.01,
-    expandRatioOffset: 0.01,
+    expandRatioOffset: -0.01,
     navalAttackMultiplier: 0.9,
     allianceRequestChance: 24,
     structurePreference: "balanced",
@@ -105,7 +106,7 @@ const DOCTRINES: Readonly<Record<NationDoctrineId, NationDoctrine>> = {
     attackCadenceMultiplier: 0.88,
     triggerRatioOffset: -0.05,
     reserveRatioOffset: -0.015,
-    expandRatioOffset: 0.02,
+    expandRatioOffset: -0.02,
     navalAttackMultiplier: 1.1,
     allianceRequestChance: 20,
     structurePreference: "balanced",
@@ -122,7 +123,7 @@ const DOCTRINES: Readonly<Record<NationDoctrineId, NationDoctrine>> = {
     attackCadenceMultiplier: 1.02,
     triggerRatioOffset: 0.01,
     reserveRatioOffset: 0.02,
-    expandRatioOffset: 0.015,
+    expandRatioOffset: -0.015,
     navalAttackMultiplier: 0.75,
     allianceRequestChance: 26,
     structurePreference: "industry",
@@ -133,7 +134,7 @@ const DOCTRINES: Readonly<Record<NationDoctrineId, NationDoctrine>> = {
     attackCadenceMultiplier: 1,
     triggerRatioOffset: -0.015,
     reserveRatioOffset: 0,
-    expandRatioOffset: 0.015,
+    expandRatioOffset: -0.015,
     navalAttackMultiplier: 0.8,
     allianceRequestChance: 42,
     structurePreference: "balanced",
@@ -150,7 +151,7 @@ const DOCTRINES: Readonly<Record<NationDoctrineId, NationDoctrine>> = {
     attackCadenceMultiplier: 0.94,
     triggerRatioOffset: -0.025,
     reserveRatioOffset: 0.005,
-    expandRatioOffset: 0.02,
+    expandRatioOffset: -0.02,
     navalAttackMultiplier: 2,
     allianceRequestChance: 18,
     structurePreference: "balanced",
@@ -161,7 +162,7 @@ const DOCTRINES: Readonly<Record<NationDoctrineId, NationDoctrine>> = {
     attackCadenceMultiplier: 1.04,
     triggerRatioOffset: 0.005,
     reserveRatioOffset: 0.03,
-    expandRatioOffset: 0.005,
+    expandRatioOffset: -0.005,
     navalAttackMultiplier: 0.75,
     allianceRequestChance: 14,
     structurePreference: "balanced",
