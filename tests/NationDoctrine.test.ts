@@ -9,8 +9,11 @@ describe("Nation doctrines", () => {
     ["it", "Italy", "opportunist"],
     ["de", "Germany", "industrialist"],
     ["fr", "France", "diplomatic"],
-    ["gb", "United Kingdom", "naval"],
-    ["gb-eng", "England", "naval"],
+    ["gb", "United Kingdom", "diplomatic"],
+    ["gb-eng", "England", "diplomatic"],
+    ["au", "Australia", "strategist"],
+    ["nz", "New Zealand", "strategist"],
+    ["jp", "Japan", "militarist"],
     ["ru", "Russia", "militarist"],
   ];
 
@@ -20,6 +23,13 @@ describe("Nation doctrines", () => {
       expect(getNationDoctrine(flag, name).id).toBe(expected);
     },
   );
+
+  test("removes the dedicated naval doctrine from the available profiles", () => {
+    expect(NATION_DOCTRINE_PROFILES).toHaveLength(7);
+    expect(NATION_DOCTRINE_PROFILES.some((doctrine) => doctrine.id === "naval")).toBe(
+      false,
+    );
+  });
 
   test("uses a flag before a localized or duplicate display name", () => {
     expect(getNationDoctrine("it", "Italy").id).toBe(

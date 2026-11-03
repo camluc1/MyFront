@@ -34,7 +34,6 @@ export type NationDoctrineId =
   | "opportunist"
   | "industrialist"
   | "diplomatic"
-  | "naval"
   | "survivor";
 
 export interface NationDoctrine {
@@ -146,17 +145,6 @@ const DOCTRINES: Readonly<Record<NationDoctrineId, NationDoctrine>> = {
       "betray",
     ],
   },
-  naval: {
-    id: "naval",
-    attackCadenceMultiplier: 0.94,
-    triggerRatioOffset: -0.025,
-    reserveRatioOffset: 0.005,
-    expandRatioOffset: -0.02,
-    navalAttackMultiplier: 2,
-    allianceRequestChance: 18,
-    structurePreference: "balanced",
-    preferredAttackStrategies: ["island", "victim", "juicy", "weakest"],
-  },
   survivor: {
     id: "survivor",
     attackCadenceMultiplier: 1.04,
@@ -211,14 +199,14 @@ const FLAG_DOCTRINES: Readonly<Record<string, NationDoctrineId>> = {
   mx: "opportunist",
   fr: "diplomatic",
   ie: "diplomatic",
-  gb: "naval",
-  "gb-eng": "naval",
-  "gb-sct": "naval",
-  "gb-wls": "naval",
-  northern_ireland: "naval",
-  au: "naval",
-  nz: "naval",
-  jp: "naval",
+  gb: "diplomatic",
+  "gb-eng": "diplomatic",
+  "gb-sct": "diplomatic",
+  "gb-wls": "diplomatic",
+  northern_ireland: "diplomatic",
+  au: "strategist",
+  nz: "strategist",
+  jp: "militarist",
   ca: "strategist",
   no: "strategist",
   se: "strategist",
