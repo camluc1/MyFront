@@ -78,36 +78,37 @@ export class FrontierWorldIntelligence extends LitElement implements Controller 
                 ? "MISMO EQUIPO"
                 : "SIN PACTO";
       return {
-      smallID: p.smallID(),
-      name: p.displayName(),
-      kind:
-        p.type() === PlayerType.Human
-          ? "human"
-          : p.type() === PlayerType.Nation
-            ? "nation"
-            : "tribe",
-      isAlive: p.isAlive(),
-      isMe: p.isMe(),
-      tiles: p.numTilesOwned(),
-      gold: Number(p.gold()),
-      goldEarned: p.goldEarned(),
-      tradeGold: p.tradeGold(),
-      trainGold: p.trainGold(),
-      piracyGold: p.piracyGold(),
-      troops: p.troops(),
-      maxTroops: this.game.config().maxTroops(p),
-      cities: p.totalUnitLevels(UnitType.City),
-      factories: p.totalUnitLevels(UnitType.Factory),
-      ports: p.totalUnitLevels(UnitType.Port),
-      silos: p.totalUnitLevels(UnitType.MissileSilo),
-      sams: p.totalUnitLevels(UnitType.SAMLauncher),
-      warships: p.totalUnitLevels(UnitType.Warship),
-      allies: p.allies().length,
-      betrayals: p.betrayals(),
-      outgoingAttacks: p.outgoingAttacks().length,
-      incomingAttacks: p.incomingAttacks().length,
-      diplomacyStatus,
-    }; });
+        smallID: p.smallID(),
+        name: p.displayName(),
+        kind:
+          p.type() === PlayerType.Human
+            ? "human"
+            : p.type() === PlayerType.Nation
+              ? "nation"
+              : "tribe",
+        isAlive: p.isAlive(),
+        isMe: p.isMe(),
+        tiles: p.numTilesOwned(),
+        gold: Number(p.gold()),
+        goldEarned: p.goldEarned(),
+        tradeGold: p.tradeGold(),
+        trainGold: p.trainGold(),
+        piracyGold: p.piracyGold(),
+        troops: p.troops(),
+        maxTroops: this.game.config().maxTroops(p),
+        cities: p.totalUnitLevels(UnitType.City),
+        factories: p.totalUnitLevels(UnitType.Factory),
+        ports: p.totalUnitLevels(UnitType.Port),
+        silos: p.totalUnitLevels(UnitType.MissileSilo),
+        sams: p.totalUnitLevels(UnitType.SAMLauncher),
+        warships: p.totalUnitLevels(UnitType.Warship),
+        allies: p.allies().length,
+        betrayals: p.betrayals(),
+        outgoingAttacks: p.outgoingAttacks().length,
+        incomingAttacks: p.incomingAttacks().length,
+        diplomacyStatus,
+      };
+    });
 
     if (!this.tracker.observe(inputs, tick)) return;
     this.players = this.tracker.players();

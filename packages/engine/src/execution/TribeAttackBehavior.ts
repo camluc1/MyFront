@@ -2,6 +2,7 @@ import {
   Difficulty,
   GameType,
   PlayerType,
+  TerraNullius,
 } from "@openfront/engine-api/game/GameTypes";
 import type { GameConfig } from "@openfront/engine-api/Schemas";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
@@ -37,7 +38,7 @@ export const TRIBE_AI_DIFFICULTY_PROFILES: Readonly<
     expandRatio: [10, 20],
   },
   [Difficulty.Medium]: {
-    attackRate: [32, 55],
+    attackRate: [55, 80],
     triggerRatio: [42, 52],
     reserveRatio: [24, 33],
     expandRatio: [8, 16],
@@ -78,6 +79,25 @@ export class TribeAttackBehavior extends AiAttackBehavior {
     player: Player,
   ): void {
     this.restoreRecord(raw, r, random, player);
+  }
+
+  override shouldAttack(other: Player | TerraNullius): boolean {
+    const { gameType, difficulty } = this.game.config().gameConfig();
+    if (
+      gameType !== GameType.Singleplayer ||
+      difficulty !== Difficulty.Easy && difficulty !== Difficulty.Medium ||
+      !other.isPlayer() ||
+      this.player.sharesBorderWith(other)
+    ) {
+      return true;
+    }
+
+    // Overseas attacks remain part of the game, but Easy and Normal tribes
+    // must build a meaningful reserve before committing to a distant landing.
+    const requiredReserve =
+      difficulty === Difficulty.Easy ? 0.65 : 0.75;
+    const capacity = Math.max(1, this.game.config().maxTroops(this.player));
+    return this.player.troops() / capacity >= requiredReserve;
   }
 
   attackRandomTarget() {

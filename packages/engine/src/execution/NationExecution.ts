@@ -129,10 +129,8 @@ export class NationExecution implements Execution {
         return Math.max(
           20,
           Math.round(
-            this.random.nextInt(
-              singleplayer ? 90 : 65,
-              singleplayer ? 130 : 100,
-            ) * this.doctrine.attackCadenceMultiplier,
+            this.random.nextInt(65, 100) *
+              this.doctrine.attackCadenceMultiplier,
           ),
         ); // Give single-player campaigns more room to develop.
       case Difficulty.Medium:
