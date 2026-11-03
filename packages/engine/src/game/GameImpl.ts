@@ -1,4 +1,5 @@
 import { GameMap, TileRef } from "@openfront/engine-api/game/GameMap";
+import { resourceDeposits } from "@openfront/engine-lib/game/NaturalResources";
 import {
   Cell,
   ColoredTeams,
@@ -192,6 +193,9 @@ export class GameImpl implements Game {
     this._terraNullius = new TerraNulliusImpl();
     this._width = _map.width();
     this._height = _map.height();
+    // Freeze deterministic geological locations before terrain/fallout changes.
+    // A late first discovery must not depend on when a nuke hit.
+    resourceDeposits(_map, _config.gameConfig().gameMap);
     this.unitGrid = new UnitGrid<Unit>(this._map);
     this._waterManager = new WaterManager(
       this._map,
