@@ -1,32 +1,55 @@
-# Natural resources — phase 1 (geographic profiles only)
+# FRONTIER — Natural-resource economy (implementation)
 
-This commit adds a typed resource catalog and an explicitly authored broad
-resource profile for all 72 nation/region entries of `map-generator/assets/maps/world/info.json`.
-These are **not yet deposits on the actual map**, and they do not affect gameplay.
+## Design contract
+- Native mechanic; no DLC branding, no second currency and no material inventories.
+- A geographical resource is intrinsic to the map, **not** to current ownership.
+- A player must own a suitable site to build there; capture transfers a building
+  but does not move or reset the deposit.
+- Original cities, ports, railways, nuclear weapons, gold and troop rules stay intact.
 
-## Verified existing gameplay
-- `PlayerExecution` awards worker gold via `goldAdditionRate`. Troops are
-  explicitly stored, but there is no separately managed worker stock.
-- Ports yield maritime trade, and factories activate train infrastructure.
-- `EngineConfig` prices the first port at 125,000 gold, then escalates costs.
-- `ConstructionExecution`, `BuildMenu`, upgrades and snapshots require
-  explicit registration for new structures.
-- No existing electricity, fuel, mineral-inventory or industrial-production
-  system was identified in reviewed code.
+## Map generation
+The World map has approximate mineral/fertility profiles for every one of its
+72 named region/nation entries, plus fixed map-coordinate anchors. Static
+resource circles are generated near those anchors on land. This is **approximate
+geography**, not a verified survey of deposit locations. Other maps use seeded,
+spatially clustered deposits leaving many tiles empty. Map generation is
+initialized before terrain alterations and yields identical results on all
+clients for a matching map.
 
-## Required follow-on implementation
-1. Draw actual static resource areas on the real world map, using terrain
-   coordinates and regional reference data; do NOT infer deposits from owner
-   or country spawn point. Extend the process to regional and fictitious maps.
-2. Add sparse deterministic deposits, abundance and finite reserves, with a
-   compact serialization and map overlay.
-3. Integrate farms, a generic mineral mine, oil wells and gas facilities with
-   current building costs, upgrading, ownership and income, initially balanced
-   against port income. Add coal extraction only where useful.
-4. Introduce raw material stocks only together with real production and
-   consumers; do not silently break pre-existing nuclear or factory mechanics.
-5. Implement overlay, icons, build preview, nation AI and multiplayer sync.
-6. Verify with typecheck, gameplay tests and performance before release.
+Resources: fertile soil, oil, gas, coal, gold, silver, copper, iron, lithium,
+uranium. Four quality levels. Agriculture renews; other deposits have finite
+production-cycle reserves. Shared consumed reserves persist in game snapshots.
 
-Do not advertise phase 1 as a functioning extraction system. No CI workflows
-were executed as part of this read-only review and data commit.
+## Buildings and profitability
+- Farm (fertile soil), Mine (coal + minerals), Oil Well (oil), Gas Plant (gas).
+- Core `ConstructionExecution` handles original placement, ownership, build
+  duration and upgrade behavior. Each extractor is one unit type; mines read
+  their mineral from the static deposit, so no dedicated mine per mineral.
+- Construction starts at 100k/125k/175k/150k gold for
+  Farm/Mine/Oil Well/Gas Plant, subject to existing escalating unit cost model.
+- Production is paid directly in gold every 100 ticks (10 seconds); no stocks.
+  Base gold per interval at level 1, before quality or gold multipliers:
+  fertile soil 11,500; oil 22,000; gas 17,500; coal 9,000; gold 19,000;
+  silver 15,000; copper 12,000; iron 9,000; lithium 16,500; uranium 18,500.
+  Quality multiplier = 0.75 + quality * 0.25.
+  Level multiplier = 1 + 0.30 * (level - 1), capped to 50 levels.
+  These are **unvalidated initial balance parameters**, not proven port-equivalent
+  earnings. Real ports have variable ship availability and trade income.
+- Mines form real rail stations around factories. When the mine has a station
+  in the same live rail cluster as a same-owner factory, its periodic gold is
+  increased by 40%, without changing original train commerce behavior.
+
+## User interface and AI
+- Custom icons and names for all four constructions, in build menu and hotbar.
+- Resource layer toggles independently from the main terrain/layers.
+- Selecting a resource building for placement temporarily enables that layer,
+  then restores the player's manually chosen visibility on cancellation.
+- AI nations can invest in owned deposits, improve existing production
+  facilities, and use them according to skill level.
+
+## Validation limitations
+The source has been changed directly on `frontier/development` with
+`[skip ci]`. **GitHub Actions were not executed**. No integrated TypeScript
+compile, unit-test run, multiplayer match, save/load replay, balance simulation
+or GPU rendering verification was performed in this environment.
+Treat these changes as an unverified integration until those checks pass.
