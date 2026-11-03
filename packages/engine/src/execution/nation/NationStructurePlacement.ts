@@ -478,6 +478,10 @@ export class NationStructurePlacement {
         case UnitType.Factory:
         case UnitType.MissileSilo:
         case UnitType.Port:
+        case UnitType.Mine:
+        case UnitType.Farm:
+        case UnitType.OilWell:
+        case UnitType.GasPlant:
           protectEntries.push({
             tile: unit.tile(),
             weight: weightByLevel ? unit.level() : 1,
