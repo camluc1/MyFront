@@ -422,13 +422,19 @@ function clampInt(value: number, min: number, max: number): number {
 }
 function candidateOnLand(map: GameMap, x: number, y: number, radius: number): [number, number] | null {
   if (map.isLand(map.ref(x,y))) return [x,y];
+  // Only integer arithmetic determines map resources: cross-browser
+  // floating-point trigonometry must never influence the game simulation.
   for (let r = 1; r <= Math.max(3, radius); r++) {
-    const steps = Math.max(8, r * 8);
-    for (let s = 0; s < steps; s++) {
-      const angle = (s * 2 * Math.PI) / steps;
-      const xx = clampInt(x + r * Math.cos(angle), 0, map.width()-1);
-      const yy = clampInt(y + r * Math.sin(angle), 0, map.height()-1);
-      if (map.isLand(map.ref(xx,yy))) return [xx,yy];
+    for (let d = -r; d <= r; d++) {
+      const candidates: readonly (readonly [number, number])[] = [
+        [x + d, y - r], [x + d, y + r],
+        [x - r, y + d], [x + r, y + d],
+      ];
+      for (const [cx, cy] of candidates) {
+        const xx = clampInt(cx, 0, map.width() - 1);
+        const yy = clampInt(cy, 0, map.height() - 1);
+        if (map.isLand(map.ref(xx, yy))) return [xx, yy];
+      }
     }
   }
   return null;
@@ -471,13 +477,14 @@ export function resourceDeposits(map: GameMap, mapType: string): readonly Resour
         const count = resource === "fertile_soil" ? 3 : resource === "oil" || resource === "gas" ? 2 : 1;
         for (let i = 0; i < count; i++) {
           const seed = hash32(region + "|" + resource + "|" + i);
-          const angle = (seed % 6283) / 1000;
-          const offset = i === 0 ? 10 + (seed % 15) : 24 + (seed % 32);
+          const spread = i === 0 ? 16 : 34;
+          const dx = ((seed >>> 8) % (spread * 2 + 1)) - spread;
+          const dy = ((seed >>> 16) % (spread * 2 + 1)) - spread;
           const radius = Math.max(3, Math.round(
             (resource === "fertile_soil" ? 19 : resource === "oil" || resource === "gas" ? 13 : 10) * sx
           ));
-          add(resource, (ax + Math.cos(angle) * offset) * sx,
-            (ay + Math.sin(angle) * offset) * sy, radius, seed);
+          add(resource, (ax + dx) * sx,
+            (ay + dy) * sy, radius, seed);
         }
       }
     }
