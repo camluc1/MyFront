@@ -1,16 +1,29 @@
 import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import { html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { Controller } from "../../Controller";
-import { GameView } from "../../view";
+import type { Controller } from "../../Controller";
+import type { GameView } from "../../view";
 import {
-  FrontierChronicleEntry,
   FrontierChronicleTracker,
+  type FrontierChronicleEntry,
 } from "./FrontierChronicleTracker";
 
 @customElement("frontier-chronicle")
 export class FrontierChronicle extends LitElement implements Controller {
-  public game!: GameView;
+  private _game!: GameView;
+
+  get game(): GameView {
+    return this._game;
+  }
+
+  set game(game: GameView) {
+    if (this._game === game) return;
+    this._game = game;
+    this.tracker = new FrontierChronicleTracker();
+    this.entries = [];
+    this.active = false;
+    this.expanded = false;
+  }
 
   @state() private active = false;
   @state() private expanded = false;
@@ -25,10 +38,12 @@ export class FrontierChronicle extends LitElement implements Controller {
   tick(): void {
     if (!this.game || this.game.inSpawnPhase()) return;
 
-    const tick = this.game.ticks();
+    const tick = this.game.ticksSinceStart();
     const players = this.game.playerViews();
-    const smallIDByPlayerID = new Map(
-      players.map((player) => [String(player.id()), player.smallID()]),
+    const smallIDByPlayerID = new Map<string, number>(
+      players.map(
+        (player) => [String(player.id()), player.smallID()] as const,
+      ),
     );
 
     const snapshotPlayers = players.map((player) => ({
@@ -77,6 +92,8 @@ export class FrontierChronicle extends LitElement implements Controller {
         return { icon: "▲", label: "EXPANSIÓN", color: "text-emerald-300" };
       case "power-shift":
         return { icon: "♛", label: "HEGEMONÍA", color: "text-violet-300" };
+      default:
+        return { icon: "•", label: "MUNDO", color: "text-slate-300" };
     }
   }
 

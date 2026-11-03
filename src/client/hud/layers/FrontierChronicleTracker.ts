@@ -39,7 +39,9 @@ function pairKey(a: number, b: number): string {
 function createSnapshot(
   players: readonly FrontierChroniclePlayer[],
 ): Snapshot {
-  const byID = new Map(players.map((player) => [player.smallID, player]));
+  const byID = new Map<number, FrontierChroniclePlayer>(
+    players.map((player) => [player.smallID, player] as const),
+  );
   const alliances = new Map<string, readonly [number, number]>();
   const attacks = new Map<string, readonly [number, number]>();
 

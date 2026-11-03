@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  FrontierChroniclePlayer,
-  FrontierChronicleTracker,
-} from "../../src/client/hud/layers/FrontierChronicleTracker";
+import { FrontierChronicleTracker } from "../../src/client/hud/layers/FrontierChronicleTracker";
+import type { FrontierChroniclePlayer } from "../../src/client/hud/layers/FrontierChronicleTracker";
 
 function player(
   smallID: number,
