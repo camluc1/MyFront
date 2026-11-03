@@ -13,6 +13,8 @@ export interface FrontierChroniclePlayer {
   goldIncomePerMin?: number;
   troops?: number;
   maxTroops?: number;
+  /** Active atom-bomb units observed on the map; used to detect a nation's first nuclear launch. */
+  atomBombCount?: number;
 }
 
 export type FrontierChronicleKind =
@@ -26,7 +28,8 @@ export type FrontierChronicleKind =
   | "military-build-up"
   | "power-decline"
   | "economic-hegemony"
-  | "military-hegemony";
+  | "military-hegemony"
+  | "nuclear-development";
 
 export interface FrontierChronicleEntry {
   id: string;
@@ -205,6 +208,28 @@ export class FrontierChronicleTracker {
         "Pacto disuelto",
         "La alianza entre " + left.name + " y " + right.name + " terminó.",
       );
+    }
+
+    for (const [smallID, nextPlayer] of current.players) {
+      const oldPlayer = previous.players.get(smallID);
+      if (
+        !oldPlayer?.isAlive ||
+        !nextPlayer.isAlive ||
+        (!nextPlayer.isNation && !nextPlayer.isHuman)
+      ) {
+        continue;
+      }
+      if (
+        (oldPlayer.atomBombCount ?? 0) === 0 &&
+        (nextPlayer.atomBombCount ?? 0) > 0
+      ) {
+        push(
+          "nuclear-development",
+          "Nueva potencia nuclear",
+          nextPlayer.name +
+            " realizó su primer lanzamiento de bomba atómica. El equilibrio militar mundial cambió.",
+        );
+      }
     }
 
     for (const [key, pair] of current.attacks) {

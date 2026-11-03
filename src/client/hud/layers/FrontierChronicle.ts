@@ -1,4 +1,8 @@
-import { PlayerType } from "@openfront/engine-api/game/GameTypes";
+import {
+  GameType,
+  PlayerType,
+  UnitType,
+} from "@openfront/engine-api/game/GameTypes";
 import { html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import type { Controller } from "../../Controller";
@@ -26,12 +30,21 @@ export class FrontierChronicle extends LitElement implements Controller {
     this.entries = [];
     this.active = false;
     this.expanded = false;
+    this.peaceRemainingSeconds = 0;
+    this.priorityNotice = null;
+    if (this.priorityNoticeTimer !== null) {
+      clearTimeout(this.priorityNoticeTimer);
+      this.priorityNoticeTimer = null;
+    }
   }
 
   @state() private active = false;
   @state() private expanded = false;
   @state() private entries: FrontierChronicleEntry[] = [];
+  @state() private peaceRemainingSeconds = 0;
+  @state() private priorityNotice: FrontierChronicleEntry | null = null;
 
+  private priorityNoticeTimer: ReturnType<typeof setTimeout> | null = null;
   private tracker = new FrontierChronicleTracker();
 
   getTickIntervalMs(): number {
@@ -42,6 +55,15 @@ export class FrontierChronicle extends LitElement implements Controller {
     if (!this.game || this.game.inSpawnPhase()) return;
 
     const tick = this.game.ticksSinceStart();
+    const gameConfig = this.game.config().gameConfig();
+    const peaceMinutes =
+      gameConfig.gameType === GameType.Singleplayer
+        ? (gameConfig.nationPeaceTimeMinutes ?? 0)
+        : 0;
+    this.peaceRemainingSeconds = Math.max(
+      0,
+      Math.ceil(peaceMinutes * 60 - tick / 10),
+    );
     const players = this.game.playerViews();
     const smallIDByPlayerID = new Map<string, number>(
       players.map(
@@ -67,14 +89,44 @@ export class FrontierChronicle extends LitElement implements Controller {
         goldIncomePerMin: goldRateTracker.goldIncomePerMin(player.smallID()),
         troops: player.troops(),
         maxTroops: this.game.config().maxTroops(player),
+        atomBombCount: player.units(UnitType.AtomBomb).length,
       };
     });
 
     const newEntries = this.tracker.observe(snapshotPlayers, tick);
     if (newEntries.length > 0) {
       this.entries = [...this.entries, ...newEntries].slice(-24);
+      const nuclearNotice = newEntries.find(
+        (entry) => entry.kind === "nuclear-development",
+      );
+      if (nuclearNotice) this.showPriorityNotice(nuclearNotice);
     }
     if (!this.active) this.active = true;
+  }
+
+  private showPriorityNotice(entry: FrontierChronicleEntry): void {
+    this.priorityNotice = entry;
+    if (this.priorityNoticeTimer !== null) {
+      clearTimeout(this.priorityNoticeTimer);
+    }
+    this.priorityNoticeTimer = setTimeout(() => {
+      this.priorityNotice = null;
+      this.priorityNoticeTimer = null;
+    }, 6500);
+  }
+
+  disconnectedCallback(): void {
+    if (this.priorityNoticeTimer !== null) {
+      clearTimeout(this.priorityNoticeTimer);
+      this.priorityNoticeTimer = null;
+    }
+    super.disconnectedCallback();
+  }
+
+  private formatCountdown(seconds: number): string {
+    const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
+    const remaining = (seconds % 60).toString().padStart(2, "0");
+    return minutes + ":" + remaining;
   }
 
   private formatTime(tick: number): string {
@@ -112,6 +164,8 @@ export class FrontierChronicle extends LitElement implements Controller {
         return { icon: "◈", label: "LIDERAZGO ECONÓMICO", color: "text-emerald-200" };
       case "military-hegemony":
         return { icon: "♜", label: "LIDERAZGO MILITAR", color: "text-rose-200" };
+      case "nuclear-development":
+        return { icon: "☢", label: "HITO NUCLEAR", color: "text-amber-200" };
       default:
         return { icon: "•", label: "MUNDO", color: "text-slate-300" };
     }
@@ -123,6 +177,24 @@ export class FrontierChronicle extends LitElement implements Controller {
     const recentEntries = [...this.entries].reverse().slice(0, 8);
 
     return html`
+      ${this.peaceRemainingSeconds > 0
+        ? html`<div class="pointer-events-none fixed top-4 left-1/2 z-[1001] -translate-x-1/2">
+            <div class="rounded-xl border border-cyan-300/30 bg-slate-950/95 px-5 py-2.5 text-center text-white shadow-2xl backdrop-blur-xl">
+              <div class="text-[9px] font-black tracking-[0.22em] text-cyan-200">PAZ ENTRE NACIONES</div>
+              <div class="mt-0.5 text-lg font-black tabular-nums text-white">${this.formatCountdown(this.peaceRemainingSeconds)}</div>
+              <div class="text-[9px] text-slate-400">Las naciones no pueden iniciar guerras todavía</div>
+            </div>
+          </div>`
+        : ""}
+      ${this.priorityNotice
+        ? html`<div class="pointer-events-none fixed top-4 left-1/2 z-[1002] -translate-x-1/2">
+            <div class="w-[min(92vw,30rem)] rounded-xl border border-amber-300/40 bg-slate-950/96 px-5 py-4 text-center text-white shadow-2xl backdrop-blur-xl">
+              <div class="text-[9px] font-black tracking-[0.24em] text-amber-200">ACONTECIMIENTO MUNDIAL · FRONTIER</div>
+              <div class="mt-1 text-base font-black">${this.priorityNotice.headline}</div>
+              <div class="mt-1 text-xs leading-relaxed text-slate-300">${this.priorityNotice.detail}</div>
+            </div>
+          </div>`
+        : ""}
       <section class="pointer-events-auto w-[min(92vw,26rem)] mb-2">
         <button
           type="button"

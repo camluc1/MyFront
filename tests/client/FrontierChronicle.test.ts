@@ -159,6 +159,30 @@ describe("FrontierChronicleTracker", () => {
     expect(entries.map((entry) => entry.kind)).toContain("military-hegemony");
   });
 
+  it("announces the first nuclear launch by a nation exactly once", () => {
+    const tracker = new FrontierChronicleTracker();
+    tracker.observe(
+      [player(1, { isNation: true, atomBombCount: 0 })],
+      0,
+    );
+
+    const firstLaunch = tracker.observe(
+      [player(1, { isNation: true, atomBombCount: 1 })],
+      100,
+    );
+    const repeated = tracker.observe(
+      [player(1, { isNation: true, atomBombCount: 1 })],
+      200,
+    );
+
+    expect(firstLaunch.map((entry) => entry.kind)).toContain(
+      "nuclear-development",
+    );
+    expect(repeated.map((entry) => entry.kind)).not.toContain(
+      "nuclear-development",
+    );
+  });
+
   it("does not announce a one-tile change of map leader as a power shift", () => {
     const tracker = new FrontierChronicleTracker();
     tracker.observe([player(1, { tiles: 110 }), player(2, { tiles: 100 })], 0);
