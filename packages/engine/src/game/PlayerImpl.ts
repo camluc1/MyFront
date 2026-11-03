@@ -1,4 +1,5 @@
 import { TileRef } from "@openfront/engine-api/game/GameMap";
+import { resourceAt } from "@openfront/engine-lib/game/NaturalResources";
 import {
   AllianceInfo,
   AllPlayers,
@@ -1622,6 +1623,31 @@ export class PlayerImpl implements Player {
         return this.tradeShipSpawn(targetTile);
       case UnitType.Train:
         return this.landBasedUnitSpawn(targetTile);
+      case UnitType.Farm:
+      case UnitType.Mine:
+      case UnitType.OilWell:
+      case UnitType.GasPlant: {
+        const placement = this.landBasedStructureSpawn(targetTile, validTiles);
+        if (placement === false) return false;
+        const map = this.mg.map();
+        const site = resourceAt(map, this.mg.config().gameConfig().gameMap, placement);
+        if (site === null) return false;
+        if (unitType === UnitType.Farm && site.resource !== "fertile_soil") return false;
+        if (unitType === UnitType.OilWell && site.resource !== "oil") return false;
+        if (unitType === UnitType.GasPlant && site.resource !== "gas") return false;
+        if (unitType === UnitType.Mine &&
+          (site.resource === "fertile_soil" || site.resource === "oil" || site.resource === "gas")) return false;
+        if (this.mg.resourceRemaining(site.id, site.capacity) <= 0) return false;
+        // One structure per deposit: the player upgrades rather than spams.
+        const nearby = this.mg.nearbyUnits(placement, site.radius * 3,
+          [UnitType.Farm, UnitType.Mine, UnitType.OilWell, UnitType.GasPlant],
+          undefined, true);
+        for (const { unit } of nearby) {
+          const occupied = resourceAt(map, this.mg.config().gameConfig().gameMap, unit.tile());
+          if (occupied?.id === site.id && unit.isActive()) return false;
+        }
+        return placement;
+      }
       case UnitType.MissileSilo:
       case UnitType.DefensePost:
       case UnitType.SAMLauncher:

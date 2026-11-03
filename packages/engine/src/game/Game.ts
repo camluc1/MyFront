@@ -102,6 +102,10 @@ export interface UnitParamsMap {
   };
 
   [UnitType.Factory]: Record<string, never>;
+  [UnitType.Farm]: Record<string, never>;
+  [UnitType.Mine]: Record<string, never>;
+  [UnitType.OilWell]: Record<string, never>;
+  [UnitType.GasPlant]: Record<string, never>;
 
   [UnitType.MissileSilo]: Record<string, never>;
 
@@ -638,6 +642,9 @@ export interface Game extends GameLike {
 
   addUpdate(update: GameUpdate): void;
   railNetwork(): RailNetwork;
+  /** Shared finite reserve for each static natural-resource deposit. */
+  resourceRemaining(siteId: number, initialCapacity: number): number;
+  consumeResource(siteId: number, initialCapacity: number): boolean;
   /**
    * Bumped whenever a City, Port or Factory is added or removed (the
    * structures the rail network connects) and whenever land turns to water

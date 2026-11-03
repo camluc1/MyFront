@@ -157,6 +157,7 @@ export class GameImpl implements Game {
   private playerTeams: Team[] = [];
   private botTeam: Team = ColoredTeams.Bot;
   private _railNetwork: RailNetwork = createRailNetwork(this);
+  private resourceReserves = new Map<number, number>();
 
   // Used to assign unique IDs to each new alliance
   private nextAllianceID: number = 0;
@@ -733,6 +734,17 @@ export class GameImpl implements Game {
     return packed;
   }
 
+  resourceRemaining(siteId: number, initialCapacity: number): number {
+    return this.resourceReserves.get(siteId) ?? initialCapacity;
+  }
+
+  consumeResource(siteId: number, initialCapacity: number): boolean {
+    const left = this.resourceRemaining(siteId, initialCapacity);
+    if (left <= 0) return false;
+    this.resourceReserves.set(siteId, left - 1);
+    return true;
+  }
+
   private hash(): number {
     let hash = 1;
     this._players.forEach((p) => {
@@ -741,6 +753,9 @@ export class GameImpl implements Game {
     // Rails are not units, so without this a divergence in which rails got
     // built would only show up through the trains that later run on them.
     hash += this._railNetwork.hash();
+    for (const [siteId, remaining] of this.resourceReserves) {
+      hash += siteId * 17 + remaining * 13;
+    }
     return hash;
   }
 
@@ -1255,7 +1270,8 @@ export class GameImpl implements Game {
     if (
       type === UnitType.City ||
       type === UnitType.Port ||
-      type === UnitType.Factory
+      type === UnitType.Factory ||
+      type === UnitType.Mine
     ) {
       this._structureVersion++;
     }
@@ -1573,6 +1589,7 @@ export class GameImpl implements Game {
       shipStaggers: { ...this.shipStaggers },
       nationMirvTargets: [...this._nationMirvTargets],
       mirvsLaunched: this._mirvsLaunched,
+      resourceReserves: [...this.resourceReserves],
       rail: w.versioned(
         RailNetworkSnapshot,
         (this._railNetwork as RailNetworkImpl).snapshot(w),
@@ -1631,6 +1648,7 @@ export class GameImpl implements Game {
     this.shipStaggers = { ...s.shipStaggers };
     this._nationMirvTargets = new Map(s.nationMirvTargets);
     this._mirvsLaunched = s.mirvsLaunched;
+    this.resourceReserves = new Map(s.resourceReserves ?? []);
     (this._railNetwork as RailNetworkImpl).restoreSnapshot(
       readVersioned(RailNetworkSnapshot, s.rail),
       r,
@@ -1763,6 +1781,7 @@ export const GameSnapshot = snapshotType({
     shipStaggers: z.object({ tradeShip: zInt(), transportShip: zInt() }),
     nationMirvTargets: z.array(z.tuple([z.string(), zInt()])),
     mirvsLaunched: zInt(),
+    resourceReserves: z.array(z.tuple([zInt(), zInt()])).optional(),
     rail: VersionedSchema,
     water: VersionedSchema,
     sharedWaterCache: VersionedSchema,

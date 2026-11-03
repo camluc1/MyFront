@@ -247,6 +247,10 @@ export class Config {
           upgradable: true,
         };
         break;
+      case UnitType.Farm:
+      case UnitType.Mine:
+      case UnitType.OilWell:
+      case UnitType.GasPlant:
       case UnitType.City:
       case UnitType.Factory:
         info = {
