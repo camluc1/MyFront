@@ -7,6 +7,7 @@ import {
 } from "@openfront/engine-api/game/GameTypes";
 import { renderNumber } from "@openfront/engine-lib/Format";
 import { EventBus } from "@openfront/shared/EventBus";
+import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, LitElement, nothing } from "lit";
 import { customElement } from "lit/decorators.js";
 import { Controller } from "../../Controller";
@@ -39,6 +40,10 @@ import {
 import { TutorialHighlight, TutorialHighlightEvent } from "../Tutorial";
 
 /** How long a build button has to be held before it shows its details (cost etc.) */
+const farmIcon = assetUrl("images/FarmIconWhite.svg");
+const mineIcon = assetUrl("images/MineIconWhite.svg");
+const oilWellIcon = assetUrl("images/OilWellIconWhite.svg");
+const gasPlantIcon = assetUrl("images/GasPlantIconWhite.svg");
 const PEEK_HOLD_MS = 450;
 /** How long the details stay up after the browser cancels the touch itself. */
 const PEEK_GRACE_MS = 1200;
@@ -55,6 +60,10 @@ export class UnitDisplay extends LitElement implements Controller {
   private _cities = 0;
   private _warships = 0;
   private _factories = 0;
+  private _farms = 0;
+  private _mines = 0;
+  private _oilWells = 0;
+  private _gasPlants = 0;
   private _missileSilo = 0;
   private _port = 0;
   private _defensePost = 0;
@@ -459,6 +468,10 @@ export class UnitDisplay extends LitElement implements Controller {
     this._defensePost = player.totalUnitLevels(UnitType.DefensePost);
     this._samLauncher = player.totalUnitLevels(UnitType.SAMLauncher);
     this._factories = player.totalUnitLevels(UnitType.Factory);
+    this._farms = player.totalUnitLevels(UnitType.Farm);
+    this._mines = player.totalUnitLevels(UnitType.Mine);
+    this._oilWells = player.totalUnitLevels(UnitType.OilWell);
+    this._gasPlants = player.totalUnitLevels(UnitType.GasPlant);
     this._warships = player.totalUnitLevels(UnitType.Warship);
     this.requestUpdate();
   }
@@ -520,6 +533,34 @@ export class UnitDisplay extends LitElement implements Controller {
               UnitType.Port,
               "port",
               this.getHotkey("buildPort", "Digit3"),
+            )}
+            ${this.renderUnitItem(
+              farmIcon,
+              this._farms,
+              UnitType.Farm,
+              "farm",
+              "",
+            )}
+            ${this.renderUnitItem(
+              mineIcon,
+              this._mines,
+              UnitType.Mine,
+              "mine",
+              "",
+            )}
+            ${this.renderUnitItem(
+              oilWellIcon,
+              this._oilWells,
+              UnitType.OilWell,
+              "oil_well",
+              "",
+            )}
+            ${this.renderUnitItem(
+              gasPlantIcon,
+              this._gasPlants,
+              UnitType.GasPlant,
+              "gas_plant",
+              "",
             )}
             ${this.renderUnitItem(
               defensePostIcon,
