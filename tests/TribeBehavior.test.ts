@@ -1,4 +1,5 @@
 import {
+  Difficulty,
   PlayerInfo,
   PlayerType,
   UnitType,
@@ -19,10 +20,13 @@ let game: Game;
 let tribe: Player;
 
 // Full-height stripes, left to right, so nobody borders free land. "tribe" is the tribe.
-async function setupStripes(stripes: [string, PlayerType][]) {
+async function setupStripes(
+  stripes: [string, PlayerType][],
+  difficulty: Difficulty = Difficulty.Easy,
+) {
   game = await setup(
     "big_plains",
-    {},
+    { difficulty },
     stripes.map(([id, type]) => new PlayerInfo(id, type, null, id)),
   );
   const owners = stripes.map(([id]) => game.player(id));
@@ -183,5 +187,95 @@ describe("Tribe upkeep", () => {
     game.executeNextTick();
 
     expect(alliance.expiresAt()).toBeGreaterThan(expiresAt);
+  });
+});
+
+
+describe("Tribe difficulty profiles", () => {
+  const opponents: [string, PlayerType][] = [
+    ["human", PlayerType.Human],
+    ["tribe", PlayerType.Bot],
+  ];
+
+  it("keeps the original Easy cadence and troop ratios", async () => {
+    await setupStripes(opponents, Difficulty.Easy);
+    const exec = tribeExecution();
+
+    expect(exec["attackRate"]).toBeGreaterThanOrEqual(40);
+    expect(exec["attackRate"]).toBeLessThan(80);
+    expect(exec["triggerRatio"]).toBeGreaterThanOrEqual(0.5);
+    expect(exec["triggerRatio"]).toBeLessThan(0.6);
+    expect(exec["reserveRatio"]).toBeGreaterThanOrEqual(0.3);
+    expect(exec["reserveRatio"]).toBeLessThan(0.4);
+    expect(exec["expandRatio"]).toBeGreaterThanOrEqual(0.1);
+    expect(exec["expandRatio"]).toBeLessThan(0.2);
+  });
+
+  it("uses progressively faster decisions and lower reserve thresholds", async () => {
+    await setupStripes(opponents, Difficulty.Medium);
+    const normal = tribeExecution();
+
+    expect(normal["attackRate"]).toBeGreaterThanOrEqual(32);
+    expect(normal["attackRate"]).toBeLessThan(55);
+    expect(normal["triggerRatio"]).toBeGreaterThanOrEqual(0.42);
+    expect(normal["triggerRatio"]).toBeLessThan(0.52);
+    expect(normal["reserveRatio"]).toBeGreaterThanOrEqual(0.24);
+    expect(normal["reserveRatio"]).toBeLessThan(0.33);
+
+    await setupStripes(opponents, Difficulty.Hard);
+    const hard = tribeExecution();
+
+    expect(hard["attackRate"]).toBeGreaterThanOrEqual(24);
+    expect(hard["attackRate"]).toBeLessThan(42);
+    expect(hard["triggerRatio"]).toBeGreaterThanOrEqual(0.35);
+    expect(hard["triggerRatio"]).toBeLessThan(0.45);
+    expect(hard["reserveRatio"]).toBeGreaterThanOrEqual(0.18);
+    expect(hard["reserveRatio"]).toBeLessThan(0.27);
+    expect(hard["expandRatio"]).toBeGreaterThanOrEqual(0.06);
+    expect(hard["expandRatio"]).toBeLessThan(0.13);
+  });
+
+  it("Normal favors bot territory while Hard chooses the more vulnerable enemy", async () => {
+    const stripes: [string, PlayerType][] = [
+      ["human", PlayerType.Human],
+      ["tribe", PlayerType.Bot],
+      ["bot", PlayerType.Bot],
+    ];
+
+    await setupStripes(stripes, Difficulty.Medium);
+    tribe.setTroops(100_000);
+    game.player("human").setTroops(9_000);
+    game.player("bot").setTroops(12_000);
+    const normalBehavior = new TribeAttackBehavior(
+      new PseudoRandom(7),
+      game,
+      tribe,
+      0.1,
+      0.2,
+      0.1,
+    );
+    const normalSpy = vi.spyOn(game, "addExecution");
+
+    normalBehavior.attackRandomTarget();
+
+    expect(attackTargets(normalSpy)).toContain("bot");
+
+    await setupStripes(stripes, Difficulty.Hard);
+    tribe.setTroops(100_000);
+    game.player("human").setTroops(9_000);
+    game.player("bot").setTroops(12_000);
+    const hardBehavior = new TribeAttackBehavior(
+      new PseudoRandom(7),
+      game,
+      tribe,
+      0.1,
+      0.2,
+      0.1,
+    );
+    const hardSpy = vi.spyOn(game, "addExecution");
+
+    hardBehavior.attackRandomTarget();
+
+    expect(attackTargets(hardSpy)).toContain("human");
   });
 });
