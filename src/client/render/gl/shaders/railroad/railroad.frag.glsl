@@ -18,6 +18,7 @@ uniform sampler2D  uEffect;          // RGBA32F — shared effect palette, keyed
 uniform vec2 uMapSize;
 uniform float uZoom;
 uniform float uTime;                 // seconds, for animated effect styles
+uniform float uBuildPulse;            // brief 0..1 flash when a new rail is placed
 uniform float uRailDetailZoom;
 uniform float uRailAlpha;
 uniform float uRailFade;             // Zoom-based fade multiplier (0..1)
@@ -234,6 +235,11 @@ void main() {
         (owner == uint(uLocalPlayerID) || owner == uint(uHoverOwner + 0.5)) &&
         railroadEffectColor(int(owner), effectRGB)) {
       railColor = effectRGB;
+    }
+    // Brief construction pulse: newly laid infrastructure flashes softly,
+    // making the placement visible without changing simulation state.
+    if (uBuildPulse > 0.0) {
+      railColor = mix(railColor, vec3(0.82, 0.93, 1.0), uBuildPulse * 0.42);
     }
     // Overlapping railroad highlight — green tint
     if (highlighted) railColor = vec3(0.2, 0.85, 0.3);

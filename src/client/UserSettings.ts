@@ -13,9 +13,6 @@ import {
   DEFAULT_STATS_COLUMNS,
   StatsTableKind,
 } from "./StatsConstants";
-// DesktopShell.ts imports nothing, so this cannot introduce an import cycle
-// (verified with madge: 58 cycles before and after, none involving it).
-import { isDesktopShell } from "./DesktopShell";
 
 export function getDefaultKeybinds(isMac: boolean): Record<string, string> {
   return {
@@ -181,12 +178,6 @@ const AUDIO_RESET_KEYS: readonly string[] = [
 const AUDIO_RESET_VERSION = 1;
 const AUDIO_RESET_VERSION_KEY = "settings.audio.resetVersion";
 
-/** Every key that means "this player has chosen an audio volume before". */
-const AUDIO_VOLUME_KEYS: readonly string[] = [
-  "settings.backgroundMusicVolume",
-  "settings.soundEffectsVolume",
-  ...AUDIO_CHANNELS.map((category) => `settings.audio.${category}`),
-];
 
 const AUDIO_LEGACY_KEY: Partial<Record<AudioCategory, string>> = {
   music: "settings.backgroundMusicVolume",
@@ -936,27 +927,12 @@ export class UserSettings {
    * never means "unset".
    */
   /**
-   * What master falls back to with nothing stored for it.
-   *
-   * The desktop shell is a game the player deliberately launched, so it starts
-   * audible. The web build starts silent, matching main today — both of the
-   * old sliders defaulted to 0, and audio that starts by itself on the web is
-   * bad manners besides.
-   *
-   * The carve-out: master has no legacy key of its own, so defaulting it to 0
-   * would silence a returning player who had deliberately set the old
-   * sliders. If any audio value is stored at all, master falls back to
-   * AUDIO_DEFAULTS.master and that player keeps hearing what they chose.
-   *
-   * Named rather than quoted, here and in setAudioVolume below, so the two
-   * cannot drift apart the next time the default moves.
+   * FRONTIER is a standalone game build, not the original ad-supported web
+   * landing page. Start at a comfortable audible master level on every
+   * platform; an explicit stored zero remains respected by audioVolume().
    */
   private defaultMasterVolume(): number {
-    if (isDesktopShell()) return AUDIO_DEFAULTS.master;
-    const chosenBefore = AUDIO_VOLUME_KEYS.some(
-      (key) => this.getCached(key) !== null,
-    );
-    return chosenBefore ? AUDIO_DEFAULTS.master : 0;
+    return AUDIO_DEFAULTS.master;
   }
 
   audioVolume(category: AudioCategory): number {
@@ -975,11 +951,9 @@ export class UserSettings {
   }
 
   setAudioVolume(category: AudioCategory, volume: number): void {
-    // Writing any channel can flip the web master carve-out from 0 to
-    // AUDIO_DEFAULTS.master (see defaultMasterVolume): the player now has a
-    // stored audio value. Nothing else would announce that, so the mixer
-    // would sit at master 0 — a silent game — while the tab showed the
-    // default.
+    // Keep the mixer in sync when the player changes a channel. The master
+    // default is already audible in FRONTIER unless the player explicitly
+    // stored a mute value.
     const masterBefore = this.audioVolume("master");
     this.setFloat(`settings.audio.${category}`, clampVolume(volume));
     if (category === "master") return;

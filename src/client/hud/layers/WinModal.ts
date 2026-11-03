@@ -213,7 +213,9 @@ export class WinModal extends LitElement implements Controller {
         <div class="mt-4 flex flex-wrap justify-between gap-2.5 shrink-0">
           ${this.actionButton(
             "quiet",
-            translateText("win_modal.exit"),
+            this.game?.config().gameConfig().gameType === GameType.Singleplayer
+              ? "Volver al menú"
+              : translateText("win_modal.exit"),
             () => this._handleExit(),
             "exit",
           )}
@@ -501,6 +503,26 @@ export class WinModal extends LitElement implements Controller {
   }
 
   innerHtml() {
+    // FRONTIER single-player results are an in-game experience, not an ad or
+    // community-acquisition surface from the upstream project.
+    if (
+      this.game?.config().gameConfig().gameType === GameType.Singleplayer
+    ) {
+      return html`
+        <div class="mb-5 rounded-lg border border-cyan-400/20 bg-slate-950/70 p-4 text-center">
+          <div class="text-xs font-black tracking-[0.28em] text-cyan-300">FRONTIER</div>
+          <div class="mt-2 text-lg font-bold text-white">
+            ${this.isWin ? "CAMPAÑA COMPLETADA" : "CAMPAÑA FINALIZADA"}
+          </div>
+          <p class="mt-2 text-sm text-slate-300">
+            ${this.isWin
+              ? "Tu nación escribió un nuevo capítulo en la historia del mundo."
+              : "Tu imperio cayó. Cada derrota deja información para la próxima campaña."}
+          </p>
+        </div>
+      `;
+    }
+
     // The Steam desktop build has nothing to wishlist — fall through to the
     // other promos so the box is never empty.
     const canWishlist = !steamSDK.isOnSteam();

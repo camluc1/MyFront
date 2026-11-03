@@ -957,6 +957,7 @@ export class ClientGameRunner {
   // dropped; the start message replays them, so dropping them is expected.
   private awaitingStart = true;
   private lastMousePosition: { x: number; y: number } | null = null;
+  private lastBoatAttackNoticeAt = 0;
 
   private lastMessageTime: number = 0;
   private connectionCheckInterval: NodeJS.Timeout | null = null;
@@ -1431,9 +1432,16 @@ export class ClientGameRunner {
         if (this.canBoatAttack(buildables) !== false) {
           this.sendBoatAttackIntent(tile);
         } else {
-          console.warn(
-            "Boat attack triggered but can't send Transport Ship to tile",
-          );
+          // A failed destination check used to be silent in the UI, which
+          // looked like a dead click. Explain the constraint and throttle the
+          // notice so repeated clicks cannot flood the player.
+          const now = Date.now();
+          if (now - this.lastBoatAttackNoticeAt >= 2500) {
+            this.lastBoatAttackNoticeAt = now;
+            void showInGameAlert(
+              "No hay una ruta de transporte disponible para ese destino. Probá otra costa y verificá que tengas un puerto operativo.",
+            );
+          }
         }
       })
       .catch((error) => {

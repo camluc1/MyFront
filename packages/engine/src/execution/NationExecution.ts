@@ -122,20 +122,27 @@ export class NationExecution implements Execution {
   }
 
   private getAttackRate(): number {
-    const { difficulty } = this.mg.config().gameConfig();
+    const { difficulty, gameType } = this.mg.config().gameConfig();
+    const singleplayer = gameType === GameType.Singleplayer;
     switch (difficulty) {
       case Difficulty.Easy:
         return Math.max(
           20,
           Math.round(
-            this.random.nextInt(65, 100) * this.doctrine.attackCadenceMultiplier,
+            this.random.nextInt(
+              singleplayer ? 90 : 65,
+              singleplayer ? 130 : 100,
+            ) * this.doctrine.attackCadenceMultiplier,
           ),
-        ); // Slower reactions
+        ); // Give single-player campaigns more room to develop.
       case Difficulty.Medium:
         return Math.max(
           20,
           Math.round(
-            this.random.nextInt(55, 70) * this.doctrine.attackCadenceMultiplier,
+            this.random.nextInt(
+              singleplayer ? 80 : 55,
+              singleplayer ? 105 : 70,
+            ) * this.doctrine.attackCadenceMultiplier,
           ),
         );
       case Difficulty.Hard:

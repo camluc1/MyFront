@@ -80,9 +80,10 @@ export class ReplayPanel extends LitElement implements Controller {
               : translateText("replay_panel.game_speed")
           }
         </label>
-        <div class="grid grid-cols-4 gap-2">
+        <div class="grid grid-cols-5 gap-2">
           ${this.renderSpeedButton(ReplaySpeedMultiplier.slow, "×0.5")}
-          ${this.renderSpeedButton(ReplaySpeedMultiplier.normal, "×1")}
+          ${this.renderSpeedButton(ReplaySpeedMultiplier.relaxed, "×0.8")}
+          ${this.renderSpeedButton(ReplaySpeedMultiplier.normal, "×1")
           ${this.renderSpeedButton(ReplaySpeedMultiplier.fast, "×2")}
           ${this.renderSpeedButton(
             ReplaySpeedMultiplier.fastest,

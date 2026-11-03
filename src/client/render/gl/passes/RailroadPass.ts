@@ -103,6 +103,7 @@ export class RailroadPass {
   private uMapSize: WebGLUniformLocation;
   private uZoom: WebGLUniformLocation;
   private uTime: WebGLUniformLocation;
+  private uBuildPulse: WebGLUniformLocation;
   private uRailDetailZoom: WebGLUniformLocation;
   private uRailAlpha: WebGLUniformLocation;
   private uRailFade: WebGLUniformLocation;
@@ -123,6 +124,9 @@ export class RailroadPass {
    */
   private liveRailroadRef: Uint8Array | null = null;
   private railroadDirty = false;
+  /** Snapshot detects newly placed rails even when the source array is mutated in place. */
+  private previousRailroadState: Uint8Array | null = null;
+  private lastBuildPulseAt = -Infinity;
 
   /**
    * Current ghost overlay content, sparse: tile ref → texel value (1-6 =
@@ -185,6 +189,7 @@ export class RailroadPass {
     this.uMapSize = gl.getUniformLocation(this.program, "uMapSize")!;
     this.uZoom = gl.getUniformLocation(this.program, "uZoom")!;
     this.uTime = gl.getUniformLocation(this.program, "uTime")!;
+    this.uBuildPulse = gl.getUniformLocation(this.program, "uBuildPulse")!;
     this.uRailDetailZoom = gl.getUniformLocation(
       this.program,
       "uRailDetailZoom",
@@ -253,6 +258,19 @@ export class RailroadPass {
   }
 
   uploadRailroadState(railroadState: Uint8Array): void {
+    if (this.previousRailroadState === null) {
+      this.previousRailroadState = railroadState.slice();
+    } else {
+      let addedRail = false;
+      for (let i = 0; i < railroadState.length; i++) {
+        if (this.previousRailroadState[i] === 0 && railroadState[i] !== 0) {
+          addedRail = true;
+          break;
+        }
+      }
+      if (addedRail) this.lastBuildPulseAt = performance.now();
+      this.previousRailroadState.set(railroadState);
+    }
     this.liveRailroadRef = railroadState;
     this.railroadDirty = true;
   }
@@ -421,6 +439,11 @@ export class RailroadPass {
     gl.uniform2f(this.uMapSize, this.mapW, this.mapH);
     gl.uniform1f(this.uZoom, zoom);
     gl.uniform1f(this.uTime, (performance.now() - this.startTime) / 1000);
+    const buildPulse = Math.max(
+      0,
+      1 - (performance.now() - this.lastBuildPulseAt) / 900,
+    );
+    gl.uniform1f(this.uBuildPulse, buildPulse);
     gl.uniform1f(this.uRailDetailZoom, rs.railDetailZoom);
     gl.uniform1f(this.uRailAlpha, rs.railAlpha);
     gl.uniform1f(this.uRailFade, fade);

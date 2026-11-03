@@ -166,11 +166,11 @@ describe("master volume default", () => {
 
   afterEach(pretendWeb);
 
-  it("starts web silent when the player has never chosen any audio value", () => {
-    // Parity with main, where both old sliders defaulted to 0, and ordinary
-    // autoplay etiquette: nothing should start making noise by itself.
+  it("starts the web build audible when the player has never chosen any audio value", () => {
+    // FRONTIER is a standalone game build: music and effects should work on
+    // the first run without requiring a trip through settings.
     const s = new UserSettings();
-    expect(s.audioVolume("master")).toBe(0);
+    expect(s.audioVolume("master")).toBeCloseTo(0.9);
     // The channels themselves are untouched — only master differs.
     expect(s.audioVolume("music")).toBeCloseTo(0.5);
     expect(s.audioVolume("effects")).toBeCloseTo(0.7);
@@ -184,9 +184,9 @@ describe("master volume default", () => {
     expect(new UserSettings().audioVolume("master")).toBeCloseTo(0.9);
   });
 
-  it("keeps a returning web player audible when only a legacy key is stored", () => {
-    // Master has no legacy key, so without this carve-out a player who had
-    // deliberately set the old sliders would upgrade into silence.
+  it("keeps the audible master default when a legacy music key is stored", () => {
+    // Legacy channel values do not override the standalone build's master
+    // default; only an explicit master setting can mute the whole game.
     localStorage.setItem("settings.backgroundMusicVolume", "0.5");
     const s = new UserSettings();
     expect(s.audioVolume("master")).toBeCloseTo(0.9);
@@ -200,24 +200,22 @@ describe("master volume default", () => {
     expect(s.audioVolume("effects")).toBe(0);
   });
 
-  it("announces master when the first write flips the carve-out", () => {
-    // Otherwise the mixer stays at master 0 — a silent game — while the tab
-    // shows master at its default.
+  it("keeps master audible when the player first changes a channel", () => {
     const seen: unknown[] = [];
     const type = `${USER_SETTINGS_CHANGED_EVENT}:settings.audio.master`;
     const listener = (e: Event) => seen.push((e as CustomEvent).detail);
     globalThis.addEventListener(type, listener);
 
     const s = new UserSettings();
-    expect(s.audioVolume("master")).toBe(0);
+    expect(s.audioVolume("master")).toBeCloseTo(0.9);
     s.setAudioVolume("effects", 0.7);
 
     globalThis.removeEventListener(type, listener);
     expect(s.audioVolume("master")).toBeCloseTo(0.9);
-    expect(seen).toEqual(["0.9"]);
+    expect(seen).toEqual([]);
   });
 
-  it("announces the flip through the legacy setters too", () => {
+  it("does not emit a master change when the legacy music setter is used", () => {
     const seen: unknown[] = [];
     const type = `${USER_SETTINGS_CHANGED_EVENT}:settings.audio.master`;
     const listener = (e: Event) => seen.push((e as CustomEvent).detail);
@@ -226,10 +224,10 @@ describe("master volume default", () => {
     new UserSettings().setBackgroundMusicVolume(0.5);
 
     globalThis.removeEventListener(type, listener);
-    expect(seen).toEqual(["0.9"]);
+    expect(seen).toEqual([]);
   });
 
-  it("announces the flip only once, not on every later write", () => {
+  it("does not emit a master change for later channel writes", () => {
     const seen: unknown[] = [];
     const type = `${USER_SETTINGS_CHANGED_EVENT}:settings.audio.master`;
     const listener = (e: Event) => seen.push((e as CustomEvent).detail);
@@ -241,10 +239,10 @@ describe("master volume default", () => {
     s.setAudioVolume("alerts", 0.2);
 
     globalThis.removeEventListener(type, listener);
-    expect(seen).toEqual(["0.9"]);
+    expect(seen).toEqual([]);
   });
 
-  it("does not announce a flip when master is stored", () => {
+  it("does not announce a master change when master is stored", () => {
     const s = new UserSettings();
     s.setAudioVolume("master", 0.3);
     const seen: unknown[] = [];
@@ -259,17 +257,17 @@ describe("master volume default", () => {
     expect(s.audioVolume("master")).toBeCloseTo(0.3);
   });
 
-  it("trips the carve-out on a legacy effects value alone", () => {
+  it("uses the audible default with a legacy effects value alone", () => {
     localStorage.setItem("settings.soundEffectsVolume", "0.65");
     expect(new UserSettings().audioVolume("master")).toBeCloseTo(0.9);
   });
 
-  it("does not trip the carve-out on the blur toggles alone", () => {
-    // Those are not a volume choice, so they must not unmute a web player.
+  it("keeps the audible default when only blur toggles are changed", () => {
+    // Focus preferences are independent of the master volume.
     const s = new UserSettings();
     s.setMuteOnBlur(true);
     s.setAlertsWhenUnfocused(false);
-    expect(new UserSettings().audioVolume("master")).toBe(0);
+    expect(new UserSettings().audioVolume("master")).toBeCloseTo(0.9);
   });
 
   it("lets a stored master value win on either platform", () => {

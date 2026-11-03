@@ -61,7 +61,23 @@ export class FrontierWorldIntelligence extends LitElement implements Controller 
     ) return;
 
     const tick = this.game.ticksSinceStart();
-    const inputs: FrontierWorldPlayerInput[] = this.game.playerViews().map((p) => ({
+    const myPlayer = this.game.myPlayer();
+    const inputs: FrontierWorldPlayerInput[] = this.game.playerViews().map((p) => {
+      const isAtWar =
+        myPlayer !== null &&
+        (myPlayer.outgoingAttacks().some((attack) => attack.targetID === p.smallID()) ||
+          p.outgoingAttacks().some((attack) => attack.targetID === myPlayer.smallID()));
+      const diplomacyStatus: FrontierWorldPlayerInput["diplomacyStatus"] =
+        p.isMe()
+          ? "TU NACIÓN"
+          : myPlayer?.isAlliedWith(p)
+            ? "ALIADO"
+            : isAtWar
+              ? "EN GUERRA"
+              : myPlayer?.isFriendly(p)
+                ? "MISMO EQUIPO"
+                : "SIN PACTO";
+      return {
       smallID: p.smallID(),
       name: p.displayName(),
       kind:
@@ -90,7 +106,8 @@ export class FrontierWorldIntelligence extends LitElement implements Controller 
       betrayals: p.betrayals(),
       outgoingAttacks: p.outgoingAttacks().length,
       incomingAttacks: p.incomingAttacks().length,
-    }));
+      diplomacyStatus,
+    }; });
 
     if (!this.tracker.observe(inputs, tick)) return;
     this.players = this.tracker.players();
@@ -222,7 +239,7 @@ export class FrontierWorldIntelligence extends LitElement implements Controller 
                 <span class="text-xs tabular-nums text-slate-500">${index + 1}</span>
                 <span class="min-w-0">
                   <span class="block truncate text-xs font-semibold text-slate-100">${p.name}</span>
-                  <span class="block text-[9px] uppercase tracking-wider text-slate-500">${p.kind === "nation" ? "NACIÓN" : p.kind === "tribe" ? "TRIBU" : "JUGADOR"} ${p.isMe ? "· TÚ" : ""}</span>
+                  <span class="block text-[9px] uppercase tracking-wider text-slate-500">${p.kind === "nation" ? "NACIÓN" : p.kind === "tribe" ? "TRIBU" : "JUGADOR"} · ${p.diplomacyStatus ?? "SIN PACTO"}</span>
                 </span>
                 <span class="text-right text-xs font-semibold tabular-nums text-cyan-200">${this.compact(value)}</span>
               </button>
@@ -374,6 +391,14 @@ export class FrontierWorldIntelligence extends LitElement implements Controller 
                             <div class="rounded-lg border border-slate-800 bg-slate-900/80 p-3">
                               <div class="text-[9px] text-slate-500">TRAICIONES</div>
                               <div class="mt-1 text-sm font-semibold tabular-nums">${selected.betrayals}</div>
+                            </div>
+                            <div class="rounded-lg border border-slate-800 bg-slate-900/80 p-3">
+                              <div class="text-[9px] text-slate-500">FRENTES ABIERTOS</div>
+                              <div class="mt-1 text-sm font-semibold tabular-nums">${selected.outgoingAttacks}</div>
+                            </div>
+                            <div class="rounded-lg border border-slate-800 bg-slate-900/80 p-3">
+                              <div class="text-[9px] text-slate-500">ATAQUES RECIBIDOS</div>
+                              <div class="mt-1 text-sm font-semibold tabular-nums">${selected.incomingAttacks}</div>
                             </div>
                           </div>
                         `

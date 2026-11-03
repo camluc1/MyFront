@@ -30,6 +30,8 @@ export interface FrontierWorldPlayerInput {
   betrayals: number;
   outgoingAttacks: number;
   incomingAttacks: number;
+  /** Relationship to the human player in the current single-player campaign. */
+  diplomacyStatus?: "TU NACIÓN" | "ALIADO" | "MISMO EQUIPO" | "EN GUERRA" | "SIN PACTO";
 }
 
 export interface FrontierWorldPlayerSnapshot extends FrontierWorldPlayerInput {
