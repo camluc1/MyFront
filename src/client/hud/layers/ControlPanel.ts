@@ -10,6 +10,7 @@ import { LitElement, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { keyed } from "lit/directives/keyed.js";
 import { Controller } from "../../Controller";
+import { ToggleResourcesEvent } from "../../controllers/MapLayerController";
 import { AttackRatioEvent, isForwardedClick } from "../../InputHandler";
 import { UIState } from "../../UIState";
 import { USER_SETTINGS_CHANGED_EVENT, UserSettings } from "../../UserSettings";
@@ -30,6 +31,11 @@ export class ControlPanel extends LitElement implements Controller {
 
   @state()
   private attackRatio: number = 0.2;
+  @state() private resourcesVisible = false;
+  private toggleResources() {
+    this.resourcesVisible = !this.resourcesVisible;
+    this.eventBus.emit(new ToggleResourcesEvent(this.resourcesVisible));
+  }
 
   @state()
   private _maxTroops: number;
@@ -612,6 +618,12 @@ export class ControlPanel extends LitElement implements Controller {
           <span class="tabular-nums">${renderNumber(this._gold)}</span>
         </div>
       </div>
+      <button type="button" class="px-2 py-0.5 border border-gray-500 rounded text-xs mb-1"
+        @click=${() => this.toggleResources()}
+        aria-pressed=${this.resourcesVisible}
+        title="Mostrar u ocultar recursos naturales">
+        ${this.resourcesVisible ? "◉ Recursos: ON" : "◎ Recursos"}
+      </button>
       <!-- Row 2: attack ratio | slider -->
       <div
         class="flex items-center gap-1.5 ${this.tutorialHighlightClass(
@@ -670,6 +682,11 @@ export class ControlPanel extends LitElement implements Controller {
   private renderMobile() {
     return html`
       ${this.renderNotification()}
+      <button type="button" class="px-2 py-1 border border-gray-500 rounded text-xs"
+        @click=${() => this.toggleResources()} aria-pressed=${this.resourcesVisible}
+        title="Mostrar u ocultar recursos naturales">
+        ${this.resourcesVisible ? "◉" : "◎"} Recursos
+      </button>
       <div class="flex gap-2 items-center">
         <!-- Gold -->
         <div

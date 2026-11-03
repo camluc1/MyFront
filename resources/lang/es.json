@@ -172,7 +172,11 @@
       "missile_silo": "Utilizado para lanzar bombas",
       "port": "Envía barcos comerciales para generar oro",
       "sam_launcher": "Defiende contra bombas",
-      "warship": "Captura barcos comerciales y destruye barcos de guerra"
+      "warship": "Captura barcos comerciales y destruye barcos de guerra",
+      "farm": "Genera oro en tierras fértiles",
+      "mine": "Extrae minerales; +40% si está conectada a una fábrica",
+      "oil_well": "Genera oro en yacimientos petroleros",
+      "gas_plant": "Genera oro en yacimientos de gas"
     },
     "not_enough_money": "Dinero insuficiente",
     "upgrade_amount": "x{amount}",
@@ -2105,7 +2109,11 @@
     "missile_silo": "Silo de misiles",
     "port": "Puerto",
     "sam_launcher": "Misil tierra-aire",
-    "warship": "Barco de guerra"
+    "warship": "Barco de guerra",
+    "farm": "Granja",
+    "mine": "Mina",
+    "oil_well": "Pozo petrolero",
+    "gas_plant": "Planta gasífera"
   },
   "update_available": {
     "desktop": "Una nueva versión de OpenFront está disponible. Se descargará en segundo plano; se volverá a cargar desde la barra de actualizaciones una vez esté lista.",

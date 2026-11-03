@@ -29,6 +29,10 @@ import { GameView } from "../../view";
 const warshipIcon = assetUrl("images/BattleshipIconWhite.svg");
 const cityIcon = assetUrl("images/CityIconWhite.svg");
 const factoryIcon = assetUrl("images/FactoryIconWhite.svg");
+const farmIcon = assetUrl("images/FarmIconWhite.svg");
+const mineIcon = assetUrl("images/MineIconWhite.svg");
+const oilIcon = assetUrl("images/OilWellIconWhite.svg");
+const gasIcon = assetUrl("images/GasPlantIconWhite.svg");
 const goldCoinIcon = assetUrl("images/GoldCoinIcon.svg");
 const mirvIcon = assetUrl("images/MIRVIcon.svg");
 const missileSiloIcon = assetUrl("images/MissileSiloIconWhite.svg");
@@ -118,6 +122,16 @@ const buildTable: BuildItemDisplay[][] = [
       key: "unit_type.factory",
       countable: true,
     },
+  ],
+  [
+    { unitType: UnitType.Farm, icon: farmIcon, description: "build_menu.desc.farm",
+      key: "unit_type.farm", countable: true },
+    { unitType: UnitType.Mine, icon: mineIcon, description: "build_menu.desc.mine",
+      key: "unit_type.mine", countable: true },
+    { unitType: UnitType.OilWell, icon: oilIcon, description: "build_menu.desc.oil_well",
+      key: "unit_type.oil_well", countable: true },
+    { unitType: UnitType.GasPlant, icon: gasIcon, description: "build_menu.desc.gas_plant",
+      key: "unit_type.gas_plant", countable: true },
   ],
 ];
 
