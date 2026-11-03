@@ -3,6 +3,8 @@ import { html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import type { Controller } from "../../Controller";
 import type { GameView } from "../../view";
+import { recordGoldRates } from "./lib/StatsColumns";
+import { goldRateTracker } from "./lib/GoldRateTracker";
 import {
   FrontierChronicleTracker,
   type FrontierChronicleEntry,
@@ -20,6 +22,7 @@ export class FrontierChronicle extends LitElement implements Controller {
     if (this._game === game) return;
     this._game = game;
     this.tracker = new FrontierChronicleTracker();
+    goldRateTracker.resetAll();
     this.entries = [];
     this.active = false;
     this.expanded = false;
@@ -46,19 +49,26 @@ export class FrontierChronicle extends LitElement implements Controller {
       ),
     );
 
-    const snapshotPlayers = players.map((player) => ({
-      smallID: player.smallID(),
-      name: player.displayName(),
-      isAI: player.type() !== PlayerType.Human,
-      isHuman: player.type() === PlayerType.Human,
-      isAlive: player.isAlive(),
-      tiles: player.numTilesOwned(),
-      allies: player.alliances().flatMap((alliance) => {
-        const smallID = smallIDByPlayerID.get(String(alliance.other));
-        return smallID === undefined ? [] : [smallID];
-      }),
-      outgoingTargets: player.outgoingAttacks().map((attack) => attack.targetID),
-    }));
+    const snapshotPlayers = players.map((player) => {
+      recordGoldRates(player, this.game);
+      return {
+        smallID: player.smallID(),
+        name: player.displayName(),
+        isAI: player.type() !== PlayerType.Human,
+        isHuman: player.type() === PlayerType.Human,
+        isNation: player.type() === PlayerType.Nation,
+        isAlive: player.isAlive(),
+        tiles: player.numTilesOwned(),
+        allies: player.alliances().flatMap((alliance) => {
+          const smallID = smallIDByPlayerID.get(String(alliance.other));
+          return smallID === undefined ? [] : [smallID];
+        }),
+        outgoingTargets: player.outgoingAttacks().map((attack) => attack.targetID),
+        goldIncomePerMin: goldRateTracker.goldIncomePerMin(player.smallID()),
+        troops: player.troops(),
+        maxTroops: this.game.config().maxTroops(player),
+      };
+    });
 
     const newEntries = this.tracker.observe(snapshotPlayers, tick);
     if (newEntries.length > 0) {
@@ -92,6 +102,16 @@ export class FrontierChronicle extends LitElement implements Controller {
         return { icon: "▲", label: "EXPANSIÓN", color: "text-emerald-300" };
       case "power-shift":
         return { icon: "♛", label: "HEGEMONÍA", color: "text-violet-300" };
+      case "economic-surge":
+        return { icon: "↗", label: "ECONOMÍA", color: "text-emerald-300" };
+      case "military-build-up":
+        return { icon: "▥", label: "REARME", color: "text-rose-300" };
+      case "power-decline":
+        return { icon: "↘", label: "DECLIVE", color: "text-amber-300" };
+      case "economic-hegemony":
+        return { icon: "◈", label: "LIDERAZGO ECONÓMICO", color: "text-emerald-200" };
+      case "military-hegemony":
+        return { icon: "♜", label: "LIDERAZGO MILITAR", color: "text-rose-200" };
       default:
         return { icon: "•", label: "MUNDO", color: "text-slate-300" };
     }

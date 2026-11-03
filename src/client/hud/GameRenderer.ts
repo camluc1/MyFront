@@ -33,6 +33,7 @@ import { ControlPanel } from "./layers/ControlPanel";
 import { EmojiTable } from "./layers/EmojiTable";
 import { EventsDisplay } from "./layers/EventsDisplay";
 import { FrontierChronicle } from "./layers/FrontierChronicle";
+import { FrontierWorldIntelligence } from "./layers/FrontierWorldIntelligence";
 import { GameLeftSidebar } from "./layers/GameLeftSidebar";
 import { GameRightSidebar } from "./layers/GameRightSidebar";
 import { HeadsUpMessage } from "./layers/HeadsUpMessage";
@@ -129,6 +130,14 @@ export function createRenderer(
     console.error("frontier chronicle not found");
   }
   frontierChronicle.game = game;
+
+  const worldIntelligence = document.querySelector(
+    "frontier-world-intelligence",
+  ) as FrontierWorldIntelligence;
+  if (!(worldIntelligence instanceof FrontierWorldIntelligence)) {
+    console.error("frontier world intelligence not found");
+  }
+  worldIntelligence.game = game;
 
   const actionableEvents = document.querySelector(
     "actionable-events",
@@ -367,7 +376,7 @@ export function createRenderer(
     actionableEvents,
     attacksDisplay,
     chatDisplay,
-    ...(frontierHud ? [frontierChronicle] : []),
+    ...(frontierHud ? [worldIntelligence, frontierChronicle] : []),
     buildMenu,
     new MainRadialMenu(
       eventBus,

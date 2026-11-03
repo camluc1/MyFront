@@ -86,6 +86,79 @@ describe("FrontierChronicleTracker", () => {
     expect(afterCooldown.map((entry) => entry.kind)).toContain("expansion");
   });
 
+ 
+  it("announces a meaningful economic acceleration with a cooldown", () => {
+    const tracker = new FrontierChronicleTracker();
+    tracker.observe([player(1, { goldIncomePerMin: 1000 })], 0);
+
+    const entries = tracker.observe(
+      [player(1, { goldIncomePerMin: 2200 })],
+      1000,
+    );
+
+    expect(entries.map((entry) => entry.kind)).toContain("economic-surge");
+  });
+
+  it("announces meaningful military capacity growth", () => {
+    const tracker = new FrontierChronicleTracker();
+    tracker.observe([player(1, { maxTroops: 5000 })], 0);
+
+    const entries = tracker.observe(
+      [player(1, { maxTroops: 7000 })],
+      1000,
+    );
+
+    expect(entries.map((entry) => entry.kind)).toContain("military-build-up");
+  });
+
+  it("announces a major territorial decline", () => {
+    const tracker = new FrontierChronicleTracker();
+    tracker.observe([player(1, { tiles: 300 })], 0);
+
+    const entries = tracker.observe(
+      [player(1, { tiles: 200 })],
+      1000,
+    );
+
+    expect(entries.map((entry) => entry.kind)).toContain("power-decline");
+  });
+
+  it("tracks economic leadership separately from territorial leadership", () => {
+    const tracker = new FrontierChronicleTracker();
+    tracker.observe(
+      [
+        player(1, { goldIncomePerMin: 2000 }),
+        player(2, { goldIncomePerMin: 1000 }),
+      ],
+      0,
+    );
+
+    const entries = tracker.observe(
+      [
+        player(1, { goldIncomePerMin: 2000 }),
+        player(2, { goldIncomePerMin: 4000 }),
+      ],
+      1000,
+    );
+
+    expect(entries.map((entry) => entry.kind)).toContain("economic-hegemony");
+  });
+
+  it("tracks military leadership using available troops, not territory", () => {
+    const tracker = new FrontierChronicleTracker();
+    tracker.observe(
+      [player(1, { troops: 12000 }), player(2, { troops: 8000 })],
+      0,
+    );
+
+    const entries = tracker.observe(
+      [player(1, { troops: 12000 }), player(2, { troops: 15000 })],
+      1000,
+    );
+
+    expect(entries.map((entry) => entry.kind)).toContain("military-hegemony");
+  });
+
   it("does not announce a one-tile change of map leader as a power shift", () => {
     const tracker = new FrontierChronicleTracker();
     tracker.observe([player(1, { tiles: 110 }), player(2, { tiles: 100 })], 0);

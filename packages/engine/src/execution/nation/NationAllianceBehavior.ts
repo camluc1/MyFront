@@ -1,6 +1,7 @@
 import {
   Difficulty,
   GameMode,
+  GameType,
   PlayerType,
   Relation,
 } from "@openfront/engine-api/game/GameTypes";
@@ -146,6 +147,12 @@ export class NationAllianceBehavior {
     if (this.isRunawayLeader(otherPlayer)) {
       return false;
     }
+    // Countries exposed to the same runaway hegemon can form a counterweight
+    // coalition. This only influences alliance choice; existing execution,
+    // duration and relation mechanics remain unchanged.
+    if (this.shouldCounterbalanceRunawayLeader(otherPlayer)) {
+      return true;
+    }
     // Before caring about the relation, first check if the otherPlayer is a threat
     // Easy (dumb) nations are blinded by hatred, they don't care about threats, they care about the relation
     // Impossible (smart) nations on the other hand are analyzing the facts
@@ -210,6 +217,46 @@ export class NationAllianceBehavior {
     } else {
       return otherPlayerAlliances >= totalPlayers * 0.25;
     }
+  }
+
+  private shouldCounterbalanceRunawayLeader(otherPlayer: Player): boolean {
+    const { gameType, difficulty } = this.game.config().gameConfig();
+    if (
+      gameType !== GameType.Singleplayer ||
+      difficulty === Difficulty.Easy ||
+      this.player.isFriendly(otherPlayer) ||
+      this.player.relation(otherPlayer) < Relation.Neutral
+    ) {
+      return false;
+    }
+
+    const leader = findRunawayLeader(this.game);
+    if (
+      leader === null ||
+      leader === this.player ||
+      leader === otherPlayer
+    ) {
+      return false;
+    }
+
+    // Both countries must be directly exposed to the same hegemon. This keeps
+    // the rule geographically grounded and prevents map-wide automatic blocs.
+    if (
+      !this.player.sharesBorderWith(leader) ||
+      !otherPlayer.sharesBorderWith(leader)
+    ) {
+      return false;
+    }
+
+    const leaderTiles = Math.max(1, leader.numTilesOwned());
+    const playerThreatened =
+      leaderTiles >= this.player.numTilesOwned() * 1.35 ||
+      leader.troops() >= this.player.troops() * 1.5;
+    const partnerThreatened =
+      leaderTiles >= otherPlayer.numTilesOwned() * 1.35 ||
+      leader.troops() >= otherPlayer.troops() * 1.5;
+
+    return playerThreatened && partnerThreatened;
   }
 
   private isRunawayLeader(otherPlayer: Player): boolean {

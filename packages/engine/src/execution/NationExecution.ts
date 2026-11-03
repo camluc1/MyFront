@@ -2,6 +2,7 @@ import { TileRef } from "@openfront/engine-api/game/GameMap";
 import {
   Difficulty,
   GameMode,
+  GameType,
   Nation,
   PlayerID,
   PlayerType,
@@ -43,6 +44,7 @@ import { tutorialCollapse } from "./nation/TutorialCollapse";
 import { tutorialSilo, tutorialWarship } from "./nation/TutorialSilo";
 import { SpawnExecution } from "./SpawnExecution";
 import { getNationDoctrine, type NationDoctrine } from "./nation/NationDoctrine";
+import { findRunawayLeader } from "./nation/NationUtils";
 
 export class NationExecution implements Execution {
   private active = true;
@@ -67,6 +69,11 @@ export class NationExecution implements Execution {
   private expandRatio: number;
 
   private embargoMalusApplied = new Set<PlayerID>();
+
+  // Persist the strategic intent by smallID so it survives save/load.
+  private warPlanTargetSmallID: number | null = null;
+  private warPlanReviewTick = 0;
+  private warPlanExpiresTick = 0;
 
   constructor(
     private gameID: GameID,
@@ -285,6 +292,8 @@ export class NationExecution implements Execution {
     this.structureBehavior.handleStructures();
     this.warshipBehavior.maybeSpawnWarship();
     this.handleEmbargoesToHostileNations();
+    this.updateWarPlan(ticks);
+    this.attackBehavior.setStrategicTarget(this.currentWarPlanTarget());
     this.attackBehavior.maybeAttack();
     this.warshipBehavior.counterWarshipInfestation();
     this.nukeBehavior.maybeSendNuke();
@@ -374,6 +383,109 @@ export class NationExecution implements Execution {
       }
     }
     return null;
+  }
+
+  /**
+   * Select a medium-term opponent for single-player campaigns. This is an
+   * intent layer only; NationAttackBehavior continues to enforce its original
+   * reserves, reachability, retaliation and transport rules.
+   */
+  private updateWarPlan(ticks: number): void {
+    const config = this.mg.config().gameConfig();
+    if (
+      this.player === null ||
+      config.gameType !== GameType.Singleplayer ||
+      config.difficulty === Difficulty.Easy
+    ) {
+      this.warPlanTargetSmallID = null;
+      this.warPlanReviewTick = ticks + 300;
+      this.warPlanExpiresTick = 0;
+      return;
+    }
+
+    if (ticks < this.warPlanReviewTick) return;
+    this.warPlanReviewTick = ticks + 300;
+
+    const current = this.currentWarPlanTarget();
+    if (current !== null && ticks < this.warPlanExpiresTick) return;
+
+    const player = this.player;
+    const ownTiles = Math.max(1, player.numTilesOwned());
+    const ownCapacity = this.mg.config().maxTroops(player);
+    const ownStrength = Math.max(1, player.troops() + ownCapacity * 0.15);
+    const runawayLeader = findRunawayLeader(this.mg);
+    const candidates = player.nearby().filter(
+      (candidate): candidate is Player =>
+        candidate.isPlayer() &&
+        candidate !== player &&
+        candidate.isAlive() &&
+        candidate.type() !== PlayerType.Bot &&
+        !player.isFriendly(candidate),
+    );
+
+    let best: Player | null = null;
+    let bestScore = Number.NEGATIVE_INFINITY;
+    for (const candidate of candidates) {
+      const capacity = this.mg.config().maxTroops(candidate);
+      const committed = candidate
+        .outgoingAttacks()
+        .reduce((sum, attack) => sum + attack.troops(), 0);
+      const exposedRatio = Math.min(
+        1,
+        committed / Math.max(1, candidate.troops() + committed),
+      );
+      const effectiveStrength = Math.max(
+        1,
+        candidate.troops() + capacity * 0.15 - committed * 0.2,
+      );
+      const relativeStrength = ownStrength / effectiveStrength;
+
+      // Avoid choosing a clearly stronger hegemon as an offensive campaign.
+      if (candidate === runawayLeader && relativeStrength < 0.9) continue;
+      if (relativeStrength < 0.55) continue;
+
+      const territoryValue = Math.min(
+        2,
+        candidate.numTilesOwned() / ownTiles,
+      );
+      const borderBonus = player.sharesBorderWith(candidate) ? 12 : 0;
+      const hostileBonus =
+        player.relation(candidate) <= Relation.Hostile ? 5 : 0;
+      const leaderBonus = candidate === runawayLeader ? 10 : 0;
+      const score =
+        Math.min(3, relativeStrength) * 20 +
+        territoryValue * 7 +
+        exposedRatio * 9 +
+        borderBonus +
+        hostileBonus +
+        leaderBonus;
+
+      if (
+        score > bestScore ||
+        (score === bestScore &&
+          best !== null &&
+          candidate.smallID() < best.smallID())
+      ) {
+        best = candidate;
+        bestScore = score;
+      }
+    }
+
+    this.warPlanTargetSmallID =
+      best !== null && bestScore >= 24 ? best.smallID() : null;
+    this.warPlanExpiresTick = ticks + 900;
+  }
+
+  private currentWarPlanTarget(): Player | null {
+    if (this.player === null || this.warPlanTargetSmallID === null) {
+      return null;
+    }
+    const target = this.mg.playerBySmallID(this.warPlanTargetSmallID);
+    return target.isPlayer() &&
+      target.isAlive() &&
+      !this.player.isFriendly(target)
+      ? target
+      : null;
   }
 
   private updateRelationsFromEmbargos() {
@@ -473,6 +585,9 @@ export class NationExecution implements Execution {
       reserveRatio: this.reserveRatio,
       expandRatio: this.expandRatio,
       embargoMalusApplied: [...this.embargoMalusApplied],
+      warPlanTargetSmallID: this.warPlanTargetSmallID,
+      warPlanReviewTick: this.warPlanReviewTick,
+      warPlanExpiresTick: this.warPlanExpiresTick,
       spawnExecAdded: this.spawnExecAdded,
       behaviors: this.behaviorsInitialized
         ? {
@@ -515,6 +630,9 @@ export class NationExecution implements Execution {
     this.reserveRatio = s.reserveRatio;
     this.expandRatio = s.expandRatio;
     this.embargoMalusApplied = new Set(s.embargoMalusApplied);
+    this.warPlanTargetSmallID = s.warPlanTargetSmallID;
+    this.warPlanReviewTick = s.warPlanReviewTick;
+    this.warPlanExpiresTick = s.warPlanExpiresTick;
     this.spawnExecAdded = s.spawnExecAdded;
     this.behaviorsInitialized = s.behaviors !== null;
     const b = s.behaviors;
@@ -571,6 +689,9 @@ const NationStateSchema = z.object({
   reserveRatio: zNum(),
   expandRatio: zNum(),
   embargoMalusApplied: z.array(z.string()),
+  warPlanTargetSmallID: zPlayerRef().nullable(),
+  warPlanReviewTick: zNum(),
+  warPlanExpiresTick: zNum(),
   spawnExecAdded: z.boolean(),
   behaviors: z
     .object({
@@ -588,7 +709,15 @@ type NationState = z.infer<typeof NationStateSchema>;
 
 export const NationExecutionSnapshot = execSnapshotType({
   name: "Nation",
-  version: 1,
+  version: 2,
   schema: NationStateSchema,
+  migrations: {
+    1: (data) => ({
+      ...data,
+      warPlanTargetSmallID: null,
+      warPlanReviewTick: 0,
+      warPlanExpiresTick: 0,
+    }),
+  },
   cls: () => NationExecution,
 });

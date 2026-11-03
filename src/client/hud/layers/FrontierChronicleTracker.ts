@@ -3,10 +3,16 @@ export interface FrontierChroniclePlayer {
   name: string;
   isAI: boolean;
   isHuman: boolean;
+  /** True for map nations; excludes simpler tribes from power rankings. */
+  isNation?: boolean;
   isAlive: boolean;
   tiles: number;
   allies: readonly number[];
   outgoingTargets: readonly number[];
+  /** Smoothed cumulative income rate supplied by the client-side rate tracker. */
+  goldIncomePerMin?: number;
+  troops?: number;
+  maxTroops?: number;
 }
 
 export type FrontierChronicleKind =
@@ -15,7 +21,12 @@ export type FrontierChronicleKind =
   | "alliance-ended"
   | "elimination"
   | "expansion"
-  | "power-shift";
+  | "power-shift"
+  | "economic-surge"
+  | "military-build-up"
+  | "power-decline"
+  | "economic-hegemony"
+  | "military-hegemony";
 
 export interface FrontierChronicleEntry {
   id: string;
@@ -30,6 +41,8 @@ interface Snapshot {
   alliances: Map<string, readonly [number, number]>;
   attacks: Map<string, readonly [number, number]>;
   leadingNationID: number | null;
+  leadingEconomicNationID: number | null;
+  leadingMilitaryNationID: number | null;
 }
 
 function pairKey(a: number, b: number): string {
@@ -66,15 +79,37 @@ function createSnapshot(
     }
   }
 
+  // Preserve the existing territorial-hegemony definition (all living AI
+  // factions). Economic and military leadership are nation-only metrics.
   const leadingNation = players
     .filter((player) => player.isAI && player.isAlive)
     .sort((a, b) => b.tiles - a.tiles || a.smallID - b.smallID)[0];
+  const nations = players.filter(
+    (player) => (player.isNation ?? player.isAI) && player.isAlive,
+  );
+  const leadingEconomicNation = nations
+    .filter((player) => (player.goldIncomePerMin ?? 0) > 0)
+    .sort(
+      (a, b) =>
+        (b.goldIncomePerMin ?? 0) -
+          (a.goldIncomePerMin ?? 0) ||
+        a.smallID - b.smallID,
+    )[0];
+  const leadingMilitaryNation = nations
+    .filter((player) => (player.troops ?? 0) > 0)
+    .sort(
+      (a, b) =>
+        (b.troops ?? 0) - (a.troops ?? 0) ||
+        a.smallID - b.smallID,
+    )[0];
 
   return {
     players: byID,
     alliances,
     attacks,
     leadingNationID: leadingNation?.smallID ?? null,
+    leadingEconomicNationID: leadingEconomicNation?.smallID ?? null,
+    leadingMilitaryNationID: leadingMilitaryNation?.smallID ?? null,
   };
 }
 
@@ -88,8 +123,15 @@ export class FrontierChronicleTracker {
   private sequence = 0;
   private readonly lastWarNotice = new Map<string, number>();
   private readonly lastExpansionNotice = new Map<number, number>();
+  private readonly lastEconomyNotice = new Map<number, number>();
+  private readonly lastMilitaryNotice = new Map<number, number>();
+  private readonly lastDeclineNotice = new Map<number, number>();
   private announcedLeaderID: number | null = null;
+  private announcedEconomicLeaderID: number | null = null;
+  private announcedMilitaryLeaderID: number | null = null;
   private lastPowerNotice = -1;
+  private lastEconomicPowerNotice = -1;
+  private lastMilitaryPowerNotice = -1;
 
   observe(
     players: readonly FrontierChroniclePlayer[],
@@ -101,9 +143,16 @@ export class FrontierChronicleTracker {
       this.previous = current;
       this.previousTick = tick;
       this.announcedLeaderID = current.leadingNationID;
+      this.announcedEconomicLeaderID = current.leadingEconomicNationID;
+      this.announcedMilitaryLeaderID = current.leadingMilitaryNationID;
       this.lastWarNotice.clear();
       this.lastExpansionNotice.clear();
+      this.lastEconomyNotice.clear();
+      this.lastMilitaryNotice.clear();
+      this.lastDeclineNotice.clear();
       this.lastPowerNotice = -1;
+      this.lastEconomicPowerNotice = -1;
+      this.lastMilitaryPowerNotice = -1;
       return [];
     }
 
@@ -193,6 +242,76 @@ export class FrontierChronicleTracker {
       this.lastExpansionNotice.set(smallID, tick);
     }
 
+    // Strategic/economic notices are intentionally sparse. They require a
+    // meaningful relative change plus a long cooldown, so the chronicle stays
+    // a record of major developments rather than a stream of tick noise.
+    for (const [smallID, nextPlayer] of current.players) {
+      const oldPlayer = previous.players.get(smallID);
+      if (
+        !oldPlayer?.isAlive ||
+        !nextPlayer.isAlive ||
+        !nextPlayer.isAI
+      ) {
+        continue;
+      }
+
+      const oldIncome = oldPlayer.goldIncomePerMin ?? 0;
+      const nextIncome = nextPlayer.goldIncomePerMin ?? 0;
+      const lastEconomy =
+        this.lastEconomyNotice.get(smallID) ?? Number.NEGATIVE_INFINITY;
+      if (
+        oldIncome >= 1000 &&
+        nextIncome >= oldIncome * 1.5 &&
+        nextIncome - oldIncome >= 1000 &&
+        tick - lastEconomy >= 900
+      ) {
+        push(
+          "economic-surge",
+          "Aceleración económica",
+          nextPlayer.name +
+            " aumentó significativamente sus ingresos por minuto.",
+        );
+        this.lastEconomyNotice.set(smallID, tick);
+      }
+
+      const oldCapacity = oldPlayer.maxTroops ?? 0;
+      const nextCapacity = nextPlayer.maxTroops ?? 0;
+      const lastMilitary =
+        this.lastMilitaryNotice.get(smallID) ?? Number.NEGATIVE_INFINITY;
+      if (
+        oldCapacity >= 1000 &&
+        nextCapacity >= oldCapacity * 1.2 &&
+        nextCapacity - oldCapacity >= 1000 &&
+        tick - lastMilitary >= 900
+      ) {
+        push(
+          "military-build-up",
+          "Expansión de capacidad militar",
+          nextPlayer.name +
+            " aumentó considerablemente su capacidad máxima de tropas.",
+        );
+        this.lastMilitaryNotice.set(smallID, tick);
+      }
+
+      const lostTiles = oldPlayer.tiles - nextPlayer.tiles;
+      const lastDecline =
+        this.lastDeclineNotice.get(smallID) ?? Number.NEGATIVE_INFINITY;
+      if (
+        lostTiles >= Math.max(40, Math.ceil(oldPlayer.tiles * 0.25)) &&
+        tick - lastDecline >= 900
+      ) {
+        push(
+          "power-decline",
+          "Retroceso de una potencia",
+          nextPlayer.name +
+            " perdió " +
+            lostTiles +
+            " territorios desde la última observación.",
+        );
+        this.lastDeclineNotice.set(smallID, tick);
+      }
+    }
+
     const nextLeaderID = current.leadingNationID;
     if (
       nextLeaderID !== null &&
@@ -225,6 +344,80 @@ export class FrontierChronicleTracker {
         );
         this.announcedLeaderID = nextLeaderID;
         this.lastPowerNotice = tick;
+      }
+    }
+
+    const nextEconomicLeaderID = current.leadingEconomicNationID;
+    if (
+      nextEconomicLeaderID !== null &&
+      nextEconomicLeaderID !== this.announcedEconomicLeaderID &&
+      tick - this.lastEconomicPowerNotice >= 900
+    ) {
+      const nextLeader = current.players.get(nextEconomicLeaderID);
+      const priorLeader =
+        this.announcedEconomicLeaderID === null
+          ? undefined
+          : current.players.get(this.announcedEconomicLeaderID) ??
+            previous.players.get(this.announcedEconomicLeaderID);
+      const nextIncome = nextLeader?.goldIncomePerMin ?? 0;
+      const priorIncome = priorLeader?.goldIncomePerMin ?? 0;
+      const meaningful =
+        nextLeader !== undefined &&
+        (priorLeader?.isAlive
+          ? nextIncome >= Math.max(priorIncome * 1.15, priorIncome + 1000)
+          : nextIncome >= 1000);
+
+      if (nextLeader && meaningful) {
+        push(
+          "economic-hegemony",
+          "Cambio de liderazgo económico",
+          priorLeader
+            ? nextLeader.name +
+                " superó a " +
+                priorLeader.name +
+                " como principal potencia económica."
+            : nextLeader.name +
+                " se convirtió en la principal potencia económica.",
+        );
+        this.announcedEconomicLeaderID = nextEconomicLeaderID;
+        this.lastEconomicPowerNotice = tick;
+      }
+    }
+
+    const nextMilitaryLeaderID = current.leadingMilitaryNationID;
+    if (
+      nextMilitaryLeaderID !== null &&
+      nextMilitaryLeaderID !== this.announcedMilitaryLeaderID &&
+      tick - this.lastMilitaryPowerNotice >= 900
+    ) {
+      const nextLeader = current.players.get(nextMilitaryLeaderID);
+      const priorLeader =
+        this.announcedMilitaryLeaderID === null
+          ? undefined
+          : current.players.get(this.announcedMilitaryLeaderID) ??
+            previous.players.get(this.announcedMilitaryLeaderID);
+      const nextTroops = nextLeader?.troops ?? 0;
+      const priorTroops = priorLeader?.troops ?? 0;
+      const meaningful =
+        nextLeader !== undefined &&
+        (priorLeader?.isAlive
+          ? nextTroops >= Math.max(priorTroops * 1.15, priorTroops + 1000)
+          : nextTroops >= 1000);
+
+      if (nextLeader && meaningful) {
+        push(
+          "military-hegemony",
+          "Cambio de liderazgo militar",
+          priorLeader
+            ? nextLeader.name +
+                " superó a " +
+                priorLeader.name +
+                " en tropas disponibles."
+            : nextLeader.name +
+                " se convirtió en la principal potencia militar.",
+        );
+        this.announcedMilitaryLeaderID = nextMilitaryLeaderID;
+        this.lastMilitaryPowerNotice = tick;
       }
     }
 

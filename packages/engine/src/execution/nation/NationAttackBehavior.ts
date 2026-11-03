@@ -71,6 +71,7 @@ export class NationAttackBehavior extends AiAttackBehavior {
   private followedLandings: Attack[] = [];
   // Only set during a maybeAttack call: our land neighbors
   private landNeighbors: Set<Player> | null = null;
+  private strategicTarget: Player | null = null;
 
   constructor(
     random: PseudoRandom,
@@ -109,8 +110,14 @@ export class NationAttackBehavior extends AiAttackBehavior {
     this.doctrine = doctrine;
     // Only set during a maybeAttack call, so always null between ticks.
     this.landNeighbors = null;
+    this.strategicTarget = null;
     this.botAttackTroopsSent = s.botAttackTroopsSent;
     this.followedLandings = s.followedLandings.map((i) => r.attack(i));
+  }
+
+  /** Set by NationExecution's single-player War Director before each campaign decision. */
+  setStrategicTarget(target: Player | null): void {
+    this.strategicTarget = target;
   }
 
   maybeAttack() {
@@ -400,6 +407,21 @@ export class NationAttackBehavior extends AiAttackBehavior {
 
     // Maybe save up troops until we reach the trigger ratio
     if (!this.hasTriggerRatioTroops() && !this.random.chance(10)) return;
+
+    // A campaign target gets first consideration, but only after the existing
+    // reserve/trigger gates and only if the original reachability checks pass.
+    // A failed campaign attack falls through to the unmodified strategy pool.
+    const campaignTarget = this.strategicTarget;
+    if (
+      this.game.config().gameConfig().gameType === GameType.Singleplayer &&
+      campaignTarget !== null &&
+      campaignTarget.isAlive() &&
+      !this.player.isFriendly(campaignTarget) &&
+      this.canReach(campaignTarget) &&
+      this.sendAttack(campaignTarget)
+    ) {
+      return;
+    }
 
     // Get attack strategies in priority order based on difficulty
     const strategies = this.getAttackStrategies(
