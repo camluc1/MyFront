@@ -145,6 +145,7 @@ export class FrontierChronicleTracker {
   private announcedLeaderID: number | null = null;
   private announcedEconomicLeaderID: number | null = null;
   private announcedMilitaryLeaderID: number | null = null;
+  private readonly announcedNuclearSmallIDs = new Set<number>();
   private lastPowerNotice = -1;
   private lastEconomicPowerNotice = -1;
   private lastMilitaryPowerNotice = -1;
@@ -158,6 +159,15 @@ export class FrontierChronicleTracker {
     if (this.previous === null || tick < this.previousTick) {
       this.previous = current;
       this.previousTick = tick;
+      this.announcedNuclearSmallIDs.clear();
+      for (const player of players) {
+        if (
+          (player.isNation ?? player.isAI) &&
+          (player.atomBombCount ?? 0) > 0
+        ) {
+          this.announcedNuclearSmallIDs.add(player.smallID);
+        }
+      }
       this.announcedLeaderID = current.leadingNationID;
       this.announcedEconomicLeaderID = current.leadingEconomicNationID;
       this.announcedMilitaryLeaderID = current.leadingMilitaryNationID;
@@ -233,8 +243,8 @@ export class FrontierChronicleTracker {
         continue;
       }
       if (
-        (oldPlayer.atomBombCount ?? 0) === 0 &&
-        (nextPlayer.atomBombCount ?? 0) > 0
+        (nextPlayer.atomBombCount ?? 0) > 0 &&
+        !this.announcedNuclearSmallIDs.has(smallID)
       ) {
         push(
           "nuclear-development",
@@ -242,6 +252,7 @@ export class FrontierChronicleTracker {
           nextPlayer.name +
             " realizó su primer lanzamiento de bomba atómica. El equilibrio militar mundial cambió.",
         );
+        this.announcedNuclearSmallIDs.add(smallID);
       }
     }
 

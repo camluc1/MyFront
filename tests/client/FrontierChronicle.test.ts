@@ -199,15 +199,20 @@ describe("FrontierChronicleTracker", () => {
       [player(1, { isNation: true, atomBombCount: 1 })],
       100,
     );
-    const repeated = tracker.observe(
-      [player(1, { isNation: true, atomBombCount: 1 })],
+    const disappeared = tracker.observe(
+      [player(1, { isNation: true, atomBombCount: 0 })],
       200,
+    );
+    const launchedAgain = tracker.observe(
+      [player(1, { isNation: true, atomBombCount: 1 })],
+      300,
     );
 
     expect(firstLaunch.map((entry) => entry.kind)).toContain(
       "nuclear-development",
     );
-    expect(repeated.map((entry) => entry.kind)).not.toContain(
+    expect(disappeared).toEqual([]);
+    expect(launchedAgain.map((entry) => entry.kind)).not.toContain(
       "nuclear-development",
     );
   });
