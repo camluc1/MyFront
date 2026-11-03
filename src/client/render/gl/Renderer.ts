@@ -1348,7 +1348,8 @@ export class GPURenderer {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     // Map layers sit between terrain and territory. Alt view hides the land
     // ones so the terrain underneath shows.
-    for (const layerPass of this.mapLayerPasses.values()) {
+    for (const [id, layerPass] of this.mapLayerPasses) {
+      if (id === "frontier-resources") continue;
       if (this.altView && layerPass.placement === 0) continue;
       layerPass.draw(cam);
     }
@@ -1362,6 +1363,7 @@ export class GPURenderer {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
+    this.mapLayerPasses.get("frontier-resources")?.draw(cam);
     this.spawnOverlayPass.draw(cam);
     if (pe.borderStamp) this.borderStampPass.draw(cam);
     if (pe.railroad) this.railroadPass.draw(cam, zoom);

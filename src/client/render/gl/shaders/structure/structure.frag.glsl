@@ -126,7 +126,15 @@ float shapeSDF(vec2 p, float R) {
     return sdPolygon(p, R, 8.0, 0.0);         // Defense Post → octagon (flat top)
   if (vAtlasIdx < 4.5)
     return sdPolygon(p, R, 4.0, 0.0);         // SAM Launcher → square (flat sides)
-  return sdPolygon(p, R, 3.0, PI * 0.5);      // Missile Silo → triangle (vertex up)
+  if (vAtlasIdx < 5.5)
+    return sdPolygon(p, R, 3.0, PI * 0.5);    // Missile Silo
+  if (vAtlasIdx < 6.5)
+    return length(p) - R;                     // Farm
+  if (vAtlasIdx < 7.5)
+    return sdPolygon(p, R, 6.0, PI / 6.0);    // Mine
+  if (vAtlasIdx < 8.5)
+    return sdPolygon(p, R, 8.0, 0.0);         // Oil Well
+  return sdPolygon(p, R, 5.0, PI * 0.5);      // Gas Plant (vertex up)
 }
 
 void main() {

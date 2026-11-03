@@ -19,6 +19,10 @@ import {
   UT_CITY,
   UT_DEFENSE_POST,
   UT_FACTORY,
+  UT_FARM,
+  UT_MINE,
+  UT_OIL_WELL,
+  UT_GAS_PLANT,
   UT_MISSILE_SILO,
   UT_PORT,
   UT_SAM_LAUNCHER,
@@ -53,6 +57,10 @@ const STRUCTURE_ORDER = [
   UT_DEFENSE_POST,
   UT_SAM_LAUNCHER,
   UT_MISSILE_SILO,
+  UT_FARM,
+  UT_MINE,
+  UT_OIL_WELL,
+  UT_GAS_PLANT,
 ] as const;
 
 const ATLAS_COLS = STRUCTURE_ORDER.length;
@@ -286,7 +294,29 @@ export class StructurePass {
     const gl = this.gl;
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.atlasTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    // Extend the six-column original atlas without re-ordering existing glyphs.
+    const icons = await Promise.all([
+      "FarmIconWhite.svg", "MineIconWhite.svg",
+      "OilWellIconWhite.svg", "GasPlantIconWhite.svg",
+    ].map(async (name) => {
+      const symbol = new Image();
+      symbol.src = assetUrl("images/" + name);
+      await symbol.decode();
+      return symbol;
+    }));
+    const columns = 6;
+    const colW = img.width / columns;
+    const composite = document.createElement("canvas");
+    composite.width = Math.round(colW * ATLAS_COLS);
+    composite.height = img.height;
+    const ctx = composite.getContext("2d");
+    if (!ctx) throw new Error("Cannot create resource structure atlas");
+    ctx.drawImage(img, 0, 0);
+    for (let i = 0; i < icons.length; i++) {
+      ctx.drawImage(icons[i], Math.round((columns + i) * colW), 0,
+        Math.round(colW), img.height);
+    }
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, composite);
     gl.generateMipmap(gl.TEXTURE_2D);
     gl.texParameteri(
       gl.TEXTURE_2D,

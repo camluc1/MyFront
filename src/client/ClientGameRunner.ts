@@ -777,6 +777,7 @@ async function createClientGame(
       lobbyConfig.gameStartInfo.config.gameMapSize,
       mapLoader,
       graphicsListenerAbort.signal,
+      eventBus,
     );
 
     // Re-resolve names drawn on the map when the anonymous-names setting toggles
