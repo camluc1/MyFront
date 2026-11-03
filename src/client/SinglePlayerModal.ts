@@ -430,6 +430,62 @@ export class SinglePlayerModal extends BaseModal {
     </div>`;
   }
 
+  /** FRONTIER command briefing: a live summary of the scenario being configured. */
+  private renderFrontierBriefing(): TemplateResult {
+    const selectedMap = listedMaps.find((map) => map.type === this.selectedMap);
+    const mapName = selectedMap
+      ? translateText(selectedMap.translationKey)
+      : translateText("map.earth");
+    const difficultyName = translateText(
+      `difficulty.${this.selectedDifficulty.toLowerCase()}`,
+    );
+
+    return html\`<section
+      aria-label="FRONTIER scenario briefing"
+      class="relative isolate overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#07121d] shadow-[0_18px_60px_rgba(0,0,0,0.28)]"
+    >
+      <div
+        aria-hidden="true"
+        class="pointer-events-none absolute inset-0 opacity-80"
+        style="background: radial-gradient(ellipse at 12% 0%, rgba(34,211,238,.18), transparent 42%), radial-gradient(ellipse at 100% 100%, rgba(37,99,235,.16), transparent 48%);"
+      ></div>
+      <div class="relative grid gap-5 p-5 sm:p-6 lg:grid-cols-[1fr_auto] lg:items-end">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-200">
+              <span class="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,.9)]"></span>
+              FRONTIER
+            </span>
+            <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">Single-player command</span>
+          </div>
+          <p class="mt-4 text-[10px] font-bold uppercase tracking-[0.24em] text-white/40">Strategic theater</p>
+          <h2 class="mt-1 truncate text-2xl font-black tracking-tight text-white sm:text-3xl">\${mapName}</h2>
+          <p class="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300/75">
+            Configure your theater of war, choose the opposition and prepare your campaign. Your existing OpenFront simulation remains the foundation.
+          </p>
+        </div>
+        <div class="grid grid-cols-3 gap-2 lg:min-w-[330px]">
+          <div class="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-3">
+            <p class="text-[9px] font-bold uppercase tracking-[0.16em] text-white/40">Difficulty</p>
+            <p class="mt-1 truncate text-sm font-extrabold text-white">\${difficultyName}</p>
+          </div>
+          <div class="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-3">
+            <p class="text-[9px] font-bold uppercase tracking-[0.16em] text-white/40">AI forces</p>
+            <p class="mt-1 text-sm font-extrabold tabular-nums text-white">\${this.bots.toLocaleString()}</p>
+          </div>
+          <div class="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-3">
+            <p class="text-[9px] font-bold uppercase tracking-[0.16em] text-white/40">Nations</p>
+            <p class="mt-1 text-sm font-extrabold tabular-nums text-white">\${this.nations.toLocaleString()}</p>
+          </div>
+        </div>
+      </div>
+      <div class="relative flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.08] bg-black/20 px-5 py-3 sm:px-6">
+        <span class="text-[9px] font-bold uppercase tracking-[0.2em] text-white/35">Campaign configuration</span>
+        <span class="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200/80">Live settings · updates as you configure</span>
+      </div>
+    </section>\`;
+  }
+
   protected renderBody() {
     const inputCards = [
       html`<toggle-input-card
@@ -517,6 +573,7 @@ export class SinglePlayerModal extends BaseModal {
         <div
           class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 pt-4 pb-6 mr-1 mx-auto w-full max-w-5xl"
         >
+          ${this.renderFrontierBriefing()}
           <saved-games-panel
             class="block mb-6"
             .signedIn=${responseHasLinkedIdentity(this.userMeResponse)}
