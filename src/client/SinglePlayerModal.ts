@@ -440,7 +440,7 @@ export class SinglePlayerModal extends BaseModal {
       `difficulty.${this.selectedDifficulty.toLowerCase()}`,
     );
 
-    return html\`<section
+    return html`<section
       aria-label="FRONTIER scenario briefing"
       class="relative isolate overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#07121d] shadow-[0_18px_60px_rgba(0,0,0,0.28)]"
     >
@@ -459,7 +459,7 @@ export class SinglePlayerModal extends BaseModal {
             <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">Single-player command</span>
           </div>
           <p class="mt-4 text-[10px] font-bold uppercase tracking-[0.24em] text-white/40">Strategic theater</p>
-          <h2 class="mt-1 truncate text-2xl font-black tracking-tight text-white sm:text-3xl">\${mapName}</h2>
+          <h2 class="mt-1 truncate text-2xl font-black tracking-tight text-white sm:text-3xl">${mapName}</h2>
           <p class="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300/75">
             Configure your theater of war, choose the opposition and prepare your campaign. Your existing OpenFront simulation remains the foundation.
           </p>
@@ -467,15 +467,15 @@ export class SinglePlayerModal extends BaseModal {
         <div class="grid grid-cols-3 gap-2 lg:min-w-[330px]">
           <div class="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-3">
             <p class="text-[9px] font-bold uppercase tracking-[0.16em] text-white/40">Difficulty</p>
-            <p class="mt-1 truncate text-sm font-extrabold text-white">\${difficultyName}</p>
+            <p class="mt-1 truncate text-sm font-extrabold text-white">${difficultyName}</p>
           </div>
           <div class="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-3">
             <p class="text-[9px] font-bold uppercase tracking-[0.16em] text-white/40">AI forces</p>
-            <p class="mt-1 text-sm font-extrabold tabular-nums text-white">\${this.bots.toLocaleString()}</p>
+            <p class="mt-1 text-sm font-extrabold tabular-nums text-white">${this.bots.toLocaleString()}</p>
           </div>
           <div class="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-3">
             <p class="text-[9px] font-bold uppercase tracking-[0.16em] text-white/40">Nations</p>
-            <p class="mt-1 text-sm font-extrabold tabular-nums text-white">\${this.nations.toLocaleString()}</p>
+            <p class="mt-1 text-sm font-extrabold tabular-nums text-white">${this.nations.toLocaleString()}</p>
           </div>
         </div>
       </div>
@@ -483,7 +483,7 @@ export class SinglePlayerModal extends BaseModal {
         <span class="text-[9px] font-bold uppercase tracking-[0.2em] text-white/35">Campaign configuration</span>
         <span class="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200/80">Live settings · updates as you configure</span>
       </div>
-    </section>\`;
+    </section>`;
   }
 
   protected renderBody() {
