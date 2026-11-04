@@ -29,6 +29,7 @@ import {
 import { ClientEnv } from "../client/ClientEnv";
 import { reloadForUpdate, translateText } from "../client/Utils";
 import { MapLayerController } from "./controllers/MapLayerController";
+import { canAutoBoatAttack } from "./NavalAttack";
 import { isDesktopShell } from "./DesktopShell";
 import { GameMetrics } from "./GameMetrics";
 import { createRenderer, GameRenderer } from "./hud/GameRenderer";
@@ -1295,7 +1296,9 @@ export class ClientGameRunner {
               this.myPlayer!.troops() * this.renderer.uiState.attackRatio,
             ),
           );
-        } else if (this.canAutoBoat(actions.buildableUnits, tile)) {
+        } else if (
+          canAutoBoatAttack(this.gameView.isLand(tile), actions.buildableUnits)
+        ) {
           this.sendBoatAttackIntent(tile);
         }
       })
@@ -1440,7 +1443,7 @@ export class ClientGameRunner {
           if (now - this.lastBoatAttackNoticeAt >= 2500) {
             this.lastBoatAttackNoticeAt = now;
             void showInGameAlert(
-              "No hay una ruta de transporte disponible para ese destino. Probá otra costa y verificá que tengas un puerto operativo.",
+              "No hay una ruta marítima disponible para ese destino. Probá una costa conectada al mar y verificá que haya barcos disponibles.",
             );
           }
         }
@@ -1648,22 +1651,6 @@ export class ClientGameRunner {
         this.myPlayer.troops() * this.renderer.uiState.attackRatio,
       ),
     );
-  }
-
-  private canAutoBoat(buildables: BuildableUnit[], tile: TileRef): boolean {
-    if (!this.gameView.isLand(tile)) return false;
-
-    const canBuild = this.canBoatAttack(buildables);
-    if (canBuild === false) return false;
-
-    // TODO: honor a global auto-boat enable flag once it exists.
-    // if (!this.userSettings.autoBoat()) return false;
-    // TODO: honor a global "limit auto-boat to nearby shore" flag once it exists.
-    // if (!this.userSettings.autoBoatNearbyOnly()) return true;
-    const distanceSquared = this.gameView.euclideanDistSquared(tile, canBuild);
-    const limit = 100;
-    const limitSquared = limit * limit;
-    return distanceSquared < limitSquared;
   }
 
   private onMouseMove(event: MouseMoveEvent) {

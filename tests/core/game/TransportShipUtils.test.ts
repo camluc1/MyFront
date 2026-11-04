@@ -57,3 +57,34 @@ describe("canBuildTransportShip", () => {
     expect((attacker as Player).smallID()).toBe(game.ownerID(src as TileRef));
   });
 });
+
+
+// Deep-island regression: an ocean landing can be much more than 50 tiles
+// away from the center of a large island, even though it is reachable.
+describe("transport attack on a distant island", () => {
+  it("finds an ocean-accessible landing for a click deep inside unclaimed land", () => {
+    const width = 135;
+    const height = 135;
+    const grid = new Array<string>(width * height).fill(W);
+    const fill = (x0: number, x1: number, y0: number, y1: number) => {
+      for (let y = y0; y <= y1; y++) {
+        for (let x = x0; x <= x1; x++) {
+          grid[y * width + x] = L;
+        }
+      }
+    };
+    fill(1, 7, 61, 69); // attacker-owned island
+    fill(14, 128, 6, 130); // much larger unclaimed island
+    const game = createGame({ width, height, grid });
+    const attacker = addPlayer(game, game.ref(4, 65), "island-attacker");
+    const click = game.ref(73, 70);
+    // The original fixed 50-tile search failed here, although a boat can sail
+    // to the outer shore of this island.
+    const source = canBuildTransportShip(game, attacker, click);
+    expect(source).not.toBe(false);
+    if (source !== false) {
+      expect(game.ownerID(source)).toBe(attacker.smallID());
+      expect(game.isShore(source)).toBe(true);
+    }
+  });
+});

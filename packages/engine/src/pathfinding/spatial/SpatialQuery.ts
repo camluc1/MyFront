@@ -142,8 +142,13 @@ export class SpatialQuery {
     const isValidTile = (t: TileRef) => {
       if (!gm.isShore(t) || !gm.isLand(t)) return false;
       if (gm.ownerID(t) !== targetId) return false;
-      const component = gm.getWaterComponent(t);
-      return component !== null && reachable.has(component);
+      // A coastal tile can face both an inland lake and the ocean. The
+      // minimap's getWaterComponent() returns only the first match; checking
+      // all reachable components avoids accidentally picking the lake.
+      for (const component of reachable) {
+        if (gm.hasWaterComponent(t, component)) return true;
+      }
+      return false;
     };
 
     // The start tile is at distance 0, so when it qualifies no BFS can beat
@@ -154,7 +159,35 @@ export class SpatialQuery {
       return tile;
     }
 
-    return this.bfsNearest(tile, maxDist, isValidTile);
+    const nearby = this.bfsNearest(tile, maxDist, isValidTile);
+    if (nearby !== null || maxDist !== 50) return nearby;
+
+    // A click near the center of a large island can be >50 map tiles from
+    // any shoreline. Do not reject a reachable island for that reason.
+    // Owned targets expose their border set, so finding the nearest suitable
+    // coast is O(border) rather than a whole-map search.
+    if (targetOwner.isPlayer()) {
+      let closest: TileRef | null = null;
+      let bestDistance = Infinity;
+      targetOwner.borderTiles().forEach((candidate) => {
+        if (!isValidTile(candidate)) return;
+        const distance = gm.manhattanDist(tile, candidate);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          closest = candidate;
+        }
+      });
+      return closest;
+    }
+
+    // Unclaimed territory has no Player.borderTiles(). Only take this slower
+    // path when the cheap 50-tile search found nothing. It is bounded, and
+    // still requires a shoreline reachable from the attacker's own waters.
+    return this.bfsNearest(
+      tile,
+      Math.min(200, gm.map().width() + gm.map().height()),
+      isValidTile,
+    );
   }
 
   private reachableComponents(attacker: Player): Set<number> {
