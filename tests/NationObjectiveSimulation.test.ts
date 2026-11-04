@@ -13,6 +13,8 @@ import {
 import { resourceAt } from "@openfront/engine-lib/game/NaturalResources";
 import { genTerrainFromBin } from "@openfront/engine-lib/game/TerrainMapLoader";
 import { EngineConfig } from "@openfront/engine/configuration/EngineConfig";
+import { Executor } from "@openfront/engine/execution/ExecutionManager";
+import * as doctrineModule from "@openfront/engine/execution/nation/NationDoctrine";
 import { getNationDoctrine } from "@openfront/engine/execution/nation/NationDoctrine";
 import { NationExecution } from "@openfront/engine/execution/NationExecution";
 import { RecomputeRailClusterExecution } from "@openfront/engine/execution/RecomputeRailClusterExecution";
@@ -25,6 +27,11 @@ import fs from "node:fs";
 import path from "node:path";
 
 const runAudit = process.env.OBJECTIVE_AUDIT === "1";
+const peaceMinutes =
+  process.env.OBJECTIVE_AUDIT_PEACE_MINUTES === undefined
+    ? undefined
+    : Number(process.env.OBJECTIVE_AUDIT_PEACE_MINUTES);
+const bots = Number(process.env.OBJECTIVE_AUDIT_BOTS ?? 0);
 const minutes = Number(process.env.OBJECTIVE_AUDIT_MINUTES ?? 15);
 const seeds = (
   process.env.OBJECTIVE_AUDIT_SEEDS ?? "frontier-a,frontier-b,frontier-c"
@@ -44,14 +51,36 @@ const sourceFingerprint = createHash("sha256")
       .join("\n"),
   )
   .digest("hex");
+const doctrineRotation = Number(
+  process.env.OBJECTIVE_AUDIT_DOCTRINE_ROTATION ?? 0,
+);
+const originalDoctrine = getNationDoctrine;
+const doctrineFlags = ["us", "ru", "au", "it", "de", "fr", "ua"];
+const doctrineIds = doctrineFlags.map((flag) => originalDoctrine(flag, "").id);
 const results: unknown[] = [];
 const enabled = process.env.OBJECTIVE_AUDIT_DISABLE !== "1";
 
 describe.runIf(runAudit)("production World objective simulations", () => {
+  afterEach(() => vi.restoreAllMocks());
   for (const seed of seeds)
     test(
       seed,
       async () => {
+        if (doctrineRotation) {
+          vi.spyOn(doctrineModule, "getNationDoctrine").mockImplementation(
+            (flag, name) => {
+              const index = doctrineIds.indexOf(
+                originalDoctrine(flag, name).id,
+              );
+              return originalDoctrine(
+                doctrineFlags[
+                  (index + doctrineRotation) % doctrineFlags.length
+                ],
+                name,
+              );
+            },
+          );
+        }
         const dir = path.resolve("resources/maps/world");
         const manifest = JSON.parse(
           fs.readFileSync(path.join(dir, "manifest.json"), "utf8"),
@@ -91,7 +120,8 @@ describe.runIf(runAudit)("production World objective simulations", () => {
             gameType: GameType.Singleplayer,
             difficulty,
             nations: "default",
-            bots: 0,
+            bots,
+            nationPeaceTimeMinutes: peaceMinutes,
             infiniteGold: false,
             infiniteTroops: false,
             instantBuild: false,
@@ -100,6 +130,16 @@ describe.runIf(runAudit)("production World objective simulations", () => {
           false,
         );
         const game = createGame([], nations, map, mini, config);
+        // Match GameRunner's consumption of view-only buffers. Without this,
+        // headless runs retain player/attack quads across thousands of ticks.
+        const advanceTick = () => {
+          game.executeNextTick();
+          game.drainPackedTileUpdates();
+          game.drainPackedMotionPlans();
+          game.drainPackedPlayerUpdates();
+          game.drainPackedAttackUpdates();
+          game.drainNukeImpacts();
+        };
         const events: {
           tick: number;
           country: string;
@@ -222,6 +262,10 @@ describe.runIf(runAudit)("production World objective simulations", () => {
           };
           game.addExecution(exec);
         }
+        if (bots > 0)
+          game.addExecution(
+            ...new Executor(game, seed, undefined).spawnTribes(bots),
+          );
         game.addExecution(
           new RecomputeRailClusterExecution(game.railNetwork()),
           new WinCheckExecution(),
@@ -231,7 +275,7 @@ describe.runIf(runAudit)("production World objective simulations", () => {
           t < 100 && game.allPlayers().some((p) => !p.hasSpawned());
           t++
         )
-          game.executeNextTick();
+          advanceTick();
         expect(game.allPlayers().every((p) => p.hasSpawned())).toBe(true);
         game.endSpawnPhase();
         const samples: unknown[] = [];
@@ -240,7 +284,7 @@ describe.runIf(runAudit)("production World objective simulations", () => {
         for (let minute = 1; minute <= minutes; minute++) {
           for (let t = 0; t < 600; t++) {
             const before = performance.now();
-            game.executeNextTick();
+            advanceTick();
             ticksMs.push(performance.now() - before);
             if (t % 100 === 0)
               for (const p of game.players()) {
@@ -271,6 +315,14 @@ describe.runIf(runAudit)("production World objective simulations", () => {
             ),
             attacks: totalAttacks,
             objectives: kinds,
+            standings: sorted.map((p) => ({
+              country: p.name(),
+              tiles: p.numTilesOwned(),
+              troops: p.troops(),
+              gold: p.gold().toString(),
+              cities: p.units(UnitType.City).length,
+              industries: p.units(RESOURCE_BUILDINGS).length,
+            })),
           };
           samples.push(sample);
           fs.appendFileSync(
@@ -289,7 +341,17 @@ describe.runIf(runAudit)("production World objective simulations", () => {
           troops: p.troops(),
           units: p.units().map((u) => [u.type(), u.level(), u.tile()]),
         }));
+        const winner = game.getWinner();
         const report = {
+          winner:
+            winner !== null && typeof winner === "object"
+              ? winner.name()
+              : winner,
+          ended: winner !== null,
+          doctrineRotation,
+          drainsViewUpdates: true,
+          peaceMinutes: peaceMinutes ?? null,
+          bots,
           seed,
           difficulty,
           enabled,

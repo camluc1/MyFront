@@ -1,0 +1,3062 @@
+{
+  "engineCommit": "c6a14f539077f2fe866e5139ce77d91c7616c099",
+  "map": "World 2000x1000",
+  "difficulty": "Hard",
+  "nations": 72,
+  "humanPlayers": 0,
+  "minuteLimit": 90,
+  "doctrineRotationOrder": [
+    "imperialist",
+    "militarist",
+    "strategist",
+    "opportunist",
+    "industrialist",
+    "diplomatic",
+    "survivor"
+  ],
+  "cohorts": [
+    {
+      "name": "no-tribes",
+      "settings": {
+        "bots": 0,
+        "peaceSeconds": 5,
+        "rotation": 0
+      },
+      "runs": [
+        {
+          "seed": "balance-01",
+          "winner": "Benin",
+          "winnerDoctrine": "diplomatic",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 30,
+          "friendlyAttacks": 0,
+          "fingerprint": "9c8129bb5bd007eca8d39b66fe65d17e2ef1289ef90428efa59fdf8bf003a04d",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Siberia",
+              "leaderTiles": 19238,
+              "ownedTiles": 518508,
+              "reserveTroopLeader": "Kazakhstan",
+              "reserveTroops": 341842,
+              "topFiveByLand": [
+                "Siberia",
+                "Australia",
+                "China",
+                "West Antarctica",
+                "Alaska"
+              ],
+              "topFiveByReserveTroops": [
+                "Kazakhstan",
+                "Indonesia",
+                "Namibia",
+                "India",
+                "Ukraine"
+              ],
+              "cities": 0,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Antarctica",
+              "leaderTiles": 63685,
+              "ownedTiles": 650622,
+              "reserveTroopLeader": "West Antarctica",
+              "reserveTroops": 1666295,
+              "topFiveByLand": [
+                "Antarctica",
+                "West Antarctica",
+                "China",
+                "Siberia",
+                "East Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "West Antarctica",
+                "Antarctica",
+                "Benin",
+                "China",
+                "East Antarctica"
+              ],
+              "cities": 69,
+              "industries": 3
+            },
+            {
+              "minute": 15,
+              "landLeader": "Antarctica",
+              "leaderTiles": 120834,
+              "ownedTiles": 633671,
+              "reserveTroopLeader": "Alaska",
+              "reserveTroops": 5319499,
+              "topFiveByLand": [
+                "Antarctica",
+                "Siberia",
+                "Finland",
+                "Alaska",
+                "East Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Alaska",
+                "Siberia",
+                "East Antarctica",
+                "Finland",
+                "Benin"
+              ],
+              "cities": 132,
+              "industries": 109
+            },
+            {
+              "minute": 30,
+              "landLeader": "Benin",
+              "leaderTiles": 515596,
+              "ownedTiles": 584526,
+              "reserveTroopLeader": "Benin",
+              "reserveTroops": 13439006,
+              "topFiveByLand": [
+                "Benin",
+                "West Antarctica",
+                "East Antarctica",
+                "New Zealand",
+                "Finland"
+              ],
+              "topFiveByReserveTroops": [
+                "Benin",
+                "West Antarctica",
+                "Alaska",
+                "Finland",
+                "New Zealand"
+              ],
+              "cities": 105,
+              "industries": 74
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Siberia": 4,
+            "Antarctica": 14,
+            "Benin": 12
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "Kazakhstan": 1,
+            "Nunavut": 1,
+            "China": 2,
+            "Siberia": 3,
+            "West Antarctica": 1,
+            "Finland": 5,
+            "Benin": 14,
+            "Antarctica": 1,
+            "Alaska": 1,
+            "East Antarctica": 1
+          }
+        },
+        {
+          "seed": "balance-02",
+          "winner": "Ethiopia",
+          "winnerDoctrine": "opportunist",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 32,
+          "friendlyAttacks": 0,
+          "fingerprint": "223d7af1af81ac823d65b1a3a5f65b5adce7a79c389231587e89ea4bca1db30b",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Taiwan",
+              "leaderTiles": 18011,
+              "ownedTiles": 509382,
+              "reserveTroopLeader": "Kazakhstan",
+              "reserveTroops": 355520,
+              "topFiveByLand": [
+                "Taiwan",
+                "Siberia",
+                "West Antarctica",
+                "Mongolia",
+                "Australia"
+              ],
+              "topFiveByReserveTroops": [
+                "Kazakhstan",
+                "Argentina",
+                "Quebec",
+                "Uruguay",
+                "United States"
+              ],
+              "cities": 0,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Taiwan",
+              "leaderTiles": 61727,
+              "ownedTiles": 650696,
+              "reserveTroopLeader": "Yukon",
+              "reserveTroops": 1248342,
+              "topFiveByLand": [
+                "Taiwan",
+                "Antarctica",
+                "East Antarctica",
+                "Greenland",
+                "West Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Yukon",
+                "East Antarctica",
+                "Ethiopia",
+                "Antarctica",
+                "Thailand"
+              ],
+              "cities": 68,
+              "industries": 1
+            },
+            {
+              "minute": 15,
+              "landLeader": "Ethiopia",
+              "leaderTiles": 207253,
+              "ownedTiles": 641698,
+              "reserveTroopLeader": "Ethiopia",
+              "reserveTroops": 6418365,
+              "topFiveByLand": [
+                "Ethiopia",
+                "Greenland",
+                "Antarctica",
+                "West Antarctica",
+                "East Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Ethiopia",
+                "Antarctica",
+                "Greenland",
+                "China",
+                "West Antarctica"
+              ],
+              "cities": 131,
+              "industries": 102
+            },
+            {
+              "minute": 30,
+              "landLeader": "Ethiopia",
+              "leaderTiles": 380156,
+              "ownedTiles": 527231,
+              "reserveTroopLeader": "Ethiopia",
+              "reserveTroops": 34463894,
+              "topFiveByLand": [
+                "Ethiopia",
+                "Antarctica",
+                "West Antarctica",
+                "Greenland",
+                "Belarus"
+              ],
+              "topFiveByReserveTroops": [
+                "Ethiopia",
+                "Belarus",
+                "West Antarctica",
+                "Antarctica",
+                "Siberia"
+              ],
+              "cities": 94,
+              "industries": 83
+            },
+            {
+              "minute": 32,
+              "landLeader": "Ethiopia",
+              "leaderTiles": 545793,
+              "ownedTiles": 641318,
+              "reserveTroopLeader": "Ethiopia",
+              "reserveTroops": 21977788,
+              "topFiveByLand": [
+                "Ethiopia",
+                "Antarctica",
+                "West Antarctica",
+                "Belarus",
+                "Greenland"
+              ],
+              "topFiveByReserveTroops": [
+                "Ethiopia",
+                "Belarus",
+                "Siberia",
+                "Antarctica",
+                "Colombia"
+              ],
+              "cities": 90,
+              "industries": 80
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Taiwan": 9,
+            "Antarctica": 1,
+            "Greenland": 1,
+            "Ethiopia": 21
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "Kazakhstan": 1,
+            "Greenland": 1,
+            "West Antarctica": 2,
+            "Yukon": 2,
+            "Antarctica": 2,
+            "Norway": 1,
+            "Taiwan": 1,
+            "Ethiopia": 22
+          }
+        },
+        {
+          "seed": "balance-03",
+          "winner": "Madagascar",
+          "winnerDoctrine": "strategist",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 75,
+          "friendlyAttacks": 0,
+          "fingerprint": "2c71d20a9b08598a0eeecb64f743e05ff004b05e697b69824dbdf1fb214720c7",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Australia",
+              "leaderTiles": 17799,
+              "ownedTiles": 513470,
+              "reserveTroopLeader": "DR Congo",
+              "reserveTroops": 334048,
+              "topFiveByLand": [
+                "Australia",
+                "Siberia",
+                "China",
+                "Russia",
+                "West Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "DR Congo",
+                "Ethiopia",
+                "Brazil",
+                "Benin",
+                "Quebec"
+              ],
+              "cities": 0,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Antarctica",
+              "leaderTiles": 50438,
+              "ownedTiles": 650727,
+              "reserveTroopLeader": "Greenland",
+              "reserveTroops": 1354615,
+              "topFiveByLand": [
+                "Antarctica",
+                "Greenland",
+                "China",
+                "West Antarctica",
+                "Australia"
+              ],
+              "topFiveByReserveTroops": [
+                "Greenland",
+                "Australia",
+                "China",
+                "Belarus",
+                "Antarctica"
+              ],
+              "cities": 74,
+              "industries": 13
+            },
+            {
+              "minute": 15,
+              "landLeader": "Greenland",
+              "leaderTiles": 170427,
+              "ownedTiles": 643142,
+              "reserveTroopLeader": "Greenland",
+              "reserveTroops": 8216270,
+              "topFiveByLand": [
+                "Greenland",
+                "Antarctica",
+                "Belarus",
+                "West Antarctica",
+                "China"
+              ],
+              "topFiveByReserveTroops": [
+                "Greenland",
+                "Antarctica",
+                "West Antarctica",
+                "Belarus",
+                "Bhutan"
+              ],
+              "cities": 147,
+              "industries": 103
+            },
+            {
+              "minute": 30,
+              "landLeader": "Greenland",
+              "leaderTiles": 216853,
+              "ownedTiles": 626997,
+              "reserveTroopLeader": "Greenland",
+              "reserveTroops": 8804851,
+              "topFiveByLand": [
+                "Greenland",
+                "Antarctica",
+                "Bhutan",
+                "Madagascar",
+                "Brazil"
+              ],
+              "topFiveByReserveTroops": [
+                "Greenland",
+                "Madagascar",
+                "Antarctica",
+                "Bhutan",
+                "New Zealand"
+              ],
+              "cities": 135,
+              "industries": 104
+            },
+            {
+              "minute": 45,
+              "landLeader": "Madagascar",
+              "leaderTiles": 195204,
+              "ownedTiles": 596702,
+              "reserveTroopLeader": "Australia",
+              "reserveTroops": 34314416,
+              "topFiveByLand": [
+                "Madagascar",
+                "Australia",
+                "Canada",
+                "Antarctica",
+                "East Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Australia",
+                "Antarctica",
+                "Madagascar",
+                "Canada",
+                "East Antarctica"
+              ],
+              "cities": 118,
+              "industries": 87
+            },
+            {
+              "minute": 60,
+              "landLeader": "Antarctica",
+              "leaderTiles": 229862,
+              "ownedTiles": 611918,
+              "reserveTroopLeader": "East Antarctica",
+              "reserveTroops": 24670002,
+              "topFiveByLand": [
+                "Antarctica",
+                "East Antarctica",
+                "Canada",
+                "Madagascar",
+                "New Zealand"
+              ],
+              "topFiveByReserveTroops": [
+                "East Antarctica",
+                "Madagascar",
+                "Antarctica",
+                "New Zealand",
+                "Sweden"
+              ],
+              "cities": 130,
+              "industries": 89
+            },
+            {
+              "minute": 75,
+              "landLeader": "Madagascar",
+              "leaderTiles": 487729,
+              "ownedTiles": 583333,
+              "reserveTroopLeader": "Madagascar",
+              "reserveTroops": 68164028,
+              "topFiveByLand": [
+                "Madagascar",
+                "Antarctica",
+                "Canada",
+                "New Zealand"
+              ],
+              "topFiveByReserveTroops": [
+                "Madagascar",
+                "New Zealand",
+                "Canada",
+                "Antarctica"
+              ],
+              "cities": 58,
+              "industries": 85
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Australia": 2,
+            "Antarctica": 18,
+            "Greenland": 30,
+            "Madagascar": 14,
+            "Canada": 7,
+            "East Antarctica": 4
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "DR Congo": 1,
+            "Siberia": 1,
+            "Greenland": 21,
+            "Antarctica": 14,
+            "Bhutan": 1,
+            "New Zealand": 2,
+            "Madagascar": 16,
+            "Canada": 13,
+            "Australia": 1,
+            "East Antarctica": 5
+          }
+        },
+        {
+          "seed": "balance-04",
+          "winner": "Uruguay",
+          "winnerDoctrine": "imperialist",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 47,
+          "friendlyAttacks": 0,
+          "fingerprint": "2b7ce69cc8854b065a9141113652a48130c74fd8dad8b9b9fe0922b798d7f2ca",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Australia",
+              "leaderTiles": 19373,
+              "ownedTiles": 521778,
+              "reserveTroopLeader": "Oman",
+              "reserveTroops": 329161,
+              "topFiveByLand": [
+                "Australia",
+                "Siberia",
+                "China",
+                "West Antarctica",
+                "Russia"
+              ],
+              "topFiveByReserveTroops": [
+                "Oman",
+                "Morocco",
+                "Quebec",
+                "Senegal",
+                "Libya"
+              ],
+              "cities": 0,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Australia",
+              "leaderTiles": 60022,
+              "ownedTiles": 650425,
+              "reserveTroopLeader": "Australia",
+              "reserveTroops": 1415222,
+              "topFiveByLand": [
+                "Australia",
+                "Antarctica",
+                "West Antarctica",
+                "Siberia",
+                "Mongolia"
+              ],
+              "topFiveByReserveTroops": [
+                "Australia",
+                "Mongolia",
+                "Antarctica",
+                "Bhutan",
+                "Russia"
+              ],
+              "cities": 68,
+              "industries": 0
+            },
+            {
+              "minute": 15,
+              "landLeader": "Australia",
+              "leaderTiles": 180455,
+              "ownedTiles": 642998,
+              "reserveTroopLeader": "Australia",
+              "reserveTroops": 4755275,
+              "topFiveByLand": [
+                "Australia",
+                "Antarctica",
+                "West Antarctica",
+                "Norway",
+                "Alaska"
+              ],
+              "topFiveByReserveTroops": [
+                "Australia",
+                "Sudan",
+                "Norway",
+                "Antarctica",
+                "Alaska"
+              ],
+              "cities": 128,
+              "industries": 108
+            },
+            {
+              "minute": 30,
+              "landLeader": "Australia",
+              "leaderTiles": 239729,
+              "ownedTiles": 591260,
+              "reserveTroopLeader": "Sudan",
+              "reserveTroops": 8353652,
+              "topFiveByLand": [
+                "Australia",
+                "Yukon",
+                "Uruguay",
+                "Sudan",
+                "Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Sudan",
+                "Yukon",
+                "Uruguay",
+                "Australia",
+                "Iceland"
+              ],
+              "cities": 84,
+              "industries": 73
+            },
+            {
+              "minute": 45,
+              "landLeader": "Uruguay",
+              "leaderTiles": 277247,
+              "ownedTiles": 592232,
+              "reserveTroopLeader": "Australia",
+              "reserveTroops": 9181157,
+              "topFiveByLand": [
+                "Uruguay",
+                "Australia",
+                "Sri Lanka",
+                "Sudan",
+                "Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Australia",
+                "Uruguay",
+                "Sri Lanka",
+                "Sudan",
+                "Alaska"
+              ],
+              "cities": 104,
+              "industries": 53
+            },
+            {
+              "minute": 47,
+              "landLeader": "Uruguay",
+              "leaderTiles": 446232,
+              "ownedTiles": 511586,
+              "reserveTroopLeader": "Uruguay",
+              "reserveTroops": 15693621,
+              "topFiveByLand": [
+                "Uruguay",
+                "Australia",
+                "Sri Lanka",
+                "Sudan",
+                "Alaska"
+              ],
+              "topFiveByReserveTroops": [
+                "Uruguay",
+                "Sudan",
+                "Australia",
+                "Alaska",
+                "Sri Lanka"
+              ],
+              "cities": 90,
+              "industries": 54
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Australia": 36,
+            "China": 1,
+            "Antarctica": 3,
+            "Sudan": 4,
+            "Uruguay": 3
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "Oman": 1,
+            "China": 1,
+            "Australia": 13,
+            "West Antarctica": 2,
+            "Uruguay": 12,
+            "Antarctica": 4,
+            "Sudan": 11,
+            "Iceland": 2,
+            "Yukon": 1
+          }
+        },
+        {
+          "seed": "balance-05",
+          "winner": "Alaska",
+          "winnerDoctrine": "diplomatic",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 26,
+          "friendlyAttacks": 0,
+          "fingerprint": "ea5629a6633a715cfad3f5588ed1812884237b6adfbb74f36f1d6910a353a341",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Australia",
+              "leaderTiles": 19186,
+              "ownedTiles": 519088,
+              "reserveTroopLeader": "Finland",
+              "reserveTroops": 356386,
+              "topFiveByLand": [
+                "Australia",
+                "Siberia",
+                "Russia",
+                "Yukon",
+                "Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Finland",
+                "United States",
+                "Uruguay",
+                "Argentina",
+                "Zambia"
+              ],
+              "cities": 0,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Antarctica",
+              "leaderTiles": 50916,
+              "ownedTiles": 650579,
+              "reserveTroopLeader": "Pakistan",
+              "reserveTroops": 1536759,
+              "topFiveByLand": [
+                "Antarctica",
+                "Australia",
+                "West Antarctica",
+                "Alaska",
+                "Nunavut"
+              ],
+              "topFiveByReserveTroops": [
+                "Pakistan",
+                "Bolivia",
+                "Antarctica",
+                "Ethiopia",
+                "Russia"
+              ],
+              "cities": 70,
+              "industries": 2
+            },
+            {
+              "minute": 15,
+              "landLeader": "Alaska",
+              "leaderTiles": 167881,
+              "ownedTiles": 634867,
+              "reserveTroopLeader": "Alaska",
+              "reserveTroops": 5551289,
+              "topFiveByLand": [
+                "Alaska",
+                "Australia",
+                "Pakistan",
+                "DR Congo",
+                "West Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Alaska",
+                "Pakistan",
+                "Australia",
+                "Latvia",
+                "Germany"
+              ],
+              "cities": 145,
+              "industries": 121
+            },
+            {
+              "minute": 26,
+              "landLeader": "Alaska",
+              "leaderTiles": 508705,
+              "ownedTiles": 627774,
+              "reserveTroopLeader": "Alaska",
+              "reserveTroops": 28398646,
+              "topFiveByLand": [
+                "Alaska",
+                "West Antarctica",
+                "Australia",
+                "New Zealand",
+                "East Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Alaska",
+                "West Antarctica",
+                "Norway",
+                "New Zealand",
+                "Australia"
+              ],
+              "cities": 104,
+              "industries": 91
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Australia": 2,
+            "Antarctica": 6,
+            "Alaska": 18
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "Finland": 1,
+            "Australia": 1,
+            "Antarctica": 3,
+            "Pakistan": 3,
+            "Alaska": 17,
+            "Oman": 1
+          }
+        },
+        {
+          "seed": "balance-06",
+          "winner": "Yukon",
+          "winnerDoctrine": "survivor",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 32,
+          "friendlyAttacks": 0,
+          "fingerprint": "e7e6622c052a50b4c251e3295e99cbbe906951f46c0a1e2b3a7ca7368e92ec78",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Russia",
+              "leaderTiles": 17504,
+              "ownedTiles": 519210,
+              "reserveTroopLeader": "United States",
+              "reserveTroops": 346537,
+              "topFiveByLand": [
+                "Russia",
+                "Siberia",
+                "West Antarctica",
+                "Yukon",
+                "Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "United States",
+                "Morocco",
+                "Senegal",
+                "Mexico",
+                "Quebec"
+              ],
+              "cities": 0,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Antarctica",
+              "leaderTiles": 56485,
+              "ownedTiles": 650968,
+              "reserveTroopLeader": "Antarctica",
+              "reserveTroops": 944740,
+              "topFiveByLand": [
+                "Antarctica",
+                "Yukon",
+                "Mongolia",
+                "East Antarctica",
+                "Nunavut"
+              ],
+              "topFiveByReserveTroops": [
+                "Antarctica",
+                "Sweden",
+                "Colombia",
+                "Bhutan",
+                "East Antarctica"
+              ],
+              "cities": 73,
+              "industries": 8
+            },
+            {
+              "minute": 15,
+              "landLeader": "Yukon",
+              "leaderTiles": 163404,
+              "ownedTiles": 636936,
+              "reserveTroopLeader": "Yukon",
+              "reserveTroops": 6813955,
+              "topFiveByLand": [
+                "Yukon",
+                "Antarctica",
+                "China",
+                "Ukraine",
+                "East Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Yukon",
+                "Antarctica",
+                "Venezuela",
+                "Kazakhstan",
+                "China"
+              ],
+              "cities": 140,
+              "industries": 124
+            },
+            {
+              "minute": 30,
+              "landLeader": "Yukon",
+              "leaderTiles": 367363,
+              "ownedTiles": 636656,
+              "reserveTroopLeader": "Japan",
+              "reserveTroops": 13380877,
+              "topFiveByLand": [
+                "Yukon",
+                "Japan",
+                "Antarctica",
+                "Finland",
+                "Madagascar"
+              ],
+              "topFiveByReserveTroops": [
+                "Japan",
+                "Yukon",
+                "Finland",
+                "Antarctica",
+                "Kazakhstan"
+              ],
+              "cities": 113,
+              "industries": 84
+            },
+            {
+              "minute": 32,
+              "landLeader": "Yukon",
+              "leaderTiles": 521900,
+              "ownedTiles": 628639,
+              "reserveTroopLeader": "Finland",
+              "reserveTroops": 8311901,
+              "topFiveByLand": [
+                "Yukon",
+                "Antarctica",
+                "Japan",
+                "Finland",
+                "Madagascar"
+              ],
+              "topFiveByReserveTroops": [
+                "Finland",
+                "Yukon",
+                "Antarctica",
+                "Japan",
+                "Kazakhstan"
+              ],
+              "cities": 111,
+              "industries": 80
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Russia": 1,
+            "Antarctica": 15,
+            "Yukon": 16
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "United States": 1,
+            "Yukon": 10,
+            "Australia": 1,
+            "Antarctica": 8,
+            "Sweden": 2,
+            "Mongolia": 1,
+            "Japan": 8,
+            "Finland": 1
+          }
+        },
+        {
+          "seed": "balance-07",
+          "winner": "West Antarctica",
+          "winnerDoctrine": "imperialist",
+          "drainsViewUpdates": true,
+          "ended": true,
+          "minutes": 40,
+          "friendlyAttacks": 0,
+          "fingerprint": "1c42927261d4944e0380e9c94f182ec6d1c1a20442a81ba20e140a9f364cc352",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Australia",
+              "leaderTiles": 16822,
+              "ownedTiles": 528725,
+              "reserveTroopLeader": "United States",
+              "reserveTroops": 323574,
+              "topFiveByLand": [
+                "Australia",
+                "Japan",
+                "Siberia",
+                "West Antarctica",
+                "Russia"
+              ],
+              "topFiveByReserveTroops": [
+                "United States",
+                "Brazil",
+                "Uruguay",
+                "Senegal",
+                "Argentina"
+              ],
+              "cities": 0,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Antarctica",
+              "leaderTiles": 50650,
+              "ownedTiles": 651149,
+              "reserveTroopLeader": "Greenland",
+              "reserveTroops": 1493218,
+              "topFiveByLand": [
+                "Antarctica",
+                "Russia",
+                "Pakistan",
+                "East Antarctica",
+                "Greenland"
+              ],
+              "topFiveByReserveTroops": [
+                "Greenland",
+                "Iceland",
+                "Russia",
+                "Canada",
+                "Yukon"
+              ],
+              "cities": 73,
+              "industries": 8
+            },
+            {
+              "minute": 15,
+              "landLeader": "Russia",
+              "leaderTiles": 155543,
+              "ownedTiles": 645985,
+              "reserveTroopLeader": "Iceland",
+              "reserveTroops": 4157435,
+              "topFiveByLand": [
+                "Russia",
+                "Antarctica",
+                "Iceland",
+                "West Antarctica",
+                "Yukon"
+              ],
+              "topFiveByReserveTroops": [
+                "Iceland",
+                "Antarctica",
+                "Yukon",
+                "Sweden",
+                "Indonesia"
+              ],
+              "cities": 144,
+              "industries": 112
+            },
+            {
+              "minute": 30,
+              "landLeader": "West Antarctica",
+              "leaderTiles": 198234,
+              "ownedTiles": 539758,
+              "reserveTroopLeader": "West Antarctica",
+              "reserveTroops": 12198692,
+              "topFiveByLand": [
+                "West Antarctica",
+                "Antarctica",
+                "Indonesia",
+                "New Zealand",
+                "United Kingdom"
+              ],
+              "topFiveByReserveTroops": [
+                "West Antarctica",
+                "Antarctica",
+                "Indonesia",
+                "New Zealand",
+                "Latvia"
+              ],
+              "cities": 75,
+              "industries": 74
+            },
+            {
+              "minute": 40,
+              "landLeader": "West Antarctica",
+              "leaderTiles": 505026,
+              "ownedTiles": 618416,
+              "reserveTroopLeader": "West Antarctica",
+              "reserveTroops": 21671417,
+              "topFiveByLand": [
+                "West Antarctica",
+                "Antarctica",
+                "Indonesia",
+                "New Zealand",
+                "Japan"
+              ],
+              "topFiveByReserveTroops": [
+                "West Antarctica",
+                "New Zealand",
+                "Japan",
+                "Indonesia",
+                "Antarctica"
+              ],
+              "cities": 99,
+              "industries": 76
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Australia": 1,
+            "Antarctica": 13,
+            "Russia": 12,
+            "Iceland": 3,
+            "Indonesia": 3,
+            "West Antarctica": 8
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "United States": 1,
+            "West Antarctica": 17,
+            "Antarctica": 5,
+            "Argentina": 1,
+            "Greenland": 2,
+            "Iceland": 10,
+            "Russia": 2,
+            "DR Congo": 1,
+            "Indonesia": 1
+          }
+        },
+        {
+          "seed": "balance-08",
+          "winner": "Latvia",
+          "winnerDoctrine": "opportunist",
+          "drainsViewUpdates": true,
+          "ended": true,
+          "minutes": 28,
+          "friendlyAttacks": 0,
+          "fingerprint": "ea1ab6ecd8990e39db00565c9fd77fa512cfb6c28c1e7445807eb0d2769d7bd6",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Siberia",
+              "leaderTiles": 18018,
+              "ownedTiles": 515321,
+              "reserveTroopLeader": "Latvia",
+              "reserveTroops": 373430,
+              "topFiveByLand": [
+                "Siberia",
+                "Russia",
+                "Australia",
+                "West Antarctica",
+                "Nunavut"
+              ],
+              "topFiveByReserveTroops": [
+                "Latvia",
+                "Peru",
+                "Kazakhstan",
+                "Indonesia",
+                "Venezuela"
+              ],
+              "cities": 0,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Nunavut",
+              "leaderTiles": 51033,
+              "ownedTiles": 649633,
+              "reserveTroopLeader": "Greenland",
+              "reserveTroops": 1080485,
+              "topFiveByLand": [
+                "Nunavut",
+                "Siberia",
+                "Antarctica",
+                "West Antarctica",
+                "East Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Greenland",
+                "Texas",
+                "Alaska",
+                "Nunavut",
+                "Senegal"
+              ],
+              "cities": 74,
+              "industries": 3
+            },
+            {
+              "minute": 15,
+              "landLeader": "Latvia",
+              "leaderTiles": 166826,
+              "ownedTiles": 644798,
+              "reserveTroopLeader": "Latvia",
+              "reserveTroops": 5665206,
+              "topFiveByLand": [
+                "Latvia",
+                "Nunavut",
+                "Taiwan",
+                "Antarctica",
+                "East Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Latvia",
+                "Taiwan",
+                "Antarctica",
+                "Nunavut",
+                "Belarus"
+              ],
+              "cities": 131,
+              "industries": 122
+            },
+            {
+              "minute": 28,
+              "landLeader": "Latvia",
+              "leaderTiles": 505336,
+              "ownedTiles": 609397,
+              "reserveTroopLeader": "Latvia",
+              "reserveTroops": 57898503,
+              "topFiveByLand": [
+                "Latvia",
+                "Antarctica",
+                "West Antarctica",
+                "Yukon",
+                "Madagascar"
+              ],
+              "topFiveByReserveTroops": [
+                "Latvia",
+                "West Antarctica",
+                "New Zealand",
+                "Antarctica",
+                "Sri Lanka"
+              ],
+              "cities": 110,
+              "industries": 103
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Siberia": 4,
+            "Nunavut": 9,
+            "Latvia": 15
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "Latvia": 18,
+            "Nunavut": 9,
+            "Greenland": 1
+          }
+        },
+        {
+          "seed": "balance-09",
+          "winner": "Ukraine",
+          "winnerDoctrine": "survivor",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 34,
+          "friendlyAttacks": 0,
+          "fingerprint": "8131128869f8bfcf293194cfa36abf0b1dd776ec40dd21f0e1ee27d3ebf13989",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Australia",
+              "leaderTiles": 18087,
+              "ownedTiles": 521031,
+              "reserveTroopLeader": "Sweden",
+              "reserveTroops": 341323,
+              "topFiveByLand": [
+                "Australia",
+                "Canada",
+                "Yukon",
+                "Russia",
+                "Siberia"
+              ],
+              "topFiveByReserveTroops": [
+                "Sweden",
+                "Iran",
+                "Zambia",
+                "Kazakhstan",
+                "Bhutan"
+              ],
+              "cities": 0,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Antarctica",
+              "leaderTiles": 43460,
+              "ownedTiles": 649900,
+              "reserveTroopLeader": "Senegal",
+              "reserveTroops": 960273,
+              "topFiveByLand": [
+                "Antarctica",
+                "West Antarctica",
+                "Russia",
+                "Australia",
+                "Greenland"
+              ],
+              "topFiveByReserveTroops": [
+                "Senegal",
+                "Ukraine",
+                "West Antarctica",
+                "Sweden",
+                "Russia"
+              ],
+              "cities": 71,
+              "industries": 1
+            },
+            {
+              "minute": 15,
+              "landLeader": "Ukraine",
+              "leaderTiles": 211537,
+              "ownedTiles": 641836,
+              "reserveTroopLeader": "Ukraine",
+              "reserveTroops": 6142504,
+              "topFiveByLand": [
+                "Ukraine",
+                "Senegal",
+                "West Antarctica",
+                "Antarctica",
+                "Ethiopia"
+              ],
+              "topFiveByReserveTroops": [
+                "Ukraine",
+                "Senegal",
+                "Ethiopia",
+                "Sri Lanka",
+                "West Antarctica"
+              ],
+              "cities": 160,
+              "industries": 108
+            },
+            {
+              "minute": 30,
+              "landLeader": "Ukraine",
+              "leaderTiles": 314150,
+              "ownedTiles": 459873,
+              "reserveTroopLeader": "Ukraine",
+              "reserveTroops": 11498363,
+              "topFiveByLand": [
+                "Ukraine",
+                "West Antarctica",
+                "Antarctica",
+                "Senegal",
+                "Alaska"
+              ],
+              "topFiveByReserveTroops": [
+                "Ukraine",
+                "Antarctica",
+                "New Zealand",
+                "Australia",
+                "Senegal"
+              ],
+              "cities": 92,
+              "industries": 57
+            },
+            {
+              "minute": 34,
+              "landLeader": "Ukraine",
+              "leaderTiles": 523595,
+              "ownedTiles": 580608,
+              "reserveTroopLeader": "Ukraine",
+              "reserveTroops": 26815471,
+              "topFiveByLand": [
+                "Ukraine",
+                "West Antarctica",
+                "Antarctica",
+                "Senegal",
+                "New Zealand"
+              ],
+              "topFiveByReserveTroops": [
+                "Ukraine",
+                "New Zealand",
+                "Antarctica",
+                "Senegal",
+                "Mexico"
+              ],
+              "cities": 89,
+              "industries": 58
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Australia": 1,
+            "Antarctica": 9,
+            "Senegal": 2,
+            "Ukraine": 22
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "Sweden": 1,
+            "Siberia": 1,
+            "Senegal": 7,
+            "Antarctica": 2,
+            "Ukraine": 22,
+            "Ireland": 1
+          }
+        },
+        {
+          "seed": "balance-10",
+          "winner": "Germany",
+          "winnerDoctrine": "industrialist",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 65,
+          "friendlyAttacks": 0,
+          "fingerprint": "dd2f4a80f5f91494a2564d14e905cebe7629d3f6bc8cbcd1f4f87b7548aaa319",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Siberia",
+              "leaderTiles": 19206,
+              "ownedTiles": 517525,
+              "reserveTroopLeader": "Belarus",
+              "reserveTroops": 377314,
+              "topFiveByLand": [
+                "Siberia",
+                "Australia",
+                "Russia",
+                "Taiwan",
+                "Greenland"
+              ],
+              "topFiveByReserveTroops": [
+                "Belarus",
+                "Argentina",
+                "Nunavut",
+                "Alaska",
+                "Canada"
+              ],
+              "cities": 0,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Antarctica",
+              "leaderTiles": 54298,
+              "ownedTiles": 650766,
+              "reserveTroopLeader": "Taiwan",
+              "reserveTroops": 1620995,
+              "topFiveByLand": [
+                "Antarctica",
+                "Taiwan",
+                "East Antarctica",
+                "Quebec",
+                "Greenland"
+              ],
+              "topFiveByReserveTroops": [
+                "Taiwan",
+                "Mongolia",
+                "Greenland",
+                "Ethiopia",
+                "Niger"
+              ],
+              "cities": 70,
+              "industries": 11
+            },
+            {
+              "minute": 15,
+              "landLeader": "Niger",
+              "leaderTiles": 109189,
+              "ownedTiles": 644075,
+              "reserveTroopLeader": "Taiwan",
+              "reserveTroops": 5969433,
+              "topFiveByLand": [
+                "Niger",
+                "Taiwan",
+                "Alaska",
+                "Greenland",
+                "East Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Taiwan",
+                "Niger",
+                "East Antarctica",
+                "India",
+                "Morocco"
+              ],
+              "cities": 135,
+              "industries": 108
+            },
+            {
+              "minute": 30,
+              "landLeader": "Niger",
+              "leaderTiles": 219660,
+              "ownedTiles": 609759,
+              "reserveTroopLeader": "Morocco",
+              "reserveTroops": 10401980,
+              "topFiveByLand": [
+                "Niger",
+                "Antarctica",
+                "Sri Lanka",
+                "Taiwan",
+                "Morocco"
+              ],
+              "topFiveByReserveTroops": [
+                "Morocco",
+                "Antarctica",
+                "Niger",
+                "Sri Lanka",
+                "Germany"
+              ],
+              "cities": 131,
+              "industries": 85
+            },
+            {
+              "minute": 45,
+              "landLeader": "Antarctica",
+              "leaderTiles": 258318,
+              "ownedTiles": 578623,
+              "reserveTroopLeader": "Germany",
+              "reserveTroops": 31567350,
+              "topFiveByLand": [
+                "Antarctica",
+                "Germany",
+                "Alaska",
+                "Greenland",
+                "Niger"
+              ],
+              "topFiveByReserveTroops": [
+                "Germany",
+                "Antarctica",
+                "Alaska",
+                "Greenland",
+                "Niger"
+              ],
+              "cities": 102,
+              "industries": 75
+            },
+            {
+              "minute": 60,
+              "landLeader": "Germany",
+              "leaderTiles": 468172,
+              "ownedTiles": 645728,
+              "reserveTroopLeader": "Germany",
+              "reserveTroops": 18507626,
+              "topFiveByLand": [
+                "Germany",
+                "Antarctica",
+                "Greenland",
+                "West Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Germany",
+                "Greenland",
+                "West Antarctica",
+                "Antarctica"
+              ],
+              "cities": 74,
+              "industries": 56
+            },
+            {
+              "minute": 65,
+              "landLeader": "Germany",
+              "leaderTiles": 521759,
+              "ownedTiles": 626645,
+              "reserveTroopLeader": "Germany",
+              "reserveTroops": 29201380,
+              "topFiveByLand": ["Germany", "Antarctica", "Greenland"],
+              "topFiveByReserveTroops": ["Germany", "Antarctica", "Greenland"],
+              "cities": 97,
+              "industries": 53
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Siberia": 1,
+            "Antarctica": 21,
+            "East Antarctica": 2,
+            "Niger": 21,
+            "Belarus": 1,
+            "Greenland": 1,
+            "Taiwan": 1,
+            "Germany": 17
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "Belarus": 2,
+            "Greenland": 8,
+            "Quebec": 1,
+            "Taiwan": 3,
+            "East Antarctica": 2,
+            "Niger": 9,
+            "Alaska": 3,
+            "Morocco": 4,
+            "Sri Lanka": 1,
+            "Antarctica": 8,
+            "Germany": 24
+          }
+        },
+        {
+          "seed": "balance-11",
+          "winner": "Antarctica",
+          "winnerDoctrine": "imperialist",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 32,
+          "friendlyAttacks": 0,
+          "fingerprint": "38b3190dee0ffa51d46a44fa3cb52cc95ba3d467aef493482c525588b27ba731",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Australia",
+              "leaderTiles": 17677,
+              "ownedTiles": 530426,
+              "reserveTroopLeader": "United States",
+              "reserveTroops": 345539,
+              "topFiveByLand": [
+                "Australia",
+                "Siberia",
+                "Russia",
+                "West Antarctica",
+                "Greenland"
+              ],
+              "topFiveByReserveTroops": [
+                "United States",
+                "Brazil",
+                "Argentina",
+                "Zambia",
+                "Bhutan"
+              ],
+              "cities": 0,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Antarctica",
+              "leaderTiles": 59935,
+              "ownedTiles": 650973,
+              "reserveTroopLeader": "Nunavut",
+              "reserveTroops": 1556115,
+              "topFiveByLand": [
+                "Antarctica",
+                "East Antarctica",
+                "Nunavut",
+                "Siberia",
+                "Japan"
+              ],
+              "topFiveByReserveTroops": [
+                "Nunavut",
+                "East Antarctica",
+                "Antarctica",
+                "Japan",
+                "Siberia"
+              ],
+              "cities": 69,
+              "industries": 1
+            },
+            {
+              "minute": 15,
+              "landLeader": "Nunavut",
+              "leaderTiles": 134889,
+              "ownedTiles": 628410,
+              "reserveTroopLeader": "Antarctica",
+              "reserveTroops": 5477265,
+              "topFiveByLand": [
+                "Nunavut",
+                "Antarctica",
+                "Japan",
+                "Belarus",
+                "East Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Antarctica",
+                "Belarus",
+                "Japan",
+                "Libya",
+                "Nunavut"
+              ],
+              "cities": 124,
+              "industries": 99
+            },
+            {
+              "minute": 30,
+              "landLeader": "Antarctica",
+              "leaderTiles": 398880,
+              "ownedTiles": 550270,
+              "reserveTroopLeader": "Antarctica",
+              "reserveTroops": 23853414,
+              "topFiveByLand": [
+                "Antarctica",
+                "Nunavut",
+                "East Antarctica",
+                "Venezuela",
+                "Thailand"
+              ],
+              "topFiveByReserveTroops": [
+                "Antarctica",
+                "East Antarctica",
+                "Libya",
+                "Thailand",
+                "Iceland"
+              ],
+              "cities": 119,
+              "industries": 71
+            },
+            {
+              "minute": 32,
+              "landLeader": "Antarctica",
+              "leaderTiles": 481608,
+              "ownedTiles": 596367,
+              "reserveTroopLeader": "Antarctica",
+              "reserveTroops": 11970127,
+              "topFiveByLand": [
+                "Antarctica",
+                "Venezuela",
+                "East Antarctica",
+                "Nunavut",
+                "Libya"
+              ],
+              "topFiveByReserveTroops": [
+                "Antarctica",
+                "East Antarctica",
+                "Venezuela",
+                "Libya",
+                "Thailand"
+              ],
+              "cities": 123,
+              "industries": 78
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Australia": 1,
+            "Antarctica": 28,
+            "Nunavut": 3
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "United States": 1,
+            "Philippines": 2,
+            "Bhutan": 1,
+            "Nunavut": 3,
+            "Antarctica": 24,
+            "West Antarctica": 1
+          }
+        },
+        {
+          "seed": "balance-12",
+          "winner": "Alaska",
+          "winnerDoctrine": "diplomatic",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 32,
+          "friendlyAttacks": 0,
+          "fingerprint": "6b36da09c4f5bff37022594851e29ffe1900b5a2da995c86a1aaa08e17d18edf",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Russia",
+              "leaderTiles": 17460,
+              "ownedTiles": 521239,
+              "reserveTroopLeader": "Argentina",
+              "reserveTroops": 347584,
+              "topFiveByLand": [
+                "Russia",
+                "Siberia",
+                "Australia",
+                "West Antarctica",
+                "East Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Argentina",
+                "Belarus",
+                "Ukraine",
+                "South Africa",
+                "Namibia"
+              ],
+              "cities": 0,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Antarctica",
+              "leaderTiles": 48396,
+              "ownedTiles": 650402,
+              "reserveTroopLeader": "Finland",
+              "reserveTroops": 1303680,
+              "topFiveByLand": [
+                "Antarctica",
+                "East Antarctica",
+                "Yukon",
+                "Alaska",
+                "West Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Finland",
+                "Ukraine",
+                "Antarctica",
+                "East Antarctica",
+                "Yukon"
+              ],
+              "cities": 75,
+              "industries": 4
+            },
+            {
+              "minute": 15,
+              "landLeader": "East Antarctica",
+              "leaderTiles": 132142,
+              "ownedTiles": 636250,
+              "reserveTroopLeader": "East Antarctica",
+              "reserveTroops": 4015369,
+              "topFiveByLand": [
+                "East Antarctica",
+                "Alaska",
+                "Finland",
+                "Antarctica",
+                "Yukon"
+              ],
+              "topFiveByReserveTroops": [
+                "East Antarctica",
+                "Antarctica",
+                "Finland",
+                "Taiwan",
+                "Alaska"
+              ],
+              "cities": 134,
+              "industries": 102
+            },
+            {
+              "minute": 30,
+              "landLeader": "Alaska",
+              "leaderTiles": 385552,
+              "ownedTiles": 583768,
+              "reserveTroopLeader": "Alaska",
+              "reserveTroops": 19982780,
+              "topFiveByLand": [
+                "Alaska",
+                "Antarctica",
+                "East Antarctica",
+                "Taiwan",
+                "Japan"
+              ],
+              "topFiveByReserveTroops": [
+                "Alaska",
+                "Antarctica",
+                "Argentina",
+                "Finland",
+                "Niger"
+              ],
+              "cities": 96,
+              "industries": 68
+            },
+            {
+              "minute": 32,
+              "landLeader": "Alaska",
+              "leaderTiles": 526405,
+              "ownedTiles": 630143,
+              "reserveTroopLeader": "Alaska",
+              "reserveTroops": 24361421,
+              "topFiveByLand": [
+                "Alaska",
+                "Antarctica",
+                "Argentina",
+                "East Antarctica",
+                "Japan"
+              ],
+              "topFiveByReserveTroops": [
+                "Alaska",
+                "Antarctica",
+                "Japan",
+                "Argentina",
+                "Finland"
+              ],
+              "cities": 110,
+              "industries": 71
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Russia": 1,
+            "Antarctica": 8,
+            "Yukon": 2,
+            "East Antarctica": 12,
+            "Alaska": 9
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "Argentina": 1,
+            "Siberia": 1,
+            "West Antarctica": 1,
+            "Sudan": 1,
+            "Finland": 4,
+            "Ukraine": 1,
+            "Alaska": 13,
+            "Niger": 1,
+            "Yukon": 2,
+            "East Antarctica": 3,
+            "Antarctica": 4
+          }
+        }
+      ],
+      "winners": {
+        "Benin": 1,
+        "Ethiopia": 1,
+        "Madagascar": 1,
+        "Uruguay": 1,
+        "West Antarctica": 1,
+        "Latvia": 1,
+        "Alaska": 2,
+        "Yukon": 1,
+        "Ukraine": 1,
+        "Germany": 1,
+        "Antarctica": 1
+      }
+    },
+    {
+      "name": "rotated-doctrines",
+      "settings": {
+        "bots": 0,
+        "peaceSeconds": 5,
+        "rotation": 3
+      },
+      "runs": [
+        {
+          "seed": "balance-01",
+          "winner": "Texas",
+          "winnerDoctrine": "industrialist",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 32,
+          "friendlyAttacks": 0,
+          "fingerprint": "76d606f737a8b1a5ae22605f191bc89f34d37ccbdcb6d36f6dc89256298dfd31",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Siberia",
+              "leaderTiles": 19160,
+              "ownedTiles": 511404,
+              "reserveTroopLeader": "Belarus",
+              "reserveTroops": 366289,
+              "topFiveByLand": [
+                "Siberia",
+                "Australia",
+                "West Antarctica",
+                "Greenland",
+                "Russia"
+              ],
+              "topFiveByReserveTroops": [
+                "Belarus",
+                "Taiwan",
+                "Argentina",
+                "Kazakhstan",
+                "India"
+              ],
+              "cities": 0,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Antarctica",
+              "leaderTiles": 60836,
+              "ownedTiles": 650260,
+              "reserveTroopLeader": "Alaska",
+              "reserveTroops": 991410,
+              "topFiveByLand": [
+                "Antarctica",
+                "Siberia",
+                "East Antarctica",
+                "Yukon",
+                "Russia"
+              ],
+              "topFiveByReserveTroops": [
+                "Alaska",
+                "Colombia",
+                "Bolivia",
+                "India",
+                "Yukon"
+              ],
+              "cities": 71,
+              "industries": 10
+            },
+            {
+              "minute": 15,
+              "landLeader": "Latvia",
+              "leaderTiles": 141656,
+              "ownedTiles": 644957,
+              "reserveTroopLeader": "Latvia",
+              "reserveTroops": 6569692,
+              "topFiveByLand": [
+                "Latvia",
+                "Texas",
+                "Antarctica",
+                "Russia",
+                "Yukon"
+              ],
+              "topFiveByReserveTroops": [
+                "Latvia",
+                "Texas",
+                "Antarctica",
+                "Russia",
+                "Yukon"
+              ],
+              "cities": 141,
+              "industries": 109
+            },
+            {
+              "minute": 30,
+              "landLeader": "Texas",
+              "leaderTiles": 496082,
+              "ownedTiles": 620356,
+              "reserveTroopLeader": "Texas",
+              "reserveTroops": 54621816,
+              "topFiveByLand": [
+                "Texas",
+                "East Antarctica",
+                "West Antarctica",
+                "Latvia",
+                "Indonesia"
+              ],
+              "topFiveByReserveTroops": [
+                "Texas",
+                "West Antarctica",
+                "East Antarctica",
+                "Australia",
+                "Latvia"
+              ],
+              "cities": 151,
+              "industries": 93
+            },
+            {
+              "minute": 32,
+              "landLeader": "Texas",
+              "leaderTiles": 524566,
+              "ownedTiles": 625087,
+              "reserveTroopLeader": "Texas",
+              "reserveTroops": 65531793,
+              "topFiveByLand": [
+                "Texas",
+                "East Antarctica",
+                "West Antarctica",
+                "Australia"
+              ],
+              "topFiveByReserveTroops": [
+                "Texas",
+                "West Antarctica",
+                "Australia",
+                "East Antarctica"
+              ],
+              "cities": 141,
+              "industries": 94
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Siberia": 1,
+            "Antarctica": 10,
+            "Russia": 1,
+            "Texas": 14,
+            "Latvia": 6
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "Belarus": 1,
+            "Nunavut": 1,
+            "Antarctica": 2,
+            "Siberia": 2,
+            "Alaska": 1,
+            "Bolivia": 1,
+            "Latvia": 7,
+            "Russia": 1,
+            "Texas": 15,
+            "East Antarctica": 1
+          }
+        },
+        {
+          "seed": "balance-02",
+          "winner": "Italy",
+          "winnerDoctrine": "survivor",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 27,
+          "friendlyAttacks": 0,
+          "fingerprint": "4ef46a092f01004d554199badf1df4b4931425d8958ebdb5500b8b0e91f6e7da",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Australia",
+              "leaderTiles": 18144,
+              "ownedTiles": 519103,
+              "reserveTroopLeader": "Bolivia",
+              "reserveTroops": 334395,
+              "topFiveByLand": [
+                "Australia",
+                "Siberia",
+                "West Antarctica",
+                "Taiwan",
+                "Mongolia"
+              ],
+              "topFiveByReserveTroops": [
+                "Bolivia",
+                "Quebec",
+                "United States",
+                "Peru",
+                "Belarus"
+              ],
+              "cities": 0,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Antarctica",
+              "leaderTiles": 44781,
+              "ownedTiles": 650665,
+              "reserveTroopLeader": "Japan",
+              "reserveTroops": 1177913,
+              "topFiveByLand": [
+                "Antarctica",
+                "Australia",
+                "West Antarctica",
+                "Japan",
+                "Quebec"
+              ],
+              "topFiveByReserveTroops": [
+                "Japan",
+                "Italy",
+                "Iceland",
+                "West Antarctica",
+                "T\u00fcrkiye"
+              ],
+              "cities": 70,
+              "industries": 6
+            },
+            {
+              "minute": 15,
+              "landLeader": "Italy",
+              "leaderTiles": 194109,
+              "ownedTiles": 645866,
+              "reserveTroopLeader": "Italy",
+              "reserveTroops": 11490712,
+              "topFiveByLand": [
+                "Italy",
+                "West Antarctica",
+                "Australia",
+                "Taiwan",
+                "Iceland"
+              ],
+              "topFiveByReserveTroops": [
+                "Italy",
+                "West Antarctica",
+                "Iceland",
+                "Taiwan",
+                "Siberia"
+              ],
+              "cities": 151,
+              "industries": 103
+            },
+            {
+              "minute": 27,
+              "landLeader": "Italy",
+              "leaderTiles": 465759,
+              "ownedTiles": 567066,
+              "reserveTroopLeader": "Italy",
+              "reserveTroops": 12710908,
+              "topFiveByLand": [
+                "Italy",
+                "West Antarctica",
+                "New Zealand",
+                "Antarctica",
+                "Japan"
+              ],
+              "topFiveByReserveTroops": [
+                "Italy",
+                "New Zealand",
+                "Australia",
+                "Antarctica",
+                "Siberia"
+              ],
+              "cities": 115,
+              "industries": 70
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Australia": 1,
+            "Antarctica": 5,
+            "West Antarctica": 6,
+            "Italy": 15
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "Bolivia": 1,
+            "Australia": 3,
+            "Japan": 1,
+            "Italy": 19,
+            "West Antarctica": 3
+          }
+        },
+        {
+          "seed": "balance-03",
+          "winner": "Japan",
+          "winnerDoctrine": "industrialist",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 32,
+          "friendlyAttacks": 0,
+          "fingerprint": "219635bf88798a3eac638c4a681a0c477d49d351e4517221f70e4ae5ffba9239",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Australia",
+              "leaderTiles": 17244,
+              "ownedTiles": 531830,
+              "reserveTroopLeader": "Oman",
+              "reserveTroops": 357819,
+              "topFiveByLand": [
+                "Australia",
+                "Siberia",
+                "Russia",
+                "Nunavut",
+                "West Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Oman",
+                "Quebec",
+                "Kazakhstan",
+                "United States",
+                "Uruguay"
+              ],
+              "cities": 0,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Japan",
+              "leaderTiles": 57326,
+              "ownedTiles": 650795,
+              "reserveTroopLeader": "Taiwan",
+              "reserveTroops": 1157298,
+              "topFiveByLand": [
+                "Japan",
+                "Antarctica",
+                "West Antarctica",
+                "Taiwan",
+                "Greenland"
+              ],
+              "topFiveByReserveTroops": [
+                "Taiwan",
+                "DR Congo",
+                "Sweden",
+                "Ethiopia",
+                "Sri Lanka"
+              ],
+              "cities": 67,
+              "industries": 2
+            },
+            {
+              "minute": 15,
+              "landLeader": "Japan",
+              "leaderTiles": 170508,
+              "ownedTiles": 636508,
+              "reserveTroopLeader": "Japan",
+              "reserveTroops": 4576936,
+              "topFiveByLand": [
+                "Japan",
+                "West Antarctica",
+                "Sweden",
+                "Greenland",
+                "DR Congo"
+              ],
+              "topFiveByReserveTroops": [
+                "Japan",
+                "Sweden",
+                "West Antarctica",
+                "Greenland",
+                "Iceland"
+              ],
+              "cities": 136,
+              "industries": 94
+            },
+            {
+              "minute": 30,
+              "landLeader": "Japan",
+              "leaderTiles": 452666,
+              "ownedTiles": 637188,
+              "reserveTroopLeader": "Japan",
+              "reserveTroops": 19085886,
+              "topFiveByLand": [
+                "Japan",
+                "East Antarctica",
+                "West Antarctica",
+                "Colombia",
+                "Canada"
+              ],
+              "topFiveByReserveTroops": [
+                "Japan",
+                "Nunavut",
+                "East Antarctica",
+                "Canada",
+                "Sweden"
+              ],
+              "cities": 108,
+              "industries": 71
+            },
+            {
+              "minute": 32,
+              "landLeader": "Japan",
+              "leaderTiles": 516471,
+              "ownedTiles": 642260,
+              "reserveTroopLeader": "Japan",
+              "reserveTroops": 27472257,
+              "topFiveByLand": [
+                "Japan",
+                "East Antarctica",
+                "West Antarctica",
+                "Nunavut",
+                "Sweden"
+              ],
+              "topFiveByReserveTroops": [
+                "Japan",
+                "East Antarctica",
+                "Canada",
+                "Sweden",
+                "Nunavut"
+              ],
+              "cities": 128,
+              "industries": 70
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Australia": 1,
+            "Antarctica": 3,
+            "Japan": 28
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "Oman": 1,
+            "Nunavut": 1,
+            "Greenland": 1,
+            "Japan": 21,
+            "Taiwan": 1,
+            "DR Congo": 5,
+            "Sweden": 1,
+            "West Antarctica": 1
+          }
+        },
+        {
+          "seed": "balance-04",
+          "winner": "Texas",
+          "winnerDoctrine": "industrialist",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 41,
+          "friendlyAttacks": 0,
+          "fingerprint": "c9161dccb2fb4ae8dd1d9c206f8aad93c73e388d526e71ead35a728fb3a95237",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Australia",
+              "leaderTiles": 18562,
+              "ownedTiles": 526172,
+              "reserveTroopLeader": "Belarus",
+              "reserveTroops": 334656,
+              "topFiveByLand": [
+                "Australia",
+                "Taiwan",
+                "Siberia",
+                "Mongolia",
+                "Russia"
+              ],
+              "topFiveByReserveTroops": [
+                "Belarus",
+                "United States",
+                "Bolivia",
+                "Uruguay",
+                "Bhutan"
+              ],
+              "cities": 0,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Antarctica",
+              "leaderTiles": 62771,
+              "ownedTiles": 650779,
+              "reserveTroopLeader": "Australia",
+              "reserveTroops": 1570879,
+              "topFiveByLand": [
+                "Antarctica",
+                "Taiwan",
+                "Australia",
+                "Siberia",
+                "West Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Australia",
+                "Italy",
+                "Antarctica",
+                "Mongolia",
+                "Russia"
+              ],
+              "cities": 77,
+              "industries": 10
+            },
+            {
+              "minute": 15,
+              "landLeader": "Texas",
+              "leaderTiles": 145496,
+              "ownedTiles": 645350,
+              "reserveTroopLeader": "Italy",
+              "reserveTroops": 5919023,
+              "topFiveByLand": [
+                "Texas",
+                "Italy",
+                "Australia",
+                "Taiwan",
+                "Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Italy",
+                "Texas",
+                "Greenland",
+                "Taiwan",
+                "Australia"
+              ],
+              "cities": 137,
+              "industries": 113
+            },
+            {
+              "minute": 30,
+              "landLeader": "Texas",
+              "leaderTiles": 239150,
+              "ownedTiles": 562988,
+              "reserveTroopLeader": "Texas",
+              "reserveTroops": 10131110,
+              "topFiveByLand": [
+                "Texas",
+                "Australia",
+                "New Zealand",
+                "Russia",
+                "Taiwan"
+              ],
+              "topFiveByReserveTroops": [
+                "Texas",
+                "Russia",
+                "Australia",
+                "Taiwan",
+                "New Zealand"
+              ],
+              "cities": 97,
+              "industries": 73
+            },
+            {
+              "minute": 41,
+              "landLeader": "Texas",
+              "leaderTiles": 528529,
+              "ownedTiles": 644360,
+              "reserveTroopLeader": "Texas",
+              "reserveTroops": 8882956,
+              "topFiveByLand": ["Texas", "New Zealand", "Taiwan", "Russia"],
+              "topFiveByReserveTroops": [
+                "Texas",
+                "New Zealand",
+                "Russia",
+                "Taiwan"
+              ],
+              "cities": 115,
+              "industries": 71
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Australia": 12,
+            "Taiwan": 1,
+            "Antarctica": 8,
+            "Siberia": 1,
+            "Texas": 19
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "Belarus": 1,
+            "Taiwan": 2,
+            "Texas": 18,
+            "California": 1,
+            "Australia": 9,
+            "Siberia": 1,
+            "Italy": 6,
+            "Russia": 3
+          }
+        }
+      ],
+      "winners": {
+        "Texas": 2,
+        "Italy": 1,
+        "Japan": 1
+      }
+    },
+    {
+      "name": "tribes-and-peace",
+      "settings": {
+        "bots": 400,
+        "peaceSeconds": 120,
+        "rotation": 0
+      },
+      "runs": [
+        {
+          "seed": "balance-01",
+          "winner": "Quebec",
+          "winnerDoctrine": "survivor",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 37,
+          "friendlyAttacks": 0,
+          "fingerprint": "b30f4dcb8811c07bd668829f9d41e4e2fa23ae765bfd129e2864895dab9799eb",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Taiwan",
+              "leaderTiles": 8340,
+              "ownedTiles": 645396,
+              "reserveTroopLeader": "Senegal",
+              "reserveTroops": 364905,
+              "topFiveByLand": [
+                "Taiwan",
+                "China",
+                "Canada",
+                "DR Congo",
+                "Brazil"
+              ],
+              "topFiveByReserveTroops": [
+                "Senegal",
+                "Oman",
+                "India",
+                "Belarus",
+                "Nunavut"
+              ],
+              "cities": 20,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Antarctica",
+              "leaderTiles": 51813,
+              "ownedTiles": 650992,
+              "reserveTroopLeader": "East Antarctica",
+              "reserveTroops": 1271637,
+              "topFiveByLand": [
+                "Antarctica",
+                "East Antarctica",
+                "China",
+                "Siberia",
+                "Canada"
+              ],
+              "topFiveByReserveTroops": [
+                "East Antarctica",
+                "Siberia",
+                "West Antarctica",
+                "Quebec",
+                "Canada"
+              ],
+              "cities": 119,
+              "industries": 39
+            },
+            {
+              "minute": 15,
+              "landLeader": "East Antarctica",
+              "leaderTiles": 196187,
+              "ownedTiles": 634891,
+              "reserveTroopLeader": "East Antarctica",
+              "reserveTroops": 16816882,
+              "topFiveByLand": [
+                "East Antarctica",
+                "Antarctica",
+                "Quebec",
+                "Italy",
+                "Canada"
+              ],
+              "topFiveByReserveTroops": [
+                "East Antarctica",
+                "Antarctica",
+                "Quebec",
+                "Italy",
+                "West Antarctica"
+              ],
+              "cities": 156,
+              "industries": 152
+            },
+            {
+              "minute": 30,
+              "landLeader": "Quebec",
+              "leaderTiles": 290278,
+              "ownedTiles": 632635,
+              "reserveTroopLeader": "Taiwan",
+              "reserveTroops": 11192377,
+              "topFiveByLand": [
+                "Quebec",
+                "East Antarctica",
+                "Taiwan",
+                "Italy",
+                "Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Taiwan",
+                "Quebec",
+                "Italy",
+                "Germany",
+                "East Antarctica"
+              ],
+              "cities": 147,
+              "industries": 101
+            },
+            {
+              "minute": 37,
+              "landLeader": "Quebec",
+              "leaderTiles": 520256,
+              "ownedTiles": 603047,
+              "reserveTroopLeader": "Quebec",
+              "reserveTroops": 90545218,
+              "topFiveByLand": [
+                "Quebec",
+                "Australia",
+                "East Antarctica",
+                "Antarctica",
+                "Germany"
+              ],
+              "topFiveByReserveTroops": [
+                "Quebec",
+                "Australia",
+                "Germany",
+                "T\u00fcrkiye",
+                "Antarctica"
+              ],
+              "cities": 114,
+              "industries": 99
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Taiwan": 1,
+            "Siberia": 1,
+            "Antarctica": 10,
+            "East Antarctica": 4,
+            "Quebec": 17,
+            "Italy": 4
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "Senegal": 1,
+            "China": 1,
+            "East Antarctica": 9,
+            "Pakistan": 1,
+            "Sudan": 1,
+            "Quebec": 12,
+            "Antarctica": 2,
+            "Italy": 6,
+            "Taiwan": 4
+          }
+        },
+        {
+          "seed": "balance-02",
+          "winner": "Mongolia",
+          "winnerDoctrine": "survivor",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 33,
+          "friendlyAttacks": 0,
+          "fingerprint": "dabfbe9589fe48ada39d50998fd2d78977a7ac1b3402b15a4a2d9d28234fa639",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Uruguay",
+              "leaderTiles": 9123,
+              "ownedTiles": 643351,
+              "reserveTroopLeader": "Ethiopia",
+              "reserveTroops": 374469,
+              "topFiveByLand": [
+                "Uruguay",
+                "West Antarctica",
+                "Argentina",
+                "Mexico",
+                "Australia"
+              ],
+              "topFiveByReserveTroops": [
+                "Ethiopia",
+                "Oman",
+                "Colombia",
+                "Libya",
+                "California"
+              ],
+              "cities": 21,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "West Antarctica",
+              "leaderTiles": 49777,
+              "ownedTiles": 650049,
+              "reserveTroopLeader": "Alaska",
+              "reserveTroops": 1683992,
+              "topFiveByLand": [
+                "West Antarctica",
+                "Alaska",
+                "East Antarctica",
+                "Greenland",
+                "Mongolia"
+              ],
+              "topFiveByReserveTroops": [
+                "Alaska",
+                "Greenland",
+                "Namibia",
+                "East Antarctica",
+                "Texas"
+              ],
+              "cities": 118,
+              "industries": 37
+            },
+            {
+              "minute": 15,
+              "landLeader": "Mongolia",
+              "leaderTiles": 173918,
+              "ownedTiles": 630119,
+              "reserveTroopLeader": "Mongolia",
+              "reserveTroops": 6820334,
+              "topFiveByLand": [
+                "Mongolia",
+                "Alaska",
+                "East Antarctica",
+                "West Antarctica",
+                "Namibia"
+              ],
+              "topFiveByReserveTroops": [
+                "Mongolia",
+                "Algeria",
+                "Alaska",
+                "Sri Lanka",
+                "Taiwan"
+              ],
+              "cities": 148,
+              "industries": 135
+            },
+            {
+              "minute": 30,
+              "landLeader": "Mongolia",
+              "leaderTiles": 400187,
+              "ownedTiles": 615817,
+              "reserveTroopLeader": "Mongolia",
+              "reserveTroops": 10381295,
+              "topFiveByLand": [
+                "Mongolia",
+                "Alaska",
+                "East Antarctica",
+                "Libya",
+                "Sweden"
+              ],
+              "topFiveByReserveTroops": [
+                "Mongolia",
+                "East Antarctica",
+                "Alaska",
+                "Libya",
+                "Sweden"
+              ],
+              "cities": 72,
+              "industries": 74
+            },
+            {
+              "minute": 33,
+              "landLeader": "Mongolia",
+              "leaderTiles": 549622,
+              "ownedTiles": 636985,
+              "reserveTroopLeader": "Mongolia",
+              "reserveTroops": 30927413,
+              "topFiveByLand": [
+                "Mongolia",
+                "Alaska",
+                "East Antarctica",
+                "Libya",
+                "Sweden"
+              ],
+              "topFiveByReserveTroops": [
+                "Mongolia",
+                "East Antarctica",
+                "Libya",
+                "Alaska",
+                "Sweden"
+              ],
+              "cities": 79,
+              "industries": 73
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Uruguay": 1,
+            "Mongolia": 26,
+            "Antarctica": 1,
+            "West Antarctica": 3,
+            "Greenland": 2
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "Ethiopia": 1,
+            "Australia": 3,
+            "Greenland": 2,
+            "Alaska": 4,
+            "Mongolia": 19,
+            "West Antarctica": 1,
+            "Algeria": 2,
+            "East Antarctica": 1
+          }
+        },
+        {
+          "seed": "balance-03",
+          "winner": "Peru",
+          "winnerDoctrine": "survivor",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 38,
+          "friendlyAttacks": 0,
+          "fingerprint": "ee8f61bc05a138f13c4d6a16966101cc317327495cb3c5e7208f6f2cc9db0883",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Cuba",
+              "leaderTiles": 8252,
+              "ownedTiles": 642547,
+              "reserveTroopLeader": "Kazakhstan",
+              "reserveTroops": 372777,
+              "topFiveByLand": [
+                "Cuba",
+                "Japan",
+                "Kazakhstan",
+                "Nunavut",
+                "Argentina"
+              ],
+              "topFiveByReserveTroops": [
+                "Kazakhstan",
+                "DR Congo",
+                "United States",
+                "Brazil",
+                "Zambia"
+              ],
+              "cities": 29,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Antarctica",
+              "leaderTiles": 63693,
+              "ownedTiles": 650694,
+              "reserveTroopLeader": "East Antarctica",
+              "reserveTroops": 1671140,
+              "topFiveByLand": [
+                "Antarctica",
+                "Australia",
+                "Kazakhstan",
+                "East Antarctica",
+                "Mongolia"
+              ],
+              "topFiveByReserveTroops": [
+                "East Antarctica",
+                "Antarctica",
+                "Peru",
+                "Australia",
+                "Kenya"
+              ],
+              "cities": 119,
+              "industries": 36
+            },
+            {
+              "minute": 15,
+              "landLeader": "Antarctica",
+              "leaderTiles": 172308,
+              "ownedTiles": 629259,
+              "reserveTroopLeader": "Antarctica",
+              "reserveTroops": 13966196,
+              "topFiveByLand": [
+                "Antarctica",
+                "Thailand",
+                "Kenya",
+                "Peru",
+                "Nunavut"
+              ],
+              "topFiveByReserveTroops": [
+                "Antarctica",
+                "Peru",
+                "Nunavut",
+                "Kenya",
+                "Thailand"
+              ],
+              "cities": 137,
+              "industries": 117
+            },
+            {
+              "minute": 30,
+              "landLeader": "Antarctica",
+              "leaderTiles": 295375,
+              "ownedTiles": 568014,
+              "reserveTroopLeader": "Peru",
+              "reserveTroops": 5631306,
+              "topFiveByLand": ["Antarctica", "Peru", "Thailand", "Siberia"],
+              "topFiveByReserveTroops": [
+                "Peru",
+                "Antarctica",
+                "Thailand",
+                "Siberia"
+              ],
+              "cities": 93,
+              "industries": 53
+            },
+            {
+              "minute": 38,
+              "landLeader": "Peru",
+              "leaderTiles": 570820,
+              "ownedTiles": 632226,
+              "reserveTroopLeader": "Peru",
+              "reserveTroops": 17769093,
+              "topFiveByLand": ["Peru", "Antarctica", "Thailand", "Siberia"],
+              "topFiveByReserveTroops": [
+                "Peru",
+                "Siberia",
+                "Antarctica",
+                "Thailand"
+              ],
+              "cities": 101,
+              "industries": 49
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Cuba": 1,
+            "Kazakhstan": 1,
+            "Antarctica": 20,
+            "Thailand": 9,
+            "Peru": 7
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "Kazakhstan": 1,
+            "Australia": 1,
+            "Greenland": 1,
+            "Antarctica": 12,
+            "East Antarctica": 1,
+            "Thailand": 3,
+            "Kenya": 3,
+            "Nunavut": 2,
+            "Peru": 14
+          }
+        },
+        {
+          "seed": "balance-04",
+          "winner": "Canada",
+          "winnerDoctrine": "strategist",
+          "drainsViewUpdates": false,
+          "ended": true,
+          "minutes": 37,
+          "friendlyAttacks": 0,
+          "fingerprint": "d22e5a5e8e5e4c9a85e1c00572cdf78815265301842133b152a306e89cf40494",
+          "objectiveSourceFingerprint": "3f8d2cdffde8f918ad60a6dad9fba92d38ed39f5a8d662c0175c73b2fd5a2806",
+          "checkpoints": [
+            {
+              "minute": 1,
+              "landLeader": "Mexico",
+              "leaderTiles": 8552,
+              "ownedTiles": 643244,
+              "reserveTroopLeader": "Latvia",
+              "reserveTroops": 386867,
+              "topFiveByLand": [
+                "Mexico",
+                "Australia",
+                "Russia",
+                "Chad",
+                "Ukraine"
+              ],
+              "topFiveByReserveTroops": [
+                "Latvia",
+                "Australia",
+                "Canada",
+                "Finland",
+                "Zambia"
+              ],
+              "cities": 25,
+              "industries": 0
+            },
+            {
+              "minute": 5,
+              "landLeader": "Antarctica",
+              "leaderTiles": 69148,
+              "ownedTiles": 650582,
+              "reserveTroopLeader": "Antarctica",
+              "reserveTroops": 2531316,
+              "topFiveByLand": [
+                "Antarctica",
+                "Siberia",
+                "West Antarctica",
+                "Canada",
+                "Australia"
+              ],
+              "topFiveByReserveTroops": [
+                "Antarctica",
+                "West Antarctica",
+                "East Antarctica",
+                "Ukraine",
+                "Iran"
+              ],
+              "cities": 114,
+              "industries": 33
+            },
+            {
+              "minute": 15,
+              "landLeader": "Antarctica",
+              "leaderTiles": 164339,
+              "ownedTiles": 639947,
+              "reserveTroopLeader": "Antarctica",
+              "reserveTroops": 8498501,
+              "topFiveByLand": [
+                "Antarctica",
+                "Siberia",
+                "Canada",
+                "West Antarctica",
+                "East Antarctica"
+              ],
+              "topFiveByReserveTroops": [
+                "Antarctica",
+                "Siberia",
+                "Canada",
+                "West Antarctica",
+                "East Antarctica"
+              ],
+              "cities": 146,
+              "industries": 126
+            },
+            {
+              "minute": 30,
+              "landLeader": "Antarctica",
+              "leaderTiles": 360011,
+              "ownedTiles": 589678,
+              "reserveTroopLeader": "Canada",
+              "reserveTroops": 8301699,
+              "topFiveByLand": [
+                "Antarctica",
+                "Canada",
+                "Siberia",
+                "Russia",
+                "Madagascar"
+              ],
+              "topFiveByReserveTroops": [
+                "Canada",
+                "Antarctica",
+                "Siberia",
+                "Madagascar",
+                "Australia"
+              ],
+              "cities": 97,
+              "industries": 85
+            },
+            {
+              "minute": 37,
+              "landLeader": "Canada",
+              "leaderTiles": 527814,
+              "ownedTiles": 619378,
+              "reserveTroopLeader": "Canada",
+              "reserveTroops": 16174022,
+              "topFiveByLand": [
+                "Canada",
+                "Antarctica",
+                "Siberia",
+                "Australia",
+                "Madagascar"
+              ],
+              "topFiveByReserveTroops": [
+                "Canada",
+                "Siberia",
+                "Russia",
+                "Madagascar",
+                "Antarctica"
+              ],
+              "cities": 105,
+              "industries": 78
+            }
+          ],
+          "minuteSamplesLeadingLand": {
+            "Mexico": 1,
+            "Antarctica": 30,
+            "Canada": 6
+          },
+          "minuteSamplesLeadingReserveTroops": {
+            "Latvia": 1,
+            "Australia": 1,
+            "Antarctica": 16,
+            "Ukraine": 1,
+            "Siberia": 6,
+            "Canada": 12
+          }
+        }
+      ],
+      "winners": {
+        "Quebec": 1,
+        "Mongolia": 1,
+        "Peru": 1,
+        "Canada": 1
+      }
+    }
+  ],
+  "viewBufferDrainRepeat": {
+    "seed": "balance-05",
+    "sameFingerprint": true,
+    "fingerprint": "ea5629a6633a715cfad3f5588ed1812884237b6adfbb74f36f1d6910a353a341",
+    "winner": "Alaska",
+    "minutes": 26
+  },
+  "concurrentHistoryCompatibility": {
+    "commit": "a9ddff0c9ba779a6942230473c54ee298fd1840d",
+    "seed": "balance-05",
+    "winner": "Alaska",
+    "minutes": 26,
+    "sameFingerprint": true,
+    "fingerprint": "ea5629a6633a715cfad3f5588ed1812884237b6adfbb74f36f1d6910a353a341"
+  }
+}

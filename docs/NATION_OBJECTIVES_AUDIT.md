@@ -42,3 +42,7 @@ Set `OBJECTIVE_AUDIT_DIFFICULTY=Medium` for the difficulty check or `OBJECTIVE_A
 ## Limits
 
 These are AI-only engine simulations, not human or browser playtests. They establish functioning execution, deterministic variation and absence of the checked invalid states in the sampled matches. They do not guarantee that every match feels different, that every personality is equally balanced, or that no other bug exists. Geography and resource layouts were unchanged. Country-level personality counts are confounded by geography and survival; controlled unit scenarios separately test doctrine preference differences. Human playtesting should next assess whether objectives are understandable, naval threats give fair reaction time, and recovery periods feel purposeful rather than passive.
+
+## Follow-up on winner concentration
+
+The [expanded balance audit](NATION_BALANCE_AUDIT.md) follows more seeds to victory, records actual winners and reserve-troop leaders, rotates doctrines in a test-only intervention, and compares 400 tribes with two-minute nation peace. The original audit used zero tribes and the engine-default five-second immunity, unlike the single-player UI defaults. Its headless harness now drains view update buffers like GameRunner; a full repeated match verified unchanged measured events and final state.
