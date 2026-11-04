@@ -123,7 +123,7 @@
   },
   "structure": {
     "iconSize": 60,
-    "dotsZoomThreshold": 1.2,
+    "dotsZoomThreshold": 0.52,
     "dotScale": 0.3,
     "iconScaleFactorZoomedOut": 3,
     "iconGrowZoom": 7,
@@ -234,10 +234,10 @@
   "name": {
     "lerpSpeed": 10,
     "cullThreshold": 0,
-    "nameScaleFactor": 0.48,
+    "nameScaleFactor": 0.57,
     "nameScaleCap": 3,
-    "troopSizeMultiplier": 0.85,
-    "outlineWidth": 1.35,
+    "troopSizeMultiplier": 1.13,
+    "outlineWidth": 1.55,
     "outlineR": 0,
     "outlineG": 0,
     "outlineB": 0,
@@ -248,7 +248,7 @@
     "emojiRowOffset": 1.4,
     "statusRowOffset": 1.4,
     "statusOutlineWidth": 6,
-    "hoverFadeAlpha": 0.5,
+    "hoverFadeAlpha": 0.83,
     "hoverGlowWidth": 5,
     "hoverGlowAlpha": 0.75,
     "flagAlpha": 1

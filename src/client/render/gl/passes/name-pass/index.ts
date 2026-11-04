@@ -781,7 +781,7 @@ export class NamePass {
       // Match the text shader's 11 CSS-px minimum and bounded scaling,
       // so pointer hover/click regions track the visible name and troop line.
       const dpr = typeof window === "undefined" ? 1 : (window.devicePixelRatio || 1);
-      const minimum = (2 * 11 * dpr) / Math.max(1, this.gl.drawingBufferHeight);
+      const minimum = (2 * 15 * dpr) / Math.max(1, this.gl.drawingBufferHeight);
       const minSize = slot.target
         ? Math.max(minimum * 1.25, ns.cullThreshold)
         : minimum;
@@ -818,7 +818,7 @@ export class NamePass {
         right += lineH * 0.51;
         top = Math.min(top, wy - lineH * 0.775);
       }
-      const bottom = wy + lineH * (1.1 + 0.5 * ns.troopSizeMultiplier);
+      const bottom = wy + lineH * (1.24 + 0.5 * ns.troopSizeMultiplier);
 
       if (mx >= left && mx <= right && my >= top && my <= bottom) {
         return slot.static.smallID;

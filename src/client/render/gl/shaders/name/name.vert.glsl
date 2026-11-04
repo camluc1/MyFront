@@ -24,7 +24,7 @@ const int MAX_CHARS_PER_LINE = MAX_CHARS;
 const int LINES = LINES_PER_PLAYER;
 uniform float uLerpSpeed;
 uniform float uCullThreshold;
-// 11 CSS px in normalized device coordinates: names must remain legible.
+// Minimum screen size in NDC, supplied by TextProgram for readable names.
 uniform float uMinScreenSize;
 uniform float uNameScaleFactor;
 uniform float uNameScaleCap;
@@ -158,7 +158,7 @@ void main() {
   // 8. Compute world-space quad position
   float baselineY = -uBase * 0.5; // center vertically
   // Use name-line scale for offset so troops sit below the name, not overlapping
-  float lineOffsetY = (lineIdx == 1) ? uBase * nameWorldScale * 1.1 : 0.0;
+  float lineOffsetY = (lineIdx == 1) ? uBase * nameWorldScale * 1.24 : 0.0;
 
   vec2 glyphOrigin = vec2(
     cursorX + m0.y,  // + xoffset

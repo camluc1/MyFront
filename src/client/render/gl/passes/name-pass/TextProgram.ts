@@ -191,7 +191,12 @@ export class TextProgram {
     gl.uniform1f(this.uLerpSpeed, ns.lerpSpeed);
     gl.uniform1f(this.uCullThreshold, ns.cullThreshold);
     const dpr = typeof window === "undefined" ? 1 : (window.devicePixelRatio || 1);
-    gl.uniform1f(this.uMinScreenSize, (2 * 11 * dpr) / Math.max(1, gl.drawingBufferHeight));
+    // Even at typical zoom, show readable troop counts in neighboring land.
+    const minimumFontPx = 15;
+    gl.uniform1f(
+      this.uMinScreenSize,
+      (2 * minimumFontPx * dpr) / Math.max(1, gl.drawingBufferHeight),
+    );
     gl.uniform1f(this.uNameScaleFactor, ns.nameScaleFactor);
     gl.uniform1f(this.uNameScaleCap, ns.nameScaleCap);
     gl.uniform1f(this.uTroopSizeMultiplier, ns.troopSizeMultiplier);
