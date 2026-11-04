@@ -16,6 +16,16 @@ spatially clustered deposits leaving many tiles empty. Map generation is
 initialized before terrain alterations and yields identical results on all
 clients for a matching map.
 
+Resource footprints are separated across all resource types by their combined
+radii plus a small map-scaled gap. When a proposed site collides, generation
+searches deterministically for nearby land within a bounded regional distance.
+If there is no room, that deposit is omitted; circles are never stacked to
+preserve a target count. Resource markers and building placement are unchanged.
+
+This changes generated deposit coordinates and IDs compared with older builds.
+Use the matching game version for existing saves/replays; migration of old
+resource consumption and extractor locations is not included in this change.
+
 Resources: fertile soil, oil, gas, coal, gold, silver, copper, iron, lithium,
 uranium. Four quality levels. Agriculture renews; other deposits have finite
 production-cycle reserves. Shared consumed reserves persist in game snapshots.

@@ -452,10 +452,45 @@ export function resourceDeposits(map: GameMap, mapType: string): readonly Resour
   const cached = byMap.get(mapType);
   if (cached) return cached;
   const sites: ResourceDeposit[] = [];
+  // Check every resource type: two different deposits must not hide each
+  // other either. Keep a small clear strip between their actual map circles.
+  const gap = Math.max(1, Math.round(Math.min(map.width() / 2000, map.height() / 1000) * 3));
+  const fits = (x: number, y: number, radius: number): boolean => {
+    if (x < 0 || y < 0 || x >= map.width() || y >= map.height()) return false;
+    if (!map.isLand(map.ref(x, y))) return false;
+    return sites.every((site) => {
+      const dx = x - site.x, dy = y - site.y;
+      const separation = radius + site.radius + gap;
+      return dx * dx + dy * dy >= separation * separation;
+    });
+  };
   const add = (resource: NaturalResource, tx: number, ty: number, radius: number, seed: number): void => {
     const x = clampInt(tx, 0, map.width()-1);
     const y = clampInt(ty, 0, map.height()-1);
-    const land = candidateOnLand(map, x, y, radius);
+    let land = candidateOnLand(map, x, y, radius);
+    if (!land || !fits(land[0], land[1], radius)) {
+      land = null;
+      // Bounded integer-only search preserves regional geography and identical
+      // engine/client results. In a crowded island omit a site rather than
+      // stacking it or moving it across the world to unrelated terrain.
+      const reach = mapType === "World"
+        ? Math.max(radius * 3, Math.round(Math.min(map.width() / 2000, map.height() / 1000) * 70))
+        : radius * 3;
+      const step = Math.max(1, Math.floor(radius / 2));
+      const tryPoint = (dx: number, dy: number): boolean => {
+        if (!fits(x + dx, y + dy, radius)) return false;
+        land = [x + dx, y + dy];
+        return true;
+      };
+      for (let r = step; r <= reach && land === null; r += step) {
+        for (let d = -r; d <= r && land === null; d += step) {
+          // Seeded orientation avoids always displacing sites north-west.
+          const sign = seed % 2 === 0 ? 1 : -1;
+          if (tryPoint(d * sign, -r * sign) || tryPoint(r * sign, d * sign) ||
+              tryPoint(-d * sign, r * sign) || tryPoint(-r * sign, -d * sign)) break;
+        }
+      }
+    }
     if (!land) return;
     sites.push({
       id: sites.length,
@@ -510,7 +545,7 @@ export function resourceDeposits(map: GameMap, mapType: string): readonly Resour
   byMap.set(mapType, sites);
   return sites;
 }
-/** The overlay draws in site order; later overlapping circles win, as here. */
+/** Resolve the actual deposit footprint shared by rendering and extraction. */
 export function resourceAt(map: GameMap, mapType: string, tile: number): ResourceDeposit | null {
   if (!map.isValidRef(tile) || !map.isLand(tile)) return null;
   const x=map.x(tile), y=map.y(tile);
@@ -522,3 +557,4 @@ export function resourceAt(map: GameMap, mapType: string, tile: number): Resourc
   }
   return null;
 }
+
