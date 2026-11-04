@@ -20,7 +20,8 @@ Resource footprints are separated across all resource types by their combined
 radii plus a small map-scaled gap. When a proposed site collides, generation
 searches deterministically for nearby land within a bounded regional distance.
 If there is no room, that deposit is omitted; circles are never stacked to
-preserve a target count. Resource markers and building placement are unchanged.
+preserve a target count. Building placement is unchanged. Resource markers are anchored to the center
+of their own deposit, with no grid displacement or connector lines.
 
 This changes generated deposit coordinates and IDs compared with older builds.
 Use the matching game version for existing saves/replays; migration of old

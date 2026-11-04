@@ -26,8 +26,8 @@ export interface ResourceMarker {
   radius: number;
 }
 
-/** Visual layout only: deposits, extraction ranges and saved games stay unchanged.
- * Search outward on a lattice so even a dense cluster retains every marker.
+/** Markers identify actual extraction sites. Deposit generation handles spacing;
+ * moving a label to an empty grid cell can put it on water or another resource.
  */
 export function layoutResourceMarkers(
   deposits: readonly ResourceDeposit[],
@@ -35,51 +35,28 @@ export function layoutResourceMarkers(
   height: number,
 ): ResourceMarker[] {
   if (!deposits.length || width <= 0 || height <= 0) return [];
-  const radius = Math.min(
+  const baseRadius = Math.min(
     Math.max(3, Math.min(7, width / 320)),
     Math.min(width, height) / 4,
     Math.sqrt((width * height) / (deposits.length * 9)) / 2,
   );
-  const step = radius * 2 + Math.min(2, radius / 2);
-  const cols = Math.max(1, Math.floor((width - radius * 2) / step) + 1);
-  const rows = Math.max(1, Math.floor((height - radius * 2) / step) + 1);
-  const occupied = new Set<number>();
-  const result: ResourceMarker[] = [];
-  for (const deposit of deposits) {
-    const cx = Math.max(
-      0,
-      Math.min(cols - 1, Math.round((deposit.x - radius) / step)),
-    );
-    const cy = Math.max(
-      0,
-      Math.min(rows - 1, Math.round((deposit.y - radius) / step)),
-    );
-    let found = false;
-    const tryCell = (x: number, y: number): boolean => {
-      if (x < 0 || y < 0 || x >= cols || y >= rows) return false;
-      const key = y * cols + x;
-      if (occupied.has(key)) return false;
-      occupied.add(key);
-      result.push({
-        deposit,
-        x: radius + x * step,
-        y: radius + y * step,
-        radius,
-      });
-      return true;
+  return deposits.map((deposit) => {
+    // Tile centers match the footprints drawn by MapLayerController. Keep the
+    // marker inside its own footprint and canvas, including at map edges.
+    const x = deposit.x + 0.5;
+    const y = deposit.y + 0.5;
+    return {
+      deposit,
+      x,
+      y,
+      radius: Math.min(
+        baseRadius,
+        deposit.radius / 2,
+        x,
+        y,
+        width - x,
+        height - y,
+      ),
     };
-    for (let ring = 0; ring < Math.max(cols, rows) && !found; ring++) {
-      // Stable clockwise order keeps the layer identical after reload.
-      for (let dx = -ring; dx <= ring && !found; dx++)
-        found = tryCell(cx + dx, cy - ring);
-      for (let dy = -ring + 1; dy <= ring && !found; dy++)
-        found = tryCell(cx + ring, cy + dy);
-      for (let dx = ring - 1; dx >= -ring && !found; dx--)
-        found = tryCell(cx + dx, cy + ring);
-      for (let dy = ring - 1; dy > -ring && !found; dy--)
-        found = tryCell(cx - ring, cy + dy);
-    }
-    if (!found) throw new Error("Resource marker layout exhausted its grid");
-  }
-  return result;
+  });
 }

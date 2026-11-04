@@ -36,7 +36,7 @@ async function buildResourceLayer(
   if (!ctx) throw new Error("Resources overlay requires a 2D canvas");
   const deposits = resourceDeposits(map, type);
   const markers = layoutResourceMarkers(deposits, canvas.width, canvas.height);
-  // True extraction footprints remain at their original coordinates.
+  // Extraction footprints and marker centers use the same map coordinates.
   for (const deposit of deposits) {
     const { color } = RESOURCE_STYLE[deposit.resource];
     ctx.strokeStyle = color;
@@ -47,16 +47,6 @@ async function buildResourceLayer(
     ctx.fill();
     ctx.globalAlpha = 0.45;
     ctx.lineWidth = 0.8;
-    ctx.stroke();
-  }
-  // Draw connectors first so they never cover the identifiers.
-  for (const marker of markers) {
-    ctx.strokeStyle = RESOURCE_STYLE[marker.deposit.resource].color;
-    ctx.globalAlpha = 0.7;
-    ctx.lineWidth = 0.7;
-    ctx.beginPath();
-    ctx.moveTo(marker.deposit.x, marker.deposit.y);
-    ctx.lineTo(marker.x, marker.y);
     ctx.stroke();
   }
   for (const marker of markers) {
