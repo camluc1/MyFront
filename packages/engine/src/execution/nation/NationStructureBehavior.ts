@@ -445,7 +445,24 @@ export class NationStructureBehavior {
     const ourTroops = this.player.troops();
     if (ourTroops <= 0) return false;
     const incomingTroops = attacks.reduce((sum, a) => sum + a.troops(), 0);
-    return incomingTroops / ourTroops >= UNDER_ATTACK_THREAT_RATIO;
+    const ratio = incomingTroops / ourTroops;
+    if (ratio < UNDER_ATTACK_THREAT_RATIO) return false;
+
+    // In harder single-player games an already defended front must not freeze
+    // all economic investment for as long as the incoming attack exists.
+    // Keep the original emergency-saving policy on Normal and in multiplayer.
+    if (
+      this.game.config().gameConfig().gameType === GameType.Singleplayer &&
+      (difficulty === Difficulty.Hard || difficulty === Difficulty.Impossible)
+    ) {
+      const range = this.game.config().defensePostRange();
+      const scaledRatio = Math.min(ratio, DEFENSE_POST_FRONT_RATIO_CAP);
+      const maxDist = range * (DEFENSE_POST_FRONT_MIN_DIST +
+        DEFENSE_POST_FRONT_DIST_PER_RATIO * scaledRatio + DEFENSE_POST_FRONT_BAND);
+      const allowed = Math.ceil(ratio / DEFENSE_POST_RATIO_PER_POST);
+      return this.countDefensePostsNearFront(this.getAttackFrontTiles(attacks), maxDist, allowed) < allowed;
+    }
+    return true;
   }
 
   /**

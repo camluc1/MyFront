@@ -1,6 +1,7 @@
 import {
   Difficulty,
   GameMode,
+  GameType,
   PlayerInfo,
   PlayerType,
   UnitType,
@@ -18,6 +19,7 @@ function setupCoast(
   config: {
     difficulty: Difficulty;
     gameMode?: GameMode;
+    gameType?: GameType;
     disabledUnits?: UnitType[];
   },
   { spawnAreas = false, landlocked = false, size = 100 } = {},
@@ -345,8 +347,11 @@ describe("Nation structure upgrades", () => {
 
   // Two cities and a port leave nothing else due, and are dense enough to upgrade a city.
   // The nation saves up 30M for a MIRV and a hydrogen bomb.
-  function withCities(difficulty: Difficulty) {
-    const setup = setupCoast({ difficulty, gameMode: ffa });
+  function withCities(
+    difficulty: Difficulty,
+    gameType = GameType.Singleplayer,
+  ) {
+    const setup = setupCoast({ difficulty, gameMode: ffa, gameType });
     const { game, nation, cities } = setup;
     cities(2);
     nation.buildUnit(UnitType.Port, game.ref(24, 50), {});
@@ -362,15 +367,17 @@ describe("Nation structure upgrades", () => {
 
   it.each([
     [Difficulty.Easy, 3],
-    [Difficulty.Medium, 10],
+    [Difficulty.Medium, 3],
+    [Difficulty.Hard, 5],
+    [Difficulty.Impossible, 10],
   ])("%s buys at most %i city levels at once", (difficulty, levels) => {
     expect(withCities(difficulty).cityLevels).toBe(2 + levels);
   });
 
   it.each([Difficulty.Hard, Difficulty.Impossible])(
-    "%s spends everything beyond its savings on city levels at once",
+    "%s multiplayer preserves the original bulk-upgrade policy",
     (difficulty) => {
-      const { nation, cityLevels } = withCities(difficulty);
+      const { nation, cityLevels } = withCities(difficulty, GameType.Public);
       expect(cityLevels).toBeGreaterThan(900);
       expect(nation.gold()).toBeGreaterThanOrEqual(30_000_000n);
       expect(nation.gold()).toBeLessThan(31_000_000n);
