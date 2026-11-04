@@ -1,3 +1,4 @@
+import { ResourceEconomyPreviewEvent } from "./ResourceEconomyPreview";
 /**
  * BuildPreviewController — build-ghost state machine + click-to-build flow.
  *
@@ -22,7 +23,6 @@ import {
 } from "@openfront/engine-lib/execution/NukeAlliance";
 import { EventBus } from "@openfront/shared/EventBus";
 import { Controller } from "../Controller";
-import { ToggleResourcesEvent } from "./MapLayerController";
 import {
   ConfirmGhostStructureEvent,
   MouseMoveEvent,
@@ -47,6 +47,7 @@ import {
 import { UIState } from "../UIState";
 import { UserSettings } from "../UserSettings";
 import { GameView } from "../view";
+import { ToggleResourcesEvent } from "./MapLayerController";
 
 /** True for nuke types (AtomBomb, HydrogenBomb): ghost is preserved after placement so user can place multiple or keep selection (Enter/key confirm). */
 export function shouldPreserveGhostAfterBuild(unitType: UnitType): boolean {
@@ -252,6 +253,15 @@ function isTrajectoryEqual(
 }
 
 export class BuildPreviewController implements Controller {
+  private lastResourceEconomy: BuildableUnit["resourceEconomy"] | null = null;
+  private updateResourceEconomy(
+    info: BuildableUnit["resourceEconomy"] | null,
+  ): void {
+    if (info === this.lastResourceEconomy) return;
+    this.lastResourceEconomy = info;
+    this.eventBus.emit(new ResourceEconomyPreviewEvent(info ?? null));
+  }
+
   /** Current ghost (null when no build type is active). */
   private ghostUnit: { buildableUnit: BuildableUnit } | null = null;
   private readonly connectedAllySmallIds: Set<number> = new Set();
@@ -577,6 +587,7 @@ export class BuildPreviewController implements Controller {
     }
 
     this.ghostUnit.buildableUnit = unit;
+    this.updateResourceEconomy(unit.resourceEconomy ?? null);
 
     this.emitGhostPreview(tileRef, targetingAlly, trajectoryTileRef);
   }
@@ -703,6 +714,7 @@ export class BuildPreviewController implements Controller {
   ): void {
     const data = this.buildGhostPreviewData(tileRef, targetingAlly);
     if (data === null) {
+      this.updateResourceEconomy(null);
       this.lastGhostData = null;
       this.prevGhostDataRef = null;
       this.renderedGhostBuffer = null;
@@ -1325,13 +1337,17 @@ export class BuildPreviewController implements Controller {
   }
 
   private createGhostStructure(type: PlayerBuildableUnitType | null) {
+    this.updateResourceEconomy(null);
     if (type === null) return;
     if (this.game.myPlayer() === null) return;
     this.ghostResolved = false;
     this.resolvedGhostTile = undefined;
     this.resetCursorCaches();
-    const resourceBuilding = type === UnitType.Farm || type === UnitType.Mine ||
-      type === UnitType.OilWell || type === UnitType.GasPlant;
+    const resourceBuilding =
+      type === UnitType.Farm ||
+      type === UnitType.Mine ||
+      type === UnitType.OilWell ||
+      type === UnitType.GasPlant;
     this.eventBus.emit(new ToggleResourcesEvent(resourceBuilding, true));
     this.ghostUnit = {
       buildableUnit: {
@@ -1346,6 +1362,7 @@ export class BuildPreviewController implements Controller {
   }
 
   private clearGhostStructure(): void {
+    this.updateResourceEconomy(null);
     this.eventBus.emit(new ToggleResourcesEvent(false, true));
     this.querySeq++;
     this.ghostGeneration++;

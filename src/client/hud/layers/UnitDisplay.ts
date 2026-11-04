@@ -1,3 +1,4 @@
+import type { ResourceEconomyInfo } from "@openfront/engine-api/game/GameTypes";
 import {
   BuildableUnit,
   BuildMenus,
@@ -6,12 +7,13 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { renderNumber } from "@openfront/engine-lib/Format";
-import { EventBus } from "@openfront/shared/EventBus";
 import { assetUrl } from "@openfront/shared/AssetUrls";
+import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { Controller } from "../../Controller";
 import { ToggleResourcesEvent } from "../../controllers/MapLayerController";
+import { ResourceEconomyPreviewEvent } from "../../controllers/ResourceEconomyPreview";
 import {
   InputHandler,
   ToggleStructureEvent,
@@ -39,6 +41,7 @@ import {
   warshipIcon,
 } from "../HotbarIcons";
 import { TutorialHighlight, TutorialHighlightEvent } from "../Tutorial";
+import { renderResourceEconomy } from "./ResourceEconomyDetails";
 
 /** How long a build button has to be held before it shows its details (cost etc.) */
 const farmIcon = assetUrl("images/FarmIconWhite.svg");
@@ -58,6 +61,7 @@ export class UnitDisplay extends LitElement implements Controller {
   private playerBuildables: BuildableUnit[] | null = null;
   // Visible outside the horizontally scrolling quick-build item list.
   @state() private resourcesVisible = false;
+  @state() private resourceEconomy: ResourceEconomyInfo | null = null;
 
   private toggleResources(): void {
     this.resourcesVisible = !this.resourcesVisible;
@@ -121,6 +125,9 @@ export class UnitDisplay extends LitElement implements Controller {
   }
 
   init() {
+    this.eventBus.on(ResourceEconomyPreviewEvent, (event) => {
+      this.resourceEconomy = event.info;
+    });
     const config = this.game.config();
     const userSettings = new UserSettings();
 
@@ -513,6 +520,7 @@ export class UnitDisplay extends LitElement implements Controller {
         data-radial-click-through
         @contextmenu=${(event: Event) => event.preventDefault()}
       >
+        ${this.resourceEconomy ? html`<div class="absolute bottom-full left-0 mb-2 w-72 max-w-[90vw] pointer-events-none">${renderResourceEconomy(this.resourceEconomy)}</div>` : null}
         <div class="flex justify-end px-1 pb-1">
           <button
             type="button"
@@ -665,8 +673,11 @@ export class UnitDisplay extends LitElement implements Controller {
       return html``;
     }
     const selected = this.uiState.ghostStructure === unitType;
-    const naturalResource = unitType === UnitType.Farm || unitType === UnitType.Mine ||
-      unitType === UnitType.OilWell || unitType === UnitType.GasPlant;
+    const naturalResource =
+      unitType === UnitType.Farm ||
+      unitType === UnitType.Mine ||
+      unitType === UnitType.OilWell ||
+      unitType === UnitType.GasPlant;
     const displayHotkey = hotkey
       .replace("Digit", "")
       .replace("Key", "")
@@ -693,11 +704,10 @@ export class UnitDisplay extends LitElement implements Controller {
           this.startPeek(event, unitType, structureKey, hotkey)}
       >
         <div
-          class="${
-            this.canBuild(unitType) ? "" : "opacity-40"
-          } border ${naturalResource
-            ? "border-emerald-400/60 rounded-xl bg-slate-800/50"
-            : "border-slate-500 rounded-sm"
+          class="${this.canBuild(unitType) ? "" : "opacity-40"} border ${
+            naturalResource
+              ? "border-emerald-400/60 rounded-xl bg-slate-800/50"
+              : "border-slate-500 rounded-sm"
           } min-h-11 w-full px-1 pb-0.5 flex items-center justify-center gap-0.5 cursor-pointer lg:min-h-0 lg:px-0.5 lg:justify-start landscape:px-0.5
              ${
             selected

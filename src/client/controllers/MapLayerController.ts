@@ -1,3 +1,5 @@
+import type { TransformHandler } from "../TransformHandler";
+import { ResourceScreenLabels } from "./ResourceScreenLabels";
 /**
  * MapLayerController — loads map-layer images (off the critical path) and
  * applies initial visibility from user settings.
@@ -28,6 +30,7 @@ export class ToggleResourcesEvent {
 async function buildResourceLayer(
   map: TerrainMapData["gameMap"],
   type: GameMapType,
+  screenLabels = false,
 ): Promise<ImageBitmap> {
   const canvas = document.createElement("canvas");
   canvas.width = map.width();
@@ -49,7 +52,7 @@ async function buildResourceLayer(
     ctx.lineWidth = 0.8;
     ctx.stroke();
   }
-  for (const marker of markers) {
+  for (const marker of screenLabels ? [] : markers) {
     const { color, symbol } = RESOURCE_STYLE[marker.deposit.resource];
     ctx.globalAlpha = 1;
     ctx.fillStyle = "#101b2b";
@@ -71,6 +74,7 @@ async function buildResourceLayer(
 export class MapLayerController implements Controller {
   private resourcesEnabled = false;
   private temporaryResourcesEnabled = false;
+  private screenLabels?: ResourceScreenLabels;
   constructor(
     private readonly view: MapRenderer,
     private readonly gameMap: TerrainMapData,
@@ -80,15 +84,29 @@ export class MapLayerController implements Controller {
     private readonly mapLoader: GameMapLoader,
     private readonly abortSignal: AbortSignal,
     private readonly eventBus: EventBus,
+    private transform?: TransformHandler,
   ) {}
 
+  setTransform(transform: TransformHandler): void {
+    this.transform = transform;
+  }
+
   init() {
+    if (this.transform)
+      this.screenLabels = new ResourceScreenLabels(
+        resourceDeposits(this.gameMap.gameMap, this.gameMapType),
+        this.transform,
+        this.abortSignal,
+      );
     this.eventBus.on(ToggleResourcesEvent, (event) => {
       if (event.temporary) {
         this.temporaryResourcesEnabled = event.enabled;
       } else {
         this.resourcesEnabled = event.enabled;
       }
+      if (this.screenLabels)
+        this.screenLabels.visible =
+          this.resourcesEnabled || this.temporaryResourcesEnabled;
       this.view.setLayerVisible(
         RESOURCE_LAYER_ID,
         this.resourcesEnabled || this.temporaryResourcesEnabled,
@@ -106,7 +124,11 @@ export class MapLayerController implements Controller {
         this.mapLoader,
         normalLayers,
       ),
-      buildResourceLayer(this.gameMap.gameMap, this.gameMapType),
+      buildResourceLayer(
+        this.gameMap.gameMap,
+        this.gameMapType,
+        !!this.transform,
+      ),
     ])
       .then(([images, resources]) => {
         if (this.abortSignal.aborted) return;

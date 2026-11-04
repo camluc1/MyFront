@@ -26,6 +26,10 @@ import {
 } from "../../Transport";
 import { UIState } from "../../UIState";
 import { GameView } from "../../view";
+import {
+  renderResourceEconomy,
+  resourceEconomyReason,
+} from "./ResourceEconomyDetails";
 const warshipIcon = assetUrl("images/BattleshipIconWhite.svg");
 const cityIcon = assetUrl("images/CityIconWhite.svg");
 const factoryIcon = assetUrl("images/FactoryIconWhite.svg");
@@ -124,14 +128,34 @@ const buildTable: BuildItemDisplay[][] = [
     },
   ],
   [
-    { unitType: UnitType.Farm, icon: farmIcon, description: "build_menu.desc.farm",
-      key: "unit_type.farm", countable: true },
-    { unitType: UnitType.Mine, icon: mineIcon, description: "build_menu.desc.mine",
-      key: "unit_type.mine", countable: true },
-    { unitType: UnitType.OilWell, icon: oilIcon, description: "build_menu.desc.oil_well",
-      key: "unit_type.oil_well", countable: true },
-    { unitType: UnitType.GasPlant, icon: gasIcon, description: "build_menu.desc.gas_plant",
-      key: "unit_type.gas_plant", countable: true },
+    {
+      unitType: UnitType.Farm,
+      icon: farmIcon,
+      description: "build_menu.desc.farm",
+      key: "unit_type.farm",
+      countable: true,
+    },
+    {
+      unitType: UnitType.Mine,
+      icon: mineIcon,
+      description: "build_menu.desc.mine",
+      key: "unit_type.mine",
+      countable: true,
+    },
+    {
+      unitType: UnitType.OilWell,
+      icon: oilIcon,
+      description: "build_menu.desc.oil_well",
+      key: "unit_type.oil_well",
+      countable: true,
+    },
+    {
+      unitType: UnitType.GasPlant,
+      icon: gasIcon,
+      description: "build_menu.desc.gas_plant",
+      key: "unit_type.gas_plant",
+      countable: true,
+    },
   ],
 ];
 
@@ -443,7 +467,9 @@ export class BuildMenu extends LitElement implements Controller {
                     ?disabled=${!enabled}
                     title=${
                       !enabled
-                        ? translateText("build_menu.not_enough_money")
+                        ? resourceEconomyReason(
+                            buildableUnit.resourceEconomy,
+                          ) || translateText("build_menu.not_enough_money")
                         : ""
                     }
                   >
@@ -461,6 +487,7 @@ export class BuildMenu extends LitElement implements Controller {
                         item.description && translateText(item.description)
                       }</span
                     >
+                    ${renderResourceEconomy(buildableUnit.resourceEconomy)}
                     <span class="build-cost" translate="no">
                       ${renderNumber(
                         this.game && this.game.myPlayer() ? this.cost(item) : 0,

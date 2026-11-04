@@ -2941,5 +2941,51 @@
     "you_won": "You Won!",
     "your_team": "Your team won!",
     "youtube_tutorial": "Need some help?"
+  },
+  "resource_economy": {
+    "quality": "Quality",
+    "production": "Estimated production",
+    "cycle": "gold / 10 s",
+    "next": "Next level (+1)",
+    "reserves": "Remaining reserves",
+    "cycles": "production cycles",
+    "renewable": "Renewable · does not deplete",
+    "exhausted": "Deposit exhausted",
+    "capacity": "RESOURCE PRODUCTION CAPACITY / MIN (ESTIMATE)",
+    "farm": "Farms",
+    "mine": "Mines",
+    "oil": "Oil wells",
+    "gas": "Gas plants",
+    "unavailable": "Economic data unavailable",
+    "resource": {
+      "fertile_soil": "Fertile soil",
+      "oil": "Oil",
+      "gas": "Gas",
+      "coal": "Coal",
+      "gold": "Gold",
+      "silver": "Silver",
+      "copper": "Copper",
+      "iron": "Iron",
+      "lithium": "Lithium",
+      "uranium": "Uranium"
+    },
+    "railway": {
+      "active": "Rail bonus active: +40%",
+      "inactive": "Rail bonus inactive: connect to an owned factory",
+      "pending": "Rail bonus not included: connection must be completed"
+    },
+    "reason": {
+      "disabled": "This building is disabled in this match",
+      "spawn": "Construction unlocks after spawning",
+      "no_resource": "No resource deposit at this location",
+      "wrong_resource": "This building needs a different resource",
+      "not_owned": "You must own this land",
+      "exhausted": "This deposit has no reserves left",
+      "under_construction": "Wait for construction to finish",
+      "deleting": "This building is marked for deletion",
+      "occupied": "This deposit already has an extractor; upgrade it",
+      "money": "Not enough gold",
+      "spacing": "No valid location: keep 15 tiles from other buildings"
+    }
   }
 }

@@ -64,3 +64,32 @@ The source has been changed directly on `frontier/development` with
 compile, unit-test run, multiplayer match, save/load replay, balance simulation
 or GPU rendering verification was performed in this environment.
 Treat these changes as an unverified integration until those checks pass.
+
+## Economic decision information
+
+The engine's buildable-unit query now returns optional resource economics for
+resource buildings: deposit and quality, current/next-level gold per 10-second
+cycle, marginal single-level upgrade gain, renewable status or remaining
+production cycles, and the actual connected-factory railway bonus. The query
+also explains disabled buildings, spawn phase, unsuitable deposits, ownership,
+depletion, occupied sites, construction/deletion, affordability and spacing.
+These are read-only queries; they never consume reserves or grant income.
+
+The production calculation and connected-factory check are shared with the
+existing execution. Costs, resource consumption and payout timing are unchanged.
+New mines exclude the railway bonus until their connection is actually built.
+The preview, build menu and radial tooltips expose these facts; upgrade figures
+are explicitly for one next level even when a bulk upgrade button is selected.
+
+The single-player intelligence Economy tab queries current resource production
+capacity for the selected nation, split into farms, mines, oil wells and gas
+plants. Values are labelled estimates per minute, not historical money earned.
+The aggregate earned-income history remains the separate existing metric.
+
+In live games, the terrain image retains the resource footprints while labels
+are projected into screen space at a fixed 11 CSS pixels. Labels that collide
+at distant zooms are culled, never displaced to another deposit or water.
+The replay viewer without a camera transform retains its raster label fallback.
+
+Economic details use translation keys in en.json. Visual in-game playtesting
+is still required in addition to the targeted automated checks.

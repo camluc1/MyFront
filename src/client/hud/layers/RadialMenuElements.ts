@@ -25,6 +25,10 @@ import { EmojiTable } from "./EmojiTable";
 import { PlayerActionHandler } from "./PlayerActionHandler";
 import { PlayerPanel } from "./PlayerPanel";
 import { TooltipItem } from "./RadialMenu";
+import {
+  resourceEconomyLines,
+  resourceEconomyReason,
+} from "./ResourceEconomyDetails";
 
 import { EventBus } from "@openfront/shared/EventBus";
 import {
@@ -455,6 +459,14 @@ function createMenuElements(
             text: `${renderNumber(params.buildMenu.cost(item))} ${translateText("player_panel.gold")}`,
             className: "cost",
           },
+          ...(() => {
+            const info = params.playerActions.buildableUnits.find(
+              (b) => b.type === item.unitType,
+            )?.resourceEconomy;
+            return [...resourceEconomyLines(info), resourceEconomyReason(info)]
+              .filter(Boolean)
+              .map((text) => ({ text, className: "description" }));
+          })(),
           item.countable
             ? { text: `${params.buildMenu.count(item)}x`, className: "count" }
             : null,
@@ -529,6 +541,12 @@ function createMenuElements(
                   text: `${renderNumber(cost)} ${translateText("player_panel.gold")}`,
                   className: "cost",
                 },
+                ...[
+                  ...resourceEconomyLines(buildableUnit.resourceEconomy),
+                  resourceEconomyReason(buildableUnit.resourceEconomy),
+                ]
+                  .filter(Boolean)
+                  .map((text) => ({ text, className: "description" })),
               ],
               disabled: (p: MenuElementParams) =>
                 !executable || (p.game.myPlayer()?.gold() ?? 0n) < cost,

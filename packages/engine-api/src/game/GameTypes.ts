@@ -358,7 +358,35 @@ export interface PlayerActions {
   interaction?: PlayerInteraction;
 }
 
+export interface ResourceEconomyInfo {
+  resource?: string;
+  quality?: number;
+  level: number;
+  remainingCycles: number | null;
+  renewable: boolean;
+  productionPerCycle: number;
+  currentPerCycle: number;
+  nextPerCycle: number;
+  upgradeGainPerCycle: number;
+  railway: "active" | "inactive" | "pending" | "not_applicable";
+  reason?:
+    | "disabled"
+    | "spawn"
+    | "no_resource"
+    | "wrong_resource"
+    | "not_owned"
+    | "exhausted"
+    | "under_construction"
+    | "deleting"
+    | "occupied"
+    | "money"
+    | "spacing";
+}
+
 export interface BuildableUnit {
+  resourceEconomy?: ResourceEconomyInfo;
+  /** Current production capacity in gold/min, not cumulative earned income. */
+  resourceIncomePerMinute?: number;
   canBuild: TileRef | false;
   // unit id of the existing unit that can be upgraded, or false if it cannot be upgraded.
   canUpgrade: number | false;

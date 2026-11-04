@@ -1,5 +1,4 @@
 import { TileRef } from "@openfront/engine-api/game/GameMap";
-import { resourceAt } from "@openfront/engine-lib/game/NaturalResources";
 import {
   AllianceInfo,
   AllPlayers,
@@ -35,6 +34,7 @@ import {
 import { ReadonlyTileSet } from "@openfront/engine-api/game/ReadViews";
 import { ClientID } from "@openfront/engine-api/Schemas";
 import { andFN, manhattanDistFN } from "@openfront/engine-lib/game/GameMapImpl";
+import { resourceAt } from "@openfront/engine-lib/game/NaturalResources";
 import { TileSet } from "@openfront/engine-lib/game/TileSet";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import {
@@ -80,6 +80,11 @@ import {
 } from "./Game";
 import { GameImpl } from "./GameImpl";
 import { diffPlayerUpdate, packAttackTroopDeltas } from "./GameUpdateUtils";
+import {
+  RESOURCE_BUILDINGS,
+  resourceEconomyInfo,
+  resourceUnitIncome,
+} from "./ResourceEconomy";
 import {
   bumpTraversalGeneration,
   tileTraversalScratch,
@@ -1564,7 +1569,32 @@ export class PlayerImpl implements Player {
         }
       }
 
+      const resourceBuilding = RESOURCE_BUILDINGS.includes(u);
       result[i] = {
+        ...(resourceBuilding
+          ? {
+              resourceEconomy:
+                tile !== null
+                  ? resourceEconomyInfo(
+                      mg,
+                      this,
+                      u,
+                      tile,
+                      canBuild,
+                      canUpgrade,
+                      cost,
+                      includeBuildPreview,
+                    )
+                  : undefined,
+              resourceIncomePerMinute:
+                tile === null
+                  ? this.units(u).reduce(
+                      (sum, unit) => sum + resourceUnitIncome(mg, unit) * 6,
+                      0,
+                    )
+                  : undefined,
+            }
+          : {}),
         type: u,
         canBuild,
         canUpgrade,
@@ -1630,20 +1660,41 @@ export class PlayerImpl implements Player {
         const placement = this.landBasedStructureSpawn(targetTile, validTiles);
         if (placement === false) return false;
         const map = this.mg.map();
-        const site = resourceAt(map, this.mg.config().gameConfig().gameMap, placement);
+        const site = resourceAt(
+          map,
+          this.mg.config().gameConfig().gameMap,
+          placement,
+        );
         if (site === null) return false;
-        if (unitType === UnitType.Farm && site.resource !== "fertile_soil") return false;
-        if (unitType === UnitType.OilWell && site.resource !== "oil") return false;
-        if (unitType === UnitType.GasPlant && site.resource !== "gas") return false;
-        if (unitType === UnitType.Mine &&
-          (site.resource === "fertile_soil" || site.resource === "oil" || site.resource === "gas")) return false;
-        if (this.mg.resourceRemaining(site.id, site.capacity) <= 0) return false;
+        if (unitType === UnitType.Farm && site.resource !== "fertile_soil")
+          return false;
+        if (unitType === UnitType.OilWell && site.resource !== "oil")
+          return false;
+        if (unitType === UnitType.GasPlant && site.resource !== "gas")
+          return false;
+        if (
+          unitType === UnitType.Mine &&
+          (site.resource === "fertile_soil" ||
+            site.resource === "oil" ||
+            site.resource === "gas")
+        )
+          return false;
+        if (this.mg.resourceRemaining(site.id, site.capacity) <= 0)
+          return false;
         // One structure per deposit: the player upgrades rather than spams.
-        const nearby = this.mg.nearbyUnits(placement, site.radius * 3,
+        const nearby = this.mg.nearbyUnits(
+          placement,
+          site.radius * 3,
           [UnitType.Farm, UnitType.Mine, UnitType.OilWell, UnitType.GasPlant],
-          undefined, true);
+          undefined,
+          true,
+        );
         for (const { unit } of nearby) {
-          const occupied = resourceAt(map, this.mg.config().gameConfig().gameMap, unit.tile());
+          const occupied = resourceAt(
+            map,
+            this.mg.config().gameConfig().gameMap,
+            unit.tile(),
+          );
           if (occupied?.id === site.id && unit.isActive()) return false;
         }
         return placement;

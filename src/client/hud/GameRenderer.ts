@@ -351,6 +351,8 @@ export function createRenderer(
   onboardingOverlay.transformHandler = transformHandler;
   onboardingOverlay.uiState = uiState;
 
+  mapLayerController?.setTransform(transformHandler);
+
   const frontierHud =
     game.config().gameConfig().gameType === GameType.Singleplayer;
 
