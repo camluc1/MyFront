@@ -491,31 +491,7 @@ export class SinglePlayerModal extends BaseModal {
 
   protected renderBody() {
     const inputCards = [
-      ...(this.nations > 0
-        ? [
-            html`<div class="col-span-2 rounded-xl p-4 border border-cyan-400/20 bg-cyan-400/[0.04] flex flex-col justify-center gap-2">
-              <label for="nation-peace-time" class="text-xs font-bold uppercase tracking-[0.16em] text-cyan-100">
-                Tiempo de paz entre naciones
-              </label>
-              <div class="flex items-center gap-3">
-                <select
-                  id="nation-peace-time"
-                  class="min-w-0 flex-1 rounded-lg border border-white/15 bg-slate-900 px-3 py-2 text-sm text-white"
-                  .value=${String(this.nationPeaceTimeMinutes)}
-                  @change=${this.handleNationPeaceTimeChange}
-                >
-                  ${[1, 2, 3, 4, 5].map(
-                    (minutes) => html`<option value=${minutes}>${minutes} minuto${minutes === 1 ? "" : "s"}</option>`,
-                  )}
-                </select>
-                <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Solo naciones</span>
-              </div>
-              <p class="text-[11px] leading-relaxed text-slate-400">
-                Las naciones no podrán iniciar guerras entre sí ni contra vos durante este período. Las tribus y bots siguen actuando normalmente.
-              </p>
-            </div>`,
-          ]
-        : []),
+
       html`<toggle-input-card
         .labelKey=${"game_settings.max_timer"}
         .checked=${this.maxTimer}
@@ -602,6 +578,37 @@ export class SinglePlayerModal extends BaseModal {
           class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 pt-4 pb-6 mr-1 mx-auto w-full max-w-5xl"
         >
           ${this.renderFrontierBriefing()}
+          <section
+            aria-label="Configuración del tiempo de paz entre naciones"
+            class="mb-6 rounded-2xl border border-cyan-400/25 bg-gradient-to-r from-cyan-950/55 to-slate-950/70 p-4 sm:p-5"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="text-xs font-black uppercase tracking-[0.16em] text-cyan-200">
+                  Diplomacia inicial
+                </p>
+                <h3 class="mt-1 text-base font-bold text-white">
+                  Tiempo de paz entre naciones
+                </h3>
+                <p class="mt-1 max-w-2xl text-xs leading-relaxed text-slate-300/75">
+                  Durante este período, las naciones no podrán iniciar guerras entre sí ni contra vos. Las tribus continúan actuando normalmente.
+                </p>
+              </div>
+              <div class="flex min-w-[180px] items-center gap-3">
+                <select
+                  id="nation-peace-time"
+                  aria-label="Duración del tiempo de paz entre naciones"
+                  class="min-w-0 flex-1 rounded-lg border border-cyan-300/25 bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white"
+                  .value=${String(this.nationPeaceTimeMinutes)}
+                  @change=${this.handleNationPeaceTimeChange}
+                >
+                  ${[1, 2, 3, 4, 5].map(
+                    (minutes) => html`<option value=${minutes}>${minutes} minuto${minutes === 1 ? "" : "s"}</option>`,
+                  )}
+                </select>
+              </div>
+            </div>
+          </section>
           <saved-games-panel
             class="block mb-6"
             .signedIn=${responseHasLinkedIdentity(this.userMeResponse)}
