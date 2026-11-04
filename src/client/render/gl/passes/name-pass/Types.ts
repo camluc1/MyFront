@@ -55,6 +55,7 @@ export interface PlayerSlot {
   alive: boolean;
   nameLen: number;
   troopLen: number;
+  troopHalfWidth: number;
   lastTroopStr: string;
   /** Last 500ms bucket this slot's troop string was refreshed in (staggered per slot). */
   lastTroopBucket: number;

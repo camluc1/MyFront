@@ -154,31 +154,7 @@ void main() {
   float baseSize      = max(1.0, floor(ws));
   float nameSize      = max(4.0, floor(baseSize * uNameScaleFactor));
   float nameScale     = min(baseSize * 0.25, uNameScaleCap);
-  float nameWorldScale = (nameSize * nameScale) / uFontSize;
-
-  // Zoom-based culling (same as name shader)
-  float cameraScale = length(vec2(uCamera[0][0], uCamera[1][0]));
-  float screenSize  = nameWorldScale * uFontBase * cameraScale;
-  // Targeted players' icons (incl. the crosshair) stay visible at any zoom,
-  // boosted in lockstep with name.vert.glsl so the layout stays aligned.
-  if (statusFlag[5] > 0.5 && screenSize < uCullThreshold) {
-    float boost = uCullThreshold / screenSize;
-    nameWorldScale *= boost;
-    screenSize = uCullThreshold;
-  }
-  if (screenSize < uCullThreshold) {
-    gl_Position = vec4(0.0);
-    vUV = vec2(0.0);
-    vLocalUV = vec2(0.0);
-    vDiscard = 1;
-    vAllianceFraction = 0.0;
-    vFadedUV0 = vec2(0.0);
-    vFadedUV1 = vec2(0.0);
-    vFlashAlpha = 1.0;
-    vOutline = 0.0;
-    vHoverAlpha = 1.0;
-    return;
-  }
+  float nameWorldScale = (nameSize * nameScale) / uFontSize * pd1.w;
 
   // Icon world size: matches name text height
   float iconWorldSize = uFontBase * nameWorldScale * 1.1;

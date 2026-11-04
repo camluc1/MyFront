@@ -164,6 +164,7 @@ export class StatusIconProgram {
     settings: RenderSettings,
     vao: WebGLVertexArrayObject,
     fadeOwnerID: number,
+    visibleCount: number = this.maxPlayers,
   ): void {
     if (!this.atlasReady) return;
 
@@ -190,12 +191,7 @@ export class StatusIconProgram {
     gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.crownAtlas.texture);
 
     gl.bindVertexArray(vao);
-    gl.drawArraysInstanced(
-      gl.TRIANGLES,
-      0,
-      6,
-      this.maxPlayers * MAX_STATUS_ICONS,
-    );
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, visibleCount * MAX_STATUS_ICONS);
   }
 
   dispose(): void {

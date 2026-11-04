@@ -52,18 +52,7 @@ void main() {
   float baseSize      = max(1.0, floor(ws));
   float nameSize      = max(4.0, floor(baseSize * uNameScaleFactor));
   float nameScale     = min(baseSize * 0.25, uNameScaleCap);
-  float nameWorldScale = (nameSize * nameScale) / uFontSize;
-
-  // Zoom-based culling
-  float cameraScale = length(vec2(uCamera[0][0], uCamera[1][0]));
-  float screenSize  = nameWorldScale * uFontBase * cameraScale;
-  if (screenSize < uCullThreshold) {
-    gl_Position = vec4(0.0);
-    vUV = vec2(0.0);
-    vBoxType = -1;
-    vColor = vec4(0.0);
-    return;
-  }
+  float nameWorldScale = (nameSize * nameScale) / uFontSize * pd1.w;
 
   float nameHalfWidth = pd3.w;
 

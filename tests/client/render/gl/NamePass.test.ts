@@ -1,156 +1,172 @@
 import { describe, expect, it, vi } from "vitest";
 import { NamePass } from "../../../../src/client/render/gl/passes/name-pass";
 import { FlagAtlasArray } from "../../../../src/client/render/gl/passes/name-pass/FlagAtlasArray";
+import {
+  projectName,
+  selectNames,
+  type VisibleName,
+} from "../../../../src/client/render/gl/passes/name-pass/NameVisibility";
+import type { PlayerSlot } from "../../../../src/client/render/gl/passes/name-pass/Types";
 import { SkinAtlasArray } from "../../../../src/client/render/gl/passes/SkinAtlasArray";
+import settings from "../../../../src/client/render/gl/render-settings.json";
+import { PlayerTypeEnum } from "../../../../src/client/render/types";
 
-describe("NamePass verified badge hover", () => {
-  it("includes verified badge in nameplate hover bounding box", () => {
-    const slot: any = { alive: true, startTime: 0, nameHalfWidth: 50 };
-    for (const k of ["srcX", "tgtX"]) slot[k] = 100;
-    for (const k of ["srcY", "tgtY"]) slot[k] = 200;
-    for (const k of ["srcScale", "tgtScale"]) slot[k] = 10;
-    slot.static = { smallID: 42, verified: true };
+const camera = new Float32Array([0.01, 0, 0, 0, -0.01, 0, -1, 1, 1]);
+function slot(index = 0, x = 100, size = 10): PlayerSlot {
+  return {
+    index,
+    alive: true,
+    nameLen: 8,
+    nameHalfWidth: 50,
+    troopHalfWidth: 30,
+    startTime: 0,
+    srcX: x,
+    tgtX: x,
+    srcY: 100,
+    tgtY: 100,
+    srcScale: size,
+    tgtScale: size,
+    flagLayerIdx: -1,
+    emojiAtlasIdx: -1,
+    static: { smallID: index + 1, playerType: PlayerTypeEnum.Nation },
+  } as PlayerSlot;
+}
+function project(s: PlayerSlot, highlight = 0) {
+  return projectName(
+    s,
+    camera,
+    1000,
+    1000,
+    1,
+    settings.name,
+    32,
+    32,
+    highlight,
+  );
+}
 
-    const pass = Object.create(NamePass.prototype) as any;
-    const name: any = {
-      lerpSpeed: 10,
-      nameScaleCap: 10,
-      troopSizeMultiplier: 0.8,
-    };
-    name.nameScaleFactor = 1;
-    Object.assign(pass, {
-      settings: { name },
-      slots: new Map([["p1", slot]]),
-      fontBase: 32,
-      fontSize: 32,
-    });
-
-    const cameraMatrix = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
-    pass.setMouseWorldPos(145, 182);
-    expect(pass.hitTestNamePlate(1, cameraMatrix)).toBe(42);
-    slot.static.verified = false;
-    expect(pass.hitTestNamePlate(1, cameraMatrix)).toBe(0);
+describe("Name visibility", () => {
+  it("culls dead, off-screen and tiny labels, but reveals the hovered nation", () => {
+    expect(project({ ...slot(), alive: false })).toBeNull();
+    expect(project(slot(0, 10000))).toBeNull();
+    expect(project(slot(0, 100, 1))).toBeNull();
+    expect(project(slot(0, 100, 1), 1)).not.toBeNull();
   });
-});
-
-describe("NamePass targeted nameplate hover", () => {
-  it("uses the camera-dependent target boost", () => {
-    const slot: any = {
-      alive: true,
-      startTime: 0,
-      nameHalfWidth: 50,
-      target: false,
-      flagLayerIdx: -1,
-      emojiAtlasIdx: -1,
-    };
-    for (const k of ["srcX", "tgtX"]) slot[k] = 100;
-    for (const k of ["srcY", "tgtY"]) slot[k] = 200;
-    for (const k of ["srcScale", "tgtScale"]) slot[k] = 10;
-    slot.static = { smallID: 42, verified: false };
-
-    const pass = Object.create(NamePass.prototype) as any;
-    const name: any = {
-      lerpSpeed: 10,
-      nameScaleCap: 10,
-      nameScaleFactor: 1,
-      cullThreshold: 0.1,
-      troopSizeMultiplier: 0.8,
-      statusRowOffset: 0.6,
-      emojiRowOffset: 0.6,
-    };
-    Object.assign(pass, {
-      settings: { name },
-      slots: new Map([["p1", slot]]),
-      fontBase: 32,
-      fontSize: 32,
-    });
-
-    const cameraMatrix = new Float32Array([0.001, 0, 0, 0, 0.001, 0, 0, 0, 1]);
-    pass.setMouseWorldPos(160, 160);
-
-    // This cursor position is outside the unboosted nameplate bounds.
-    expect(pass.hitTestNamePlate(1, cameraMatrix)).toBe(0);
-
-    // Targeting scales the plate to the cull threshold, expanding the bounds.
-    slot.target = true;
-    expect(pass.hitTestNamePlate(1, cameraMatrix)).toBe(42);
-
-    // Here the boost is 2, so the cursor remains outside the plate.
-    const zoomedMatrix = new Float32Array([0.002, 0, 0, 0, 0.002, 0, 0, 0, 1]);
-    expect(pass.hitTestNamePlate(1, zoomedMatrix)).toBe(0);
-
-    // The flag extends the hitbox beyond the name text on the left.
-    slot.flagLayerIdx = 0;
-    pass.setMouseWorldPos(-150, 200);
-    expect(pass.hitTestNamePlate(1, cameraMatrix)).toBe(42);
-
-    // Without a flag, the same position stays outside the plate.
-    slot.flagLayerIdx = -1;
-    expect(pass.hitTestNamePlate(1, cameraMatrix)).toBe(0);
+  it("uses CSS pixels independently of canvas resolution", () => {
+    const item = project(slot())!;
+    expect(item.boost).toBeGreaterThan(0);
+    expect(item.score * item.boost).toBeLessThanOrEqual(26);
+    expect(
+      projectName(slot(), camera, 1000, 500, 1, settings.name, 32, 32, 0)!
+        .boost,
+    ).toBeGreaterThan(item.boost);
   });
-});
-
-describe("NamePass draw hover-owner forwarding", () => {
-  it("forwards the camera matrix and hover owner", () => {
-    const nowSpy = vi.spyOn(performance, "now").mockReturnValue(1000);
-    try {
-      const slot: any = {
-        alive: true,
-        startTime: 0,
-        nameHalfWidth: 50,
-        target: true,
-        flagLayerIdx: -1,
-        emojiAtlasIdx: -1,
-      };
-      for (const k of ["srcX", "tgtX"]) slot[k] = 100;
-      for (const k of ["srcY", "tgtY"]) slot[k] = 200;
-      for (const k of ["srcScale", "tgtScale"]) slot[k] = 10;
-      slot.static = { smallID: 42, verified: false };
-
-      const textDraw = vi.fn();
-      const statusDraw = vi.fn();
-      const iconDraw = vi.fn();
-      const pass = Object.create(NamePass.prototype) as any;
-      const name: any = {
-        lerpSpeed: 10,
-        nameScaleCap: 10,
-        nameScaleFactor: 1,
-        cullThreshold: 0.1,
-        troopSizeMultiplier: 0.8,
-        statusRowOffset: 0.6,
-        emojiRowOffset: 0.6,
-      };
-      const cameraMatrix = new Float32Array([
-        0.001, 0, 0, 0, 0.001, 0, 0, 0, 1,
-      ]);
-      Object.assign(pass, {
-        settings: { name, passEnabled: { nameDebug: false } },
-        slots: new Map([["p1", slot]]),
-        fontBase: 32,
-        fontSize: 32,
-        textProgram: { ready: true, draw: textDraw },
-        statusIconProgram: { draw: statusDraw },
-        iconProgram: { draw: iconDraw },
-        stringDataDirty: false,
-        cursorDataDirty: false,
-        playerDataDirty: false,
-        vao: {},
-        maxPlayers: 1,
-        highlightOwnerID: 0,
+  it("reserves the hovered label before larger overlapping nations", () => {
+    const ordinary = project(slot(0, 100, 30))!;
+    const hovered = project(slot(1, 100, 5), 2)!;
+    expect(
+      selectNames([ordinary, hovered], 1000, 1000, new Set()).map(
+        (x) => x.slot.index,
+      ),
+    ).toEqual([1]);
+  });
+  it("limits a crowded world view without overlaps and is deterministic", () => {
+    const candidates: VisibleName[] = [];
+    for (let i = 0; i < 2000; i++) {
+      const item = project(slot(i))!;
+      const x = (i % 50) * 22,
+        y = Math.floor(i / 50) * 22;
+      candidates.push({
+        ...item,
+        left: x,
+        right: x + 40,
+        top: y,
+        bottom: y + 20,
       });
-
-      pass.setMouseWorldPos(160, 160);
-      pass.draw(cameraMatrix, 0.5);
-
-      expect(textDraw.mock.calls[0][0]).toBe(cameraMatrix);
-      expect(statusDraw.mock.calls[0][0]).toBe(cameraMatrix);
-      expect(iconDraw.mock.calls[0][0]).toBe(cameraMatrix);
-      expect(textDraw.mock.calls[0][6]).toBe(42);
-      expect(statusDraw.mock.calls[0][3]).toBe(42);
-      expect(iconDraw.mock.calls[0][3]).toBe(42);
-    } finally {
-      nowSpy.mockRestore();
     }
+    const selected = selectNames(candidates, 1000, 1000, new Set());
+    expect(selected.length).toBeGreaterThan(0);
+    expect(selected.length).toBeLessThanOrEqual(55);
+    for (let i = 0; i < selected.length; i++)
+      for (let j = i + 1; j < selected.length; j++) {
+        const a = selected[i],
+          b = selected[j];
+        expect(
+          a.left < b.right &&
+            a.right > b.left &&
+            a.top < b.bottom &&
+            a.bottom > b.top,
+        ).toBe(false);
+      }
+    expect(
+      selectNames([...candidates].reverse(), 1000, 1000, new Set()).map(
+        (x) => x.slot.index,
+      ),
+    ).toEqual(selected.map((x) => x.slot.index));
+  });
+  it("packs only visible players while preserving their original text rows", () => {
+    const visible = slot(700);
+    const gl = {
+      drawingBufferWidth: 1000,
+      drawingBufferHeight: 1000,
+      bindTexture: vi.fn(),
+      texSubImage2D: vi.fn(),
+    };
+    const data = new Float32Array(1024 * 36);
+    data[700 * 36 + 35] = 700;
+    const pass = Object.assign(Object.create(NamePass.prototype), {
+      gl,
+      slots: new Map([
+        ["visible", visible],
+        ["off", slot(3, 10000)],
+      ]),
+      settings,
+      fontSize: 32,
+      fontBase: 32,
+      highlightOwnerID: 0,
+      visibleIndices: new Set(),
+      lastLayoutTime: -Infinity,
+      cpuPlayerData: data,
+      packedPlayerData: new Float32Array(data.length),
+    }) as any;
+    pass.updateVisibleNames(camera, 1);
+    expect(pass.visibleNames).toHaveLength(1);
+    const uploaded = gl.texSubImage2D.mock.calls[0];
+    expect(uploaded[5]).toBe(1);
+    expect(uploaded[8][35]).toBe(700);
+    expect(uploaded[8][7]).toBeCloseTo(pass.visibleNames[0].boost);
+    pass.setMouseWorldPos(100, 100);
+    expect(pass.hitTestNamePlate()).toBe(701);
+    pass.setMouseWorldPos(10000, 100);
+    expect(pass.hitTestNamePlate()).toBe(0);
+  });
+  it("submits the selected count to text and all icon programs", () => {
+    const text = vi.fn(),
+      icons = vi.fn(),
+      status = vi.fn(),
+      debug = vi.fn();
+    const pass = Object.assign(Object.create(NamePass.prototype), {
+      settings: {
+        ...settings,
+        passEnabled: { ...settings.passEnabled, nameDebug: true },
+      },
+      slots: new Map([["p", slot()]]),
+      visibleNames: [project(slot())!],
+      updateVisibleNames: vi.fn(),
+      hitTestNamePlate: () => 1,
+      textProgram: { ready: true, draw: text },
+      iconProgram: { draw: icons },
+      statusIconProgram: { draw: status },
+      debugProgram: { draw: debug },
+      highlightOwnerID: 1,
+      stringDataDirty: false,
+      cursorDataDirty: false,
+    }) as any;
+    pass.draw(camera, 1);
+    expect(text.mock.calls[0][3]).toBe(1);
+    expect(icons.mock.calls[0][4]).toBe(1);
+    expect(status.mock.calls[0][4]).toBe(1);
+    expect(debug.mock.calls[0][3]).toBe(1);
   });
 });
 

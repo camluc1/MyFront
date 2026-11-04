@@ -78,6 +78,7 @@ export class DebugProgram {
     cameraMatrix: Float32Array,
     settings: RenderSettings,
     vao: WebGLVertexArrayObject,
+    visibleCount: number = this.maxPlayers,
   ): void {
     const gl = this.gl;
     const ns = settings.name;
@@ -95,7 +96,7 @@ export class DebugProgram {
 
     gl.bindVertexArray(vao);
     // 3 instances per player: name box, flag box, center dot
-    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this.maxPlayers * 3);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, visibleCount * 3);
   }
 
   dispose(): void {

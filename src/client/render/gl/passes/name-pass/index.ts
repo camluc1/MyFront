@@ -1,10 +1,10 @@
 /**
  * NamePass — GPU-rendered player names + troop counts using MSDF text.
  *
- * All text layout, interpolation, and sizing runs on the GPU via instanced
- * rendering. CPU cost per frame is effectively zero: one uniform update and
- * one instanced draw call. Data changes (position/size targets, troop counts)
- * are pushed as tiny texture sub-updates.
+ * Glyph layout and interpolation run on the GPU via instanced rendering.
+ * A screen-space layout selects readable, non-overlapping plates at 10 Hz.
+ * Only selected rows and instances are submitted; original text rows remain
+ * stable through an index stored in the compact player data.
  *
  * Submodules:
  *   - text-program   — MSDF text shader (names + troop counts)
@@ -46,14 +46,12 @@ import {
 import { DebugProgram } from "./DebugProgram";
 import { FlagAtlasArray } from "./FlagAtlasArray";
 import { IconProgram } from "./IconProgram";
+import { projectName, selectNames, type VisibleName } from "./NameVisibility";
 import { StatusIconProgram } from "./StatusIconProgram";
 import { layoutString } from "./TextLayout";
 import { TextProgram } from "./TextProgram";
 import type { PlayerSlot } from "./Types";
 import { LINES_PER_PLAYER, MAX_CHARS } from "./Types";
-
-// Flag quad aspect ratio — must match FLAG_CELL_W / FLAG_CELL_H in FlagAtlasArray.ts.
-const FLAG_ASPECT = 128 / 85;
 
 // Crown cosmetics use square cells (must match the crownAtlas cell size below).
 const CROWN_CELL = 128;
@@ -106,6 +104,11 @@ export class NamePass {
   private cpuStringData: Uint8Array;
   private cpuCursorData: Float32Array;
   private playerDataDirty = false;
+  private visibleNames: VisibleName[] = [];
+  private visibleIndices = new Set<number>();
+  private lastLayoutTime = -Infinity;
+  private layoutHighlight = -1;
+  private packedPlayerData: Float32Array;
   private stringDataDirty = false;
   private cursorDataDirty = false;
 
@@ -193,6 +196,7 @@ export class NamePass {
     this.cpuPlayerData = new Float32Array(
       PLAYER_DATA_COLS * this.maxPlayers * 4,
     );
+    this.packedPlayerData = new Float32Array(this.cpuPlayerData.length);
     this.cpuStringData = new Uint8Array(MAX_CHARS * textRows);
     this.cpuCursorData = new Float32Array(MAX_CHARS * textRows);
     this.stringRow = new Uint8Array(MAX_CHARS);
@@ -390,6 +394,7 @@ export class NamePass {
             alive: false,
             nameLen: 0,
             troopLen: 0,
+            troopHalfWidth: 0,
             lastTroopStr: "",
             lastTroopBucket: -1,
             flagUrl: p.flag,
@@ -493,7 +498,10 @@ export class NamePass {
         if (troopStr !== slot.lastTroopStr) {
           slot.troopLen = Math.min(troopStr.length, MAX_CHARS);
           slot.lastTroopStr = troopStr;
-          this.uploadStringRow(slot.index * LINES_PER_PLAYER + 1, troopStr);
+          slot.troopHalfWidth = this.uploadStringRow(
+            slot.index * LINES_PER_PLAYER + 1,
+            troopStr,
+          );
           dirty = true;
         }
       }
@@ -656,7 +664,7 @@ export class NamePass {
     d[off + 2] = slot.srcScale;
     d[off + 3] = slot.startTime;
 
-    // Column 1: tgtX, tgtY, tgtScale, alive
+    // Column 1: tgtX, tgtY, tgtScale, alive (packed as display scale for draws)
     d[off + 4] = slot.tgtX;
     d[off + 5] = slot.tgtY;
     d[off + 6] = slot.tgtScale;
@@ -718,7 +726,7 @@ export class NamePass {
     d[off + 30] = slot.allianceFraction;
     d[off + 31] = slot.allianceRemainingTicks;
 
-    // Column 8: crownLayerIdx (crown cosmetic), verified badge, statusIconCount, free
+    // Column 8: crownLayerIdx, verified badge, statusIconCount, original text slot
     d[off + 32] = slot.crownLayerIdx;
     d[off + 33] = slot.static.verified === true ? 1.0 : 0.0;
     // Count of active status-row icons so shaders don't recompute it independently.
@@ -733,7 +741,7 @@ export class NamePass {
       slot.nukeActive,
       slot.inDoomsdayClock || slot.doomsdayClockDraining,
     ].filter(Boolean).length;
-    d[off + 35] = 0.0;
+    d[off + 35] = slot.index; // Original string/cursor row, independent of compact draw order.
 
     this.playerDataDirty = true;
   }
@@ -757,74 +765,84 @@ export class NamePass {
    * unit. Mirrors the lerp + sizing math in name.vert.glsl and
    * status-icon.vert.glsl. Returns the smallID, or 0 for none.
    */
-  private hitTestNamePlate(now: number, cameraMatrix: Float32Array): number {
-    const mx = this.mouseWorldX;
-    const my = this.mouseWorldY;
-    const ns = this.settings.name;
-    // Match the camera-scale calculation in the name shaders.
-    const cameraScale = Math.hypot(cameraMatrix[0], cameraMatrix[3]);
-    for (const slot of this.slots.values()) {
-      if (!slot.alive) continue;
-      const t = Math.min(
-        1 - Math.exp(-ns.lerpSpeed * (now - slot.startTime)),
-        1,
-      );
-      const wx = slot.srcX + (slot.tgtX - slot.srcX) * t;
-      const wy = slot.srcY + (slot.tgtY - slot.srcY) * t;
-      const ws = slot.srcScale + (slot.tgtScale - slot.srcScale) * t;
-      const baseSize = Math.max(1, Math.floor(ws));
-      const nameSize = Math.max(4, Math.floor(baseSize * ns.nameScaleFactor));
-      const nameScale = Math.min(baseSize * 0.25, ns.nameScaleCap);
-      let nameWorldScale = (nameSize * nameScale) / this.fontSize;
-      let lineH = this.fontBase * nameWorldScale;
-      const screenSize = lineH * cameraScale;
-      // Match the text shader's 11 CSS-px minimum and bounded scaling,
-      // so pointer hover/click regions track the visible name and troop line.
-      const dpr = typeof window === "undefined" ? 1 : (window.devicePixelRatio || 1);
-      const minimum = (2 * 15 * dpr) / Math.max(1, this.gl.drawingBufferHeight);
-      const minSize = slot.target
-        ? Math.max(minimum * 1.25, ns.cullThreshold)
-        : minimum;
-      if (screenSize > 0.000001 && screenSize < minSize) {
-        nameWorldScale *= Math.min(minSize / screenSize, slot.target ? 12 : 6);
-        lineH = this.fontBase * nameWorldScale;
-      }
-
-      const halfW = slot.nameHalfWidth * nameWorldScale;
-      let left = wx - halfW;
-      let right = wx + halfW;
-      if (slot.flagLayerIdx >= 0) left -= lineH * 1.2 * FLAG_ASPECT;
-
-      // Name line (flag is slightly taller); emoji/status rows sit above it.
-      let top = wy - lineH * 0.6;
-      const hasStatus =
-        slot.crown ||
-        slot.traitor ||
-        slot.disconnected ||
-        slot.alliance ||
-        slot.allianceReq ||
-        slot.target ||
-        slot.embargo ||
-        slot.nukeActive ||
-        slot.inDoomsdayClock ||
-        slot.doomsdayClockDraining ||
-        slot.doomsdayClockDecaying;
-      if (slot.emojiAtlasIdx >= 0) {
-        top = wy - lineH * ns.emojiRowOffset;
-      } else if (hasStatus) {
-        top = wy - lineH * ns.statusRowOffset;
-      }
-      if (slot.static.verified === true) {
-        right += lineH * 0.51;
-        top = Math.min(top, wy - lineH * 0.775);
-      }
-      const bottom = wy + lineH * (1.24 + 0.5 * ns.troopSizeMultiplier);
-
-      if (mx >= left && mx <= right && my >= top && my <= bottom) {
-        return slot.static.smallID;
+  private hitTestNamePlate(): number {
+    for (const item of this.visibleNames) {
+      if (
+        this.mouseWorldX >= item.worldLeft &&
+        this.mouseWorldX <= item.worldRight &&
+        this.mouseWorldY >= item.worldTop &&
+        this.mouseWorldY <= item.worldBottom
+      ) {
+        return item.slot.static.smallID;
       }
     }
     return 0;
+  }
+
+  private updateVisibleNames(camera: Float32Array, now: number): void {
+    // Re-layout at most ten times a second, even while panning/zooming.
+    // Hover changes take effect immediately so every territory stays inspectable.
+    if (
+      now - this.lastLayoutTime < 0.1 &&
+      this.layoutHighlight === this.highlightOwnerID &&
+      !this.playerDataDirty
+    )
+      return;
+    this.lastLayoutTime = now;
+    this.layoutHighlight = this.highlightOwnerID;
+    const dpr = window.devicePixelRatio || 1;
+    const width = this.gl.drawingBufferWidth / dpr;
+    const height = this.gl.drawingBufferHeight / dpr;
+    const candidates: VisibleName[] = [];
+    for (const slot of this.slots.values()) {
+      const item = projectName(
+        slot,
+        camera,
+        width,
+        height,
+        now,
+        this.settings.name,
+        this.fontSize,
+        this.fontBase,
+        this.highlightOwnerID,
+      );
+      if (item) candidates.push(item);
+    }
+    this.visibleNames = selectNames(
+      candidates,
+      width,
+      height,
+      this.visibleIndices,
+    );
+    this.visibleIndices = new Set(
+      this.visibleNames.map((item) => item.slot.index),
+    );
+    const stride = PLAYER_DATA_COLS * 4;
+    for (let i = 0; i < this.visibleNames.length; i++) {
+      const item = this.visibleNames[i];
+      const offset = item.slot.index * stride;
+      this.packedPlayerData.set(
+        this.cpuPlayerData.subarray(offset, offset + stride),
+        i * stride,
+      );
+      // All four programs use the same screen-size multiplier for the complete plate.
+      this.packedPlayerData[i * stride + 7] = item.boost;
+    }
+    if (this.visibleNames.length) {
+      this.gl.bindTexture(this.gl.TEXTURE_2D, this.playerDataTex);
+      this.gl.texSubImage2D(
+        this.gl.TEXTURE_2D,
+        0,
+        0,
+        0,
+        PLAYER_DATA_COLS,
+        this.visibleNames.length,
+        this.gl.RGBA,
+        this.gl.FLOAT,
+        this.packedPlayerData.subarray(0, this.visibleNames.length * stride),
+      );
+    }
+    this.playerDataDirty = false;
   }
 
   draw(cameraMatrix: Float32Array, ambient: number): void {
@@ -862,32 +880,17 @@ export class NamePass {
       );
       this.cursorDataDirty = false;
     }
-    if (this.playerDataDirty) {
-      gl.bindTexture(gl.TEXTURE_2D, this.playerDataTex);
-      gl.texSubImage2D(
-        gl.TEXTURE_2D,
-        0,
-        0,
-        0,
-        PLAYER_DATA_COLS,
-        this.maxPlayers,
-        gl.RGBA,
-        gl.FLOAT,
-        this.cpuPlayerData,
-      );
-      this.playerDataDirty = false;
-    }
+    this.updateVisibleNames(cameraMatrix, performance.now() / 1000);
+    const visibleCount = this.visibleNames.length;
+    if (visibleCount === 0) return;
 
-    const fadeOwnerID = this.hitTestNamePlate(
-      performance.now() / 1000,
-      cameraMatrix,
-    );
+    const fadeOwnerID = this.hitTestNamePlate();
 
     this.textProgram.draw(
       cameraMatrix,
       this.settings,
       this.vao,
-      this.maxPlayers,
+      visibleCount,
       ambient,
       this.highlightOwnerID,
       fadeOwnerID,
@@ -897,11 +900,23 @@ export class NamePass {
       this.settings,
       this.vao,
       fadeOwnerID,
+      visibleCount,
     );
-    this.iconProgram.draw(cameraMatrix, this.settings, this.vao, fadeOwnerID);
+    this.iconProgram.draw(
+      cameraMatrix,
+      this.settings,
+      this.vao,
+      fadeOwnerID,
+      visibleCount,
+    );
 
     if (this.settings.passEnabled.nameDebug) {
-      this.debugProgram.draw(cameraMatrix, this.settings, this.vao);
+      this.debugProgram.draw(
+        cameraMatrix,
+        this.settings,
+        this.vao,
+        visibleCount,
+      );
     }
   }
 

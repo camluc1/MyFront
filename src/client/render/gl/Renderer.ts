@@ -1432,7 +1432,7 @@ export class GPURenderer {
         console.warn(`[Renderer] Layer image "${layer.id}" not found`);
         continue;
       }
-      const placement: 0 | 1 = layer.placement === "water" ? 1 : 0;
+      const placement: 0 | 1 | 2 = layer.id === "frontier-resources" ? 2 : layer.placement === "water" ? 1 : 0;
       const pass = new MapLayerPass(
         gl,
         this.terrainBytesTex,

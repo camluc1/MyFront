@@ -78,7 +78,7 @@ describe("MapLayerController", () => {
     expect(alphas).toEqual([
       ["forest", 0.8],
       ["reef", 0.3],
-      [RESOURCE_LAYER_ID, 0.65],
+      [RESOURCE_LAYER_ID, 1],
     ]);
   });
 

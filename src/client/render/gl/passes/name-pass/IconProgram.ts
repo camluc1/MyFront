@@ -151,6 +151,7 @@ export class IconProgram {
     settings: RenderSettings,
     vao: WebGLVertexArrayObject,
     fadeOwnerID: number,
+    visibleCount: number = this.maxPlayers,
   ): void {
     if (!this.emojiReady) return;
 
@@ -177,12 +178,7 @@ export class IconProgram {
     gl.bindTexture(gl.TEXTURE_2D, this.emojiAtlasTex!);
 
     gl.bindVertexArray(vao);
-    gl.drawArraysInstanced(
-      gl.TRIANGLES,
-      0,
-      6,
-      this.maxPlayers * ICONS_PER_PLAYER,
-    );
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, visibleCount * ICONS_PER_PLAYER);
   }
 
   dispose(): void {

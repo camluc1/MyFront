@@ -43,8 +43,8 @@ export class MapLayerPass {
     image: ImageBitmap,
     private mapW: number,
     private mapH: number,
-    /** 0 = land layer, 1 = water layer. */
-    readonly placement: 0 | 1,
+    /** 0 = land, 1 = water, 2 = resource annotations across coastlines. */
+    readonly placement: 0 | 1 | 2,
     /** Whether the layer is destroyed by nukes. */
     private nukeable: boolean,
   ) {

@@ -24,8 +24,6 @@ const int MAX_CHARS_PER_LINE = MAX_CHARS;
 const int LINES = LINES_PER_PLAYER;
 uniform float uLerpSpeed;
 uniform float uCullThreshold;
-// Minimum screen size in NDC, supplied by TextProgram for readable names.
-uniform float uMinScreenSize;
 uniform float uNameScaleFactor;
 uniform float uNameScaleCap;
 uniform float uTroopSizeMultiplier;
@@ -76,7 +74,8 @@ void main() {
   }
 
   // 3. Read char code at this position
-  int stringRow = playerIdx * LINES + lineIdx;
+  int originalIndex = int(texelFetch(uPlayerData, ivec2(8, playerIdx), 0).w);
+  int stringRow = originalIndex * LINES + lineIdx;
   uint charCode = texelFetch(uStrings, ivec2(charPos, stringRow), 0).r;
   if (charCode == 0u) {
     gl_Position = vec4(0.0);
@@ -98,36 +97,14 @@ void main() {
   float baseSize  = max(1.0, floor(ws));
   float nameSize  = max(4.0, floor(baseSize * uNameScaleFactor));
   float nameScale = min(baseSize * 0.25, uNameScaleCap);
-  float nameWorldScale = (nameSize * nameScale) / uFontSize;
+  float nameWorldScale = (nameSize * nameScale) / uFontSize * pd1.w;
   float worldScale = nameWorldScale;
 
   bool isHighlighted = uHighlightOwnerID > 0.0 && smallID == uHighlightOwnerID;
 
-  // Targeted players' names must stay findable at any zoom (pd6.y = target
-  // status flag; the crosshair in status-icon.vert.glsl matches this).
-  bool isTargeted = texelFetch(uPlayerData, ivec2(6, playerIdx), 0).y > 0.5;
-
   // Troop count is smaller
   if (lineIdx == 1) {
     worldScale *= uTroopSizeMultiplier;
-  }
-
-  // Zoom-based culling: compute screen-space size and skip if too small.
-  // Highlighted (hovered) names bypass the cull so they're always visible.
-  // uCamera[0][0] is the x-scale component of the camera matrix
-  float cameraScale = length(vec2(uCamera[0][0], uCamera[1][0]));
-  float screenSize = nameWorldScale * uBase * cameraScale;
-  // Previously tiny names were culled or reduced to unreadable vertical
-  // bars. Keep every alive player visible and enlarge small text, but cap
-  // enlargement to avoid flooding the world view at extreme zoom-out.
-  float minSize = isTargeted
-    ? max(uMinScreenSize * 1.25, uCullThreshold)
-    : uMinScreenSize;
-  if (screenSize > 0.000001 && screenSize < minSize) {
-    float boost = min(minSize / screenSize, isTargeted ? 12.0 : 6.0);
-    nameWorldScale *= boost;
-    worldScale *= boost;
-    screenSize *= boost;
   }
 
   // 6. Read pre-computed centered cursor X position
