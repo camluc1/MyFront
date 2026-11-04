@@ -87,6 +87,31 @@ function dispatchTouch(target: EventTarget, type: string, identifier: number) {
 }
 
 describe("mobile UnitDisplay layout", () => {
+  test("allows selecting an owned resource upgrade when a new building is unaffordable", async () => {
+    const { display } = makeDisplay();
+    try {
+      vi.spyOn(display.game, "myPlayer").mockReturnValue({
+        gold: () => 125000n,
+        isAlive: () => true,
+        units: () => [{}],
+      } as any);
+      display["playerBuildables"] = [
+        {
+          type: UnitType.Mine,
+          canBuild: false,
+          canUpgrade: false,
+          cost: 250000n,
+          upgradeCost: 125000n,
+        },
+      ] as any;
+      expect(display["canBuild"](UnitType.Mine)).toBe(true);
+      display.uiState.preventStacking = true;
+      expect(display["canBuild"](UnitType.Mine)).toBe(false);
+      await display.updateComplete;
+    } finally {
+      display.remove();
+    }
+  });
   test("shows a persistent resource toggle outside the scrolling build list", async () => {
     const { display, eventBus } = makeDisplay();
     const events: ToggleResourcesEvent[] = [];
@@ -136,7 +161,9 @@ describe("mobile UnitDisplay layout", () => {
         true,
       );
       expect(grid?.children).toHaveLength(BuildMenus.types.length);
-      expect(grid?.style.getPropertyValue("--unit-display-columns")).toBe(String(BuildMenus.types.length));
+      expect(grid?.style.getPropertyValue("--unit-display-columns")).toBe(
+        String(BuildMenus.types.length),
+      );
     } finally {
       display.remove();
     }

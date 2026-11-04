@@ -89,6 +89,7 @@ import {
   resourceUpgradeBlockReason,
   resourceEconomyInfo,
   resourceUnitIncome,
+  structureUpgradeCost,
 } from "./ResourceEconomy";
 import {
   bumpTraversalGeneration,
@@ -1503,7 +1504,12 @@ export class PlayerImpl implements Player {
     if (!this.canUpgradeUnitType(unit.type())) {
       return false;
     }
-    if (!this.canBuildUnitType(unit.type())) {
+    if (
+      !this.canBuildUnitType(
+        unit.type(),
+        structureUpgradeCost(this.mg, this, unit.type()),
+      )
+    ) {
       return false;
     }
     if (!this.isUnitValidToUpgrade(unit)) {
@@ -1515,7 +1521,7 @@ export class PlayerImpl implements Player {
   upgradeUnit(unit: Unit) {
     if (RESOURCE_BUILDINGS.includes(unit.type()) && !this.canUpgradeUnit(unit))
       return;
-    const cost = this.mg.unitInfo(unit.type()).cost(this.mg, this);
+    const cost = structureUpgradeCost(this.mg, this, unit.type());
     this.removeGold(cost);
     unit.increaseLevel();
     this.recordUnitConstructed(unit.type());
@@ -1546,14 +1552,16 @@ export class PlayerImpl implements Player {
       let canUpgrade: number | false = false;
       let canBuild: TileRef | false = false;
 
-      if (tile !== null && this.canBuildUnitType(u, cost) && !inSpawnPhase) {
+      if (tile !== null && !inSpawnPhase) {
         if (this.canUpgradeUnitType(u)) {
           const existingUnit = this.findExistingUnitToUpgrade(u, tile);
           if (existingUnit !== false && this.canUpgradeUnit(existingUnit)) {
             canUpgrade = existingUnit.id();
           }
         }
-        canBuild = this.canSpawnUnitType(u, tile, validTiles);
+        if (this.canBuildUnitType(u, cost)) {
+          canBuild = this.canSpawnUnitType(u, tile, validTiles);
+        }
       }
 
       // A hold-to-build preview may need the new placement's rails even
@@ -1563,7 +1571,7 @@ export class PlayerImpl implements Player {
 
       // Cumulative bulk-upgrade totals. Each upgrade raises the unit's level
       // and the constructed count, so step n costs the same as if the player
-      // already had n extra units — cost(mg, this, n).
+      // already had n extra units, applying the resource upgrade discount per step.
       let upgradeCosts: Gold[] | undefined;
       if (canUpgrade !== false) {
         const existing = mg.unit(canUpgrade)!;
@@ -1576,7 +1584,7 @@ export class PlayerImpl implements Player {
         upgradeCosts = new Array<Gold>(maxUpgrades);
         let total = 0n;
         for (let n = 0; n < maxUpgrades; n++) {
-          total += config.unitInfo(u).cost(mg, this, n);
+          total += structureUpgradeCost(mg, this, u, n);
           upgradeCosts[n] = total;
         }
       }
@@ -1585,6 +1593,7 @@ export class PlayerImpl implements Player {
       result[i] = {
         ...(resourceBuilding
           ? {
+              upgradeCost: structureUpgradeCost(mg, this, u),
               resourceEconomy:
                 tile !== null
                   ? resourceEconomyInfo(
@@ -1594,7 +1603,9 @@ export class PlayerImpl implements Player {
                       tile,
                       canBuild,
                       canUpgrade,
-                      cost,
+                      canUpgrade !== false && !includeBuildPreview
+                        ? structureUpgradeCost(mg, this, u)
+                        : cost,
                       includeBuildPreview,
                     )
                   : undefined,

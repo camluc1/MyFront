@@ -392,7 +392,10 @@ export interface BuildableUnit {
   // unit id of the existing unit that can be upgraded, or false if it cannot be upgraded.
   canUpgrade: number | false;
   type: PlayerBuildableUnitType;
+  /** Price of a new unit, independent of any available upgrade. */
   cost: Gold;
+  /** Single resource-upgrade price, also available before choosing a location. */
+  upgradeCost?: Gold;
   // Cumulative cost of upgrading 1..MAX_UPGRADE_AMOUNT times (upgrade costs
   // escalate per level, so a bulk total is NOT cost * amount). Only set when
   // canUpgrade is not false.

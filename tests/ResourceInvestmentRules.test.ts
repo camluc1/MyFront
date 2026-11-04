@@ -39,6 +39,75 @@ async function investmentGame() {
 }
 
 describe("Resource investment rules", () => {
+  test.each([
+    [UnitType.Farm, "fertile_soil", 100000n],
+    [UnitType.Mine, "gold", 125000n],
+    [UnitType.OilWell, "oil", 175000n],
+    [UnitType.GasPlant, "gas", 150000n],
+  ] as const)(
+    "%s upgrades cost half a new build, even with only enough gold for the upgrade",
+    async (type, resource, firstPrice) => {
+      const { game, player, sites } = await investmentGame();
+      const site = sites.find((s) => s.resource === resource)!;
+      expect(site).toBeDefined();
+      const tile = game.ref(site.x, site.y);
+      const unit = player.buildUnit(type, tile, {});
+      const buildPrice = game.unitInfo(type).cost(game, player);
+      expect(buildPrice).toBe(firstPrice * 2n);
+      player.removeGold(player.gold());
+      player.addGold(buildPrice / 2n);
+      const quote = player.buildableUnits(tile, [type])[0];
+      expect(quote.cost).toBe(buildPrice);
+      expect(quote.upgradeCost).toBe(firstPrice);
+      expect(quote.upgradeCosts?.[0]).toBe(firstPrice);
+      expect(quote.canBuild).toBe(false);
+      expect(quote.canUpgrade).toBe(unit.id());
+      expect(quote.resourceEconomy?.reason).toBeUndefined();
+      new UpgradeStructureExecution(player, unit.id()).init(game, game.ticks());
+      expect(unit.level()).toBe(2);
+      expect(player.gold()).toBe(0n);
+    },
+  );
+
+  test("discounts each escalating bulk level and never discounts a new construction", async () => {
+    const { game, player, mineral } = await investmentGame();
+    const tile = game.ref(mineral.x, mineral.y);
+    const mine = player.buildUnit(UnitType.Mine, tile, {});
+    const quote = player.buildableUnits(tile, [UnitType.Mine])[0];
+    // New-mine prices after the first mine: 250k, 500k, 1M, 1.2M.
+    expect(quote.upgradeCosts?.slice(0, 4)).toEqual([
+      125000n,
+      375000n,
+      875000n,
+      1475000n,
+    ]);
+    const gold = player.gold();
+    new UpgradeStructureExecution(player, mine.id(), 4).init(
+      game,
+      game.ticks(),
+    );
+    expect(mine.level()).toBe(5);
+    expect(gold - player.gold()).toBe(1475000n);
+    const nextBuild = game.unitInfo(UnitType.Mine).cost(game, player);
+    expect(nextBuild).toBe(1200000n);
+    const beforeNew = player.gold();
+    player.buildUnit(UnitType.Mine, game.ref(0, 0), {});
+    expect(beforeNew - player.gold()).toBe(nextBuild);
+  });
+
+  test("original city upgrades retain the full construction price", async () => {
+    const { game, player } = await investmentGame();
+    const tile = game.ref(0, 0);
+    const city = player.buildUnit(UnitType.City, tile, {});
+    const price = game.unitInfo(UnitType.City).cost(game, player);
+    const quote = player.buildableUnits(tile, [UnitType.City])[0];
+    expect(quote.upgradeCosts?.[0]).toBe(price);
+    expect(quote.upgradeCost).toBeUndefined();
+    const gold = player.gold();
+    new UpgradeStructureExecution(player, city.id()).init(game, game.ticks());
+    expect(gold - player.gold()).toBe(price);
+  });
+
   test("AI replaces an exhausted extractor instead of counting it against productive capacity", async () => {
     const { game, player, sites, mineral } = await investmentGame();
     player.buildUnit(UnitType.Mine, game.ref(mineral.x, mineral.y), {});
@@ -77,6 +146,9 @@ describe("Resource investment rules", () => {
       game.ref(mineral.x, mineral.y),
       {},
     );
+    player.removeGold(player.gold());
+    // The AI retains a two-upgrade-price budget: 2 * 125k, not 2 * 250k.
+    player.addGold(250000n);
     const random = new PseudoRandom(42);
     vi.spyOn(random, "nextInt").mockReturnValue(0);
     const added = vi.spyOn(game, "addExecution");

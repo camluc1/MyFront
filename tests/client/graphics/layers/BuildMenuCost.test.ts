@@ -13,6 +13,23 @@ function makeMenu(): BuildMenu {
 const item = (unitType: UnitType) => ({ unitType, icon: "" }) as any;
 
 describe("BuildMenu.cost", () => {
+  it("shows the discounted upgrade price and the full new-build price while holding", () => {
+    const menu = makeMenu();
+    menu.uiState = { preventStacking: false } as any;
+    menu.playerBuildables = [
+      {
+        type: UnitType.Mine,
+        canBuild: 42,
+        canUpgrade: 7,
+        cost: 250000n,
+        upgradeCost: 125000n,
+        upgradeCosts: [125000n],
+      },
+    ] as BuildableUnit[];
+    expect(menu.cost(item(UnitType.Mine))).toBe(125000n);
+    menu.uiState.preventStacking = true;
+    expect(menu.cost(item(UnitType.Mine))).toBe(250000n);
+  });
   it("returns the buildable's cost for a matching unit type", () => {
     const menu = makeMenu();
     menu.playerBuildables = [

@@ -1,6 +1,7 @@
 # FRONTIER — Natural-resource economy (implementation)
 
 ## Design contract
+
 - Native mechanic; no DLC branding, no second currency and no material inventories.
 - A geographical resource is intrinsic to the map, **not** to current ownership.
 - A player must own a suitable site to build there; capture transfers a building
@@ -8,6 +9,7 @@
 - Original cities, ports, railways, nuclear weapons, gold and troop rules stay intact.
 
 ## Map generation
+
 The World map has approximate mineral/fertility profiles for every one of its
 72 named region/nation entries, plus fixed map-coordinate anchors. Static
 resource circles are generated near those anchors on land. This is **approximate
@@ -32,6 +34,7 @@ uranium. Four quality levels. Agriculture renews; other deposits have finite
 production-cycle reserves. Shared consumed reserves persist in game snapshots.
 
 ## Buildings and profitability
+
 - Farm (fertile soil), Mine (coal + minerals), Oil Well (oil), Gas Plant (gas).
 - Core `ConstructionExecution` handles original placement, ownership, build
   duration and upgrade behavior. Each extractor is one unit type; mines read
@@ -51,6 +54,7 @@ production-cycle reserves. Shared consumed reserves persist in game snapshots.
   increased by 40%, without changing original train commerce behavior.
 
 ## User interface and AI
+
 - Custom icons and names for all four constructions, in build menu and hotbar.
 - Resource layer toggles independently from the main terrain/layers.
 - Selecting a resource building for placement temporarily enables that layer,
@@ -59,6 +63,7 @@ production-cycle reserves. Shared consumed reserves persist in game snapshots.
   facilities, and use them according to skill level.
 
 ## Validation limitations
+
 The source has been changed directly on `frontier/development` with
 `[skip ci]`. **GitHub Actions were not executed**. No integrated TypeScript
 compile, unit-test run, multiplayer match, save/load replay, balance simulation
@@ -95,6 +100,13 @@ Economic details use translation keys in en.json. Visual in-game playtesting
 is still required in addition to the targeted automated checks.
 
 ## Resource investment authorization
+
+Resource upgrades (Farm, Mine, Oil Well and Gas Plant) cost 50% of the current
+price of constructing another building of the same type. New construction
+keeps its full price. Every bulk-upgrade step uses its own escalated new-build
+price before the discount, rounded down to whole gold. Execution, affordability,
+AI and previews share this rule. The 30% base-production increase and productive
+level cap of 50 are unchanged. Original buildings keep their upgrade prices.
 
 Only active extractors on compatible, non-depleted deposits count toward the
 nation AI resource-installation quota. Sites still under construction count as

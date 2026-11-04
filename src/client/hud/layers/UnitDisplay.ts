@@ -456,8 +456,17 @@ export class UnitDisplay extends LitElement implements Controller {
           this.cost(item) <= (player?.gold() ?? 0n) &&
           (player?.units(UnitType.Port).length ?? 0) > 0
         );
-      default:
-        return this.cost(item) <= (player?.gold() ?? 0n);
+      default: {
+        if (this.cost(item) <= (player?.gold() ?? 0n)) return true;
+        // An owned resource building can be upgraded even when a new one is unaffordable.
+        const buildable = this.playerBuildables?.find((bu) => bu.type === item);
+        return (
+          !this.uiState.preventStacking &&
+          buildable?.upgradeCost !== undefined &&
+          buildable.upgradeCost <= (player?.gold() ?? 0n) &&
+          (player?.units(item).length ?? 0) > 0
+        );
+      }
     }
   }
 

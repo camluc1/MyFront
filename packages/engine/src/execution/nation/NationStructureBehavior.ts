@@ -23,7 +23,10 @@ import {
 import { assertNever } from "@openfront/engine-lib/Util";
 import { z } from "zod";
 import { Attack, Game, Player, Unit } from "../../game/Game";
-import { hasUsableResourceSite } from "../../game/ResourceEconomy";
+import {
+  hasUsableResourceSite,
+  structureUpgradeCost,
+} from "../../game/ResourceEconomy";
 import type {
   SnapshotReader,
   SnapshotWriter,
@@ -815,7 +818,7 @@ export class NationStructureBehavior {
           continue;
         if (
           player.canUpgradeUnit(unit) &&
-          player.gold() >= this.cost(unit.type()) * 2n
+          player.gold() >= structureUpgradeCost(game, player, unit.type()) * 2n
         ) {
           game.addExecution(
             new UpgradeStructureExecution(player, unit.id(), 1),
@@ -1135,7 +1138,7 @@ export class NationStructureBehavior {
     let spare = this.player.gold() - this.getSaveUpTarget();
     let amount = 0;
     while (amount < max) {
-      const cost = this.cost(type, amount);
+      const cost = structureUpgradeCost(this.game, this.player, type, amount);
       if (cost > spare) break;
       spare -= cost;
       amount++;

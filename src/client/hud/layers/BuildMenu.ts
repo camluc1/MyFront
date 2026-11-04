@@ -2,6 +2,7 @@ import { TileRef } from "@openfront/engine-api/game/GameMap";
 import {
   BuildableUnit,
   BuildMenus,
+  bulkCost,
   Gold,
   PlayerBuildableUnitType,
   UnitType,
@@ -406,7 +407,9 @@ export class BuildMenu extends LitElement implements Controller {
   public cost(item: BuildItemDisplay): Gold {
     for (const bu of this.playerBuildables ?? []) {
       if (bu.type === item.unitType) {
-        return bu.cost;
+        return bu.canUpgrade !== false && !this.uiState.preventStacking
+          ? bulkCost(bu, 1)
+          : bu.cost;
       }
     }
     return 0n;

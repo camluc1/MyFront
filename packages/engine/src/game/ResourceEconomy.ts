@@ -16,6 +16,16 @@ export const RESOURCE_BUILDINGS = [
   UnitType.OilWell,
   UnitType.GasPlant,
 ];
+/** Resource upgrades cost half the current new-build price, including bulk escalation. */
+export function structureUpgradeCost(
+  game: Game,
+  player: Player,
+  type: UnitType,
+  extraLevels = 0,
+): bigint {
+  const buildCost = game.unitInfo(type).cost(game, player, extraLevels);
+  return RESOURCE_BUILDINGS.includes(type) ? buildCost / 2n : buildCost;
+}
 /** Productive or under construction on a usable site; exhausted sites free the AI investment slot. */
 export function hasUsableResourceSite(game: Game, unit: Unit): boolean {
   const site = resourceAt(
