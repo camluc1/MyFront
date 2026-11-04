@@ -535,6 +535,9 @@ export interface Game extends GameLike {
   player(id: PlayerID): Player;
   players(): Player[];
   allPlayers(): Player[];
+  matchHistory:
+    | import("@openfront/engine-api/game/MatchHistory").MatchHistory
+    | undefined;
   playerByClientID(id: ClientID): Player | null;
   playerBySmallID(id: number): Player | TerraNullius;
   hasPlayer(id: PlayerID): boolean;

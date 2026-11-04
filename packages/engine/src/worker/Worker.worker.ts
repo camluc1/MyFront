@@ -333,6 +333,14 @@ async function onMessage(e: MessageEvent<MainThreadMessage>) {
         throw error;
       }
       break;
+    case "match_history":
+      if (!gameRunner) throw new Error("Game runner not initialized");
+      sendMessage({
+        type: "match_history_result",
+        id: message.id,
+        result: (await gameRunner).game.matchHistory ?? null,
+      });
+      break;
     case "human_stats":
       if (!gameRunner) {
         throw new Error("Game runner not initialized");

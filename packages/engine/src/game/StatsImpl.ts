@@ -83,14 +83,24 @@ const _sampleCache = new WeakMap<NonNullable<PlayerStats>, SampleCache>();
 
 export class StatsImpl implements Stats {
   private data: AllPlayersStats = {};
+  private historyGold: Record<string, number[]> = {};
+  historyIncome(id: string): number[] {
+    return this.historyGold[id] ?? [];
+  }
+  goldResource(player: Player, kind: number, gold: BigIntLike): void {
+    this.goldWork(player, gold);
+    const values = (this.historyGold[player.id()] ??= Array(11).fill(0));
+    values[7 + kind] = (values[7 + kind] ?? 0) + Number(gold);
+  }
 
   snapshot(): StatsState {
-    return { data: this.data };
+    return { data: this.data, historyGold: this.historyGold };
   }
 
   /** Fills a prototype-only shell; see RestorableExecution.restoreSnapshot. */
   restoreSnapshot(s: StatsState): void {
     this.data = s.data as AllPlayersStats;
+    this.historyGold = s.historyGold ?? {};
   }
 
   getPlayerStats(player: Player): PlayerStats {
@@ -169,6 +179,8 @@ export class StatsImpl implements Stats {
   }
 
   private _addGold(player: Player, index: number, value: BigIntLike) {
+    const values = (this.historyGold[player.id()] ??= Array(11).fill(0));
+    values[index] = (values[index] ?? 0) + Number(value);
     const p = this._makePlayerStats(player);
     if (p === undefined) return;
     p.gold ??= [0n];
@@ -596,6 +608,7 @@ export const StatsSnapshot = snapshotType({
     // Stored as the live AllPlayersStats tree (bigints and all). Its shape is
     // versioned by StatsSchemas, which game records already keep readable.
     data: z.record(z.string(), z.unknown()),
+    historyGold: z.record(z.string(), z.array(z.number())).optional(),
   }),
 });
 export type StatsState = z.infer<typeof StatsSnapshot.schema>;

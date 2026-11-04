@@ -1,3 +1,4 @@
+import "./MatchHistoryPanel";
 import {
   GameType,
   type NationObjectiveInfo,
@@ -687,7 +688,7 @@ export class FrontierWorldIntelligence
                       ${this.renderRanking()}
                     </div>
                     <div class="min-w-0">
-                      ${this.renderSelectedHistory()}
+                      ${this.tab === "history" ? html`<match-history-panel .game=${this.game}></match-history-panel>` : this.renderSelectedHistory()}
                       ${this.renderResourceIncome()} ${this.renderObjective()}
                       ${
                         selected

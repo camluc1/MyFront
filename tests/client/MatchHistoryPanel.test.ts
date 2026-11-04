@@ -1,0 +1,101 @@
+import { GameType } from "@openfront/engine-api/game/GameTypes";
+import type {
+  MatchHistory,
+  HistoryRow,
+} from "@openfront/engine-api/game/MatchHistory";
+import "../../src/client/hud/layers/MatchHistoryPanel";
+import type { MatchHistoryPanel } from "../../src/client/hud/layers/MatchHistoryPanel";
+const row = (id: number, tiles: number): HistoryRow => [
+  id,
+  tiles,
+  5,
+  2,
+  50,
+  100,
+  100,
+  1,
+  3,
+  0,
+  0,
+  0,
+  0,
+];
+const history: MatchHistory = {
+  version: 1,
+  startTick: 0,
+  endTick: 600,
+  players: [
+    { id: 1, name: "You", kind: "human" },
+    { id: 2, name: "Rival", kind: "nation" },
+  ],
+  samples: [
+    { tick: 0, rows: [row(1, 100), row(2, 200)] },
+    { tick: 600, rows: [row(1, 300), row(2, 0)] },
+  ],
+};
+function mount(data: MatchHistory = history) {
+  const panel = document.createElement(
+    "match-history-panel",
+  ) as MatchHistoryPanel;
+  const query = vi.fn().mockResolvedValue(structuredClone(data));
+  panel.game = {
+    config: () => ({ gameConfig: () => ({ gameType: GameType.Singleplayer }) }),
+    myPlayer: () => ({ smallID: () => 1 }),
+    worker: { matchHistory: query },
+  } as any;
+  document.body.append(panel);
+  return { panel, query };
+}
+test("live and final panel use the same frozen history, retain eliminated countries and share SVG axes", async () => {
+  const { panel, query } = mount();
+  try {
+    await vi.waitFor(() =>
+      expect(panel.querySelector("[data-match-history]")).not.toBeNull(),
+    );
+    expect(panel.textContent).toContain("Rival · eliminado");
+    expect(panel.textContent).toContain("RESULTADO FINAL");
+    panel.selected = [1, 2];
+    panel.summary = true;
+    await panel.updateComplete;
+    expect(panel.querySelectorAll("polyline")).toHaveLength(2);
+    expect(panel.querySelector("polyline")?.namespaceURI).toBe(
+      "http://www.w3.org/2000/svg",
+    );
+    expect(panel.textContent).toContain("RESUMEN DE LA PARTIDA");
+    await panel.refresh();
+    expect(query).toHaveBeenCalledTimes(1);
+    panel.cursor = 0;
+    await panel.updateComplete;
+    expect(panel.textContent?.replace(/\s+/g, " ")).toContain("You: 100");
+  } finally {
+    panel.remove();
+  }
+});
+test("old saves explicitly label partial history", async () => {
+  const { panel } = mount({ ...history, startTick: 900 });
+  try {
+    await vi.waitFor(() =>
+      expect(panel.textContent).toContain("Registro parcial"),
+    );
+  } finally {
+    panel.remove();
+  }
+});
+test("late responses cannot install a different game's history", async () => {
+  const { panel } = mount();
+  try {
+    await vi.waitFor(() => expect(panel.history).not.toBeNull());
+    panel.history = null;
+    let complete: (h: MatchHistory) => void = () => {};
+    panel.game!.worker.matchHistory = vi
+      .fn()
+      .mockImplementation(() => new Promise((resolve) => (complete = resolve)));
+    const work = panel.refresh();
+    panel.remove();
+    complete(history);
+    await work;
+    expect(panel.history).toBeNull();
+  } finally {
+    panel.remove();
+  }
+});

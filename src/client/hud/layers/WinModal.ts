@@ -1,3 +1,4 @@
+import "./MatchHistoryPanel";
 import { GameType, RankedType } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import type { AllPlayersStats, Winner } from "@openfront/engine-api/Schemas";
@@ -206,6 +207,7 @@ export class WinModal extends LitElement implements Controller {
             @xp-legend=${this.onXpLegend}
           ></game-xp-panel>
           ${this.innerHtml()}
+          ${this.isVisible ? html`<match-history-panel .game=${this.game} .summary=${true}></match-history-panel>` : html``}
         </div>
         <!-- Leaving is the quieter action, on the left; staying in the game
              is the main one, on the right. Sharing a milestone sits between
@@ -505,19 +507,23 @@ export class WinModal extends LitElement implements Controller {
   innerHtml() {
     // FRONTIER single-player results are an in-game experience, not an ad or
     // community-acquisition surface from the upstream project.
-    if (
-      this.game?.config().gameConfig().gameType === GameType.Singleplayer
-    ) {
+    if (this.game?.config().gameConfig().gameType === GameType.Singleplayer) {
       return html`
-        <div class="mb-5 rounded-lg border border-cyan-400/20 bg-slate-950/70 p-4 text-center">
-          <div class="text-xs font-black tracking-[0.28em] text-cyan-300">FRONTIER</div>
+        <div
+          class="mb-5 rounded-lg border border-cyan-400/20 bg-slate-950/70 p-4 text-center"
+        >
+          <div class="text-xs font-black tracking-[0.28em] text-cyan-300">
+            FRONTIER
+          </div>
           <div class="mt-2 text-lg font-bold text-white">
             ${this.isWin ? "CAMPAÑA COMPLETADA" : "CAMPAÑA FINALIZADA"}
           </div>
           <p class="mt-2 text-sm text-slate-300">
-            ${this.isWin
-              ? "Tu nación escribió un nuevo capítulo en la historia del mundo."
-              : "Tu imperio cayó. Cada derrota deja información para la próxima campaña."}
+            ${
+              this.isWin
+                ? "Tu nación escribió un nuevo capítulo en la historia del mundo."
+                : "Tu imperio cayó. Cada derrota deja información para la próxima campaña."
+            }
           </p>
         </div>
       `;

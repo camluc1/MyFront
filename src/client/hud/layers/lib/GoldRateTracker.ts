@@ -1,3 +1,4 @@
+import { INCOME_RATE_WINDOW_TICKS } from "@openfront/engine-api/game/MatchHistory";
 /**
  * Tracks per-player gold (and gold-source) values over a rolling window of
  * in-game time and computes per-minute rates.  Used by the leaderboard
@@ -36,7 +37,7 @@ const TICKS_PER_MINUTE = 10 * 60;
 // Smooth with a 2-in-game-minute window: arrivals are lumpy (one ship = one
 // large step), and a longer window halves the apparent spike of a single
 // event at the cost of slower reaction. The rate itself is still per minute.
-const WINDOW_TICKS = 2 * TICKS_PER_MINUTE;
+const WINDOW_TICKS = INCOME_RATE_WINDOW_TICKS;
 const MAX_SAMPLES = 240; // generous cap (2 samples/second worst-case)
 
 export class GoldRateTracker {

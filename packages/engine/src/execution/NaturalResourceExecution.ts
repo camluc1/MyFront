@@ -92,7 +92,18 @@ export class NaturalResourceExecution implements Execution {
       const owner = this.structure.owner();
       owner.addGold(payout);
       // Record resource earnings in the existing work-income statistics.
-      this.game.stats().goldWork(owner, payout);
+      this.game
+        .stats()
+        .goldResource(
+          owner,
+          [
+            UnitType.Farm,
+            UnitType.Mine,
+            UnitType.OilWell,
+            UnitType.GasPlant,
+          ].indexOf(type),
+          payout,
+        );
     }
   }
   isActive(): boolean {

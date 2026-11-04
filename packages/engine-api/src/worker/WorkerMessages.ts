@@ -42,6 +42,8 @@ export type WorkerMessageType =
   | "snapshot_result"
   | "read_snapshot_header"
   | "read_snapshot_header_result"
+  | "match_history"
+  | "match_history_result"
   | "human_stats"
   | "human_stats_result"
   | "human_disconnects"
@@ -243,7 +245,15 @@ export interface HumanDisconnectsResultMessage extends BaseWorkerMessage {
 }
 
 // Union types for type safety
+export interface MatchHistoryMessage extends BaseWorkerMessage {
+  type: "match_history";
+}
+export interface MatchHistoryResultMessage extends BaseWorkerMessage {
+  type: "match_history_result";
+  result: import("../game/MatchHistory").MatchHistory | null;
+}
 export type MainThreadMessage =
+  | MatchHistoryMessage
   | InitMessage
   | ConnectMessage
   | TurnMessage
@@ -261,6 +271,7 @@ export type MainThreadMessage =
 
 // Message send from worker
 export type WorkerMessage =
+  | MatchHistoryResultMessage
   | InitializedMessage
   | InitErrorMessage
   | GameUpdateMessage

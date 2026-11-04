@@ -1,5 +1,4 @@
 import { GameMap, TileRef } from "@openfront/engine-api/game/GameMap";
-import { resourceDeposits } from "@openfront/engine-lib/game/NaturalResources";
 import {
   Cell,
   ColoredTeams,
@@ -28,6 +27,10 @@ import {
   GameUpdateType,
 } from "@openfront/engine-api/game/GameUpdates";
 import {
+  MatchHistorySchema,
+  type MatchHistory,
+} from "@openfront/engine-api/game/MatchHistory";
+import {
   ReadonlyTileSet,
   UnitPredicate,
 } from "@openfront/engine-api/game/ReadViews";
@@ -43,6 +46,7 @@ import {
   MotionPlanRecord,
   packMotionPlans,
 } from "@openfront/engine-lib/game/MotionPlans";
+import { resourceDeposits } from "@openfront/engine-lib/game/NaturalResources";
 import {
   assignTeams,
   resolveTeamsList,
@@ -90,6 +94,7 @@ import {
   Player,
   Unit,
 } from "./Game";
+import { sampleMatchHistory } from "./MatchHistory";
 import { PlayerImpl } from "./PlayerImpl";
 import { RailNetwork } from "./RailNetwork";
 import {
@@ -158,6 +163,7 @@ export class GameImpl implements Game {
   private playerTeams: Team[] = [];
   private botTeam: Team = ColoredTeams.Bot;
   private _railNetwork: RailNetwork = createRailNetwork(this);
+  matchHistory: MatchHistory | undefined;
   private resourceReserves = new Map<number, number>();
 
   // Used to assign unique IDs to each new alliance
@@ -660,6 +666,7 @@ export class GameImpl implements Game {
     // Queued conversions write the map directly, bypassing setWater.
     if (waterChangedTiles.length > 0) this._structureVersion++;
     this._ticks++;
+    this.matchHistory = sampleMatchHistory(this, this.matchHistory);
     return this.updates;
   }
 
@@ -1090,6 +1097,7 @@ export class GameImpl implements Game {
     winner: Player | Team | null,
     allPlayersStats: AllPlayersStats,
   ): void {
+    this.matchHistory = sampleMatchHistory(this, this.matchHistory, true);
     this._winner = winner;
     // OFM: snapshot final tiles for standings (bots skipped in recordFinalTiles).
     for (const player of this.players()) {
@@ -1594,6 +1602,7 @@ export class GameImpl implements Game {
       nationMirvTargets: [...this._nationMirvTargets],
       mirvsLaunched: this._mirvsLaunched,
       resourceReserves: [...this.resourceReserves],
+      matchHistory: this.matchHistory,
       rail: w.versioned(
         RailNetworkSnapshot,
         (this._railNetwork as RailNetworkImpl).snapshot(w),
@@ -1619,6 +1628,7 @@ export class GameImpl implements Game {
    */
   restoreState(s: GameState, r: SnapshotReader): void {
     this._ticks = s.ticks;
+    this.matchHistory = s.matchHistory;
     this.startTick = s.startTick;
     this.execs = s.execs.map((i) => r.exec(i));
     this.unInitExecs = s.unInitExecs.map((i) => r.exec(i));
@@ -1785,6 +1795,7 @@ export const GameSnapshot = snapshotType({
     shipStaggers: z.object({ tradeShip: zInt(), transportShip: zInt() }),
     nationMirvTargets: z.array(z.tuple([z.string(), zInt()])),
     mirvsLaunched: zInt(),
+    matchHistory: MatchHistorySchema.optional(),
     resourceReserves: z.array(z.tuple([zInt(), zInt()])).optional(),
     rail: VersionedSchema,
     water: VersionedSchema,

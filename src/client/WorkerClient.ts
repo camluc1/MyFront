@@ -257,6 +257,13 @@ export class WorkerClient {
   }
 
   /** Every human's stats as they stand now (see HumanStats.ts). */
+  matchHistory(): Promise<
+    import("@openfront/engine-api/game/MatchHistory").MatchHistory | null
+  > {
+    return this.askHumans("match_history", (m) =>
+      m.type === "match_history_result" ? m.result : undefined,
+    );
+  }
   humanStats(): Promise<HumanStatsSnapshot> {
     return this.askHumans("human_stats", (message) =>
       message.type === "human_stats_result" ? message.result : undefined,
@@ -274,7 +281,7 @@ export class WorkerClient {
   }
 
   private askHumans<T>(
-    type: "human_stats" | "human_disconnects",
+    type: "human_stats" | "human_disconnects" | "match_history",
     read: (message: WorkerMessage) => T | undefined,
   ): Promise<T> {
     return new Promise((resolve, reject) => {

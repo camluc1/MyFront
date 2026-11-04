@@ -120,6 +120,7 @@ export interface Stats {
 
   // Player earns gold from workers
   goldWork(player: Player, gold: number | bigint): void;
+  goldResource(player: Player, kind: number, gold: number | bigint): void;
 
   // Player receives donated gold. `goldBefore` is their balance at the moment
   // the donation is applied, before the gold is added — nothing else records a

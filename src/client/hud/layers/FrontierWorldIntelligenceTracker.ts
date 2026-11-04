@@ -1,3 +1,4 @@
+import { INCOME_RATE_WINDOW_TICKS } from "@openfront/engine-api/game/MatchHistory";
 /**
  * Periodic single-player intelligence samples. This tracker is independent of
  * the dashboard's visibility: the HUD controller keeps sampling while closed.
@@ -31,7 +32,12 @@ export interface FrontierWorldPlayerInput {
   outgoingAttacks: number;
   incomingAttacks: number;
   /** Relationship to the human player in the current single-player campaign. */
-  diplomacyStatus?: "TU NACIÓN" | "ALIADO" | "MISMO EQUIPO" | "EN GUERRA" | "SIN PACTO";
+  diplomacyStatus?:
+    | "TU NACIÓN"
+    | "ALIADO"
+    | "MISMO EQUIPO"
+    | "EN GUERRA"
+    | "SIN PACTO";
 }
 
 export interface FrontierWorldPlayerSnapshot extends FrontierWorldPlayerInput {
@@ -43,14 +49,10 @@ export interface FrontierWorldPlayerSnapshot extends FrontierWorldPlayerInput {
 }
 
 const SAMPLE_INTERVAL_TICKS = 100; // 10 seconds of simulation time
-const RATE_WINDOW_TICKS = 600; // 1 minute
+const RATE_WINDOW_TICKS = INCOME_RATE_WINDOW_TICKS; // 2 minutes
 const MAX_HISTORY_SAMPLES = 180; // 30 minutes at the sampling interval
 
-type CumulativeKey =
-  | "goldEarned"
-  | "tradeGold"
-  | "trainGold"
-  | "piracyGold";
+type CumulativeKey = "goldEarned" | "tradeGold" | "trainGold" | "piracyGold";
 
 function rateSince(
   history: readonly FrontierWorldPlayerSnapshot[],
@@ -66,10 +68,9 @@ function rateSince(
     }
   }
   if (!baseline) {
-    // Avoid highly volatile per-minute extrapolations during the first minute
-    // of a match; the balance and cumulative totals remain visible meanwhile.
+    // Use the available partial window at the start, matching the leaderboard.
     const first = history[0];
-    if (!first || tick - first.tick < RATE_WINDOW_TICKS) return 0;
+    if (!first) return 0;
     baseline = first;
   }
 
