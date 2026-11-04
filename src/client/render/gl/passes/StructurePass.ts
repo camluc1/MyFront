@@ -117,7 +117,9 @@ export class StructurePass {
 
   private paletteTex: WebGLTexture;
   private effectTex: WebGLTexture;
+  /** Original base-game glyphs; never altered by FRONTIER assets. */
   private atlasTex: WebGLTexture;
+  private frontierAtlasTex: WebGLTexture;
   private disposed = false;
   private affiliationTex: WebGLTexture | null = null;
   private altView = false;
@@ -214,6 +216,7 @@ export class StructurePass {
     gl.useProgram(this.program);
     gl.uniform1i(gl.getUniformLocation(this.program, "uPalette"), 0);
     gl.uniform1i(gl.getUniformLocation(this.program, "uAtlas"), 1);
+    gl.uniform1i(gl.getUniformLocation(this.program, "uFrontierAtlas"), 4);
     gl.uniform1i(gl.getUniformLocation(this.program, "uAffiliation"), 2);
     gl.uniform1i(gl.getUniformLocation(this.program, "uEffect"), 3);
     gl.uniform1f(this.uGhostAlpha, 1.0);
@@ -234,15 +237,27 @@ export class StructurePass {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      new Uint8Array([255, 255, 255, 255]),
+      new Uint8Array([0, 0, 0, 0]),
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-    // Start async atlas build
-    void this.loadAtlas();
+    // Custom symbols are a separate atlas: they never overwrite the
+    // original anchor, factory, defense, city or rocket sprites.
+    this.frontierAtlasTex = gl.createTexture()!;
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_2D, this.frontierAtlasTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0,
+      gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    void this.loadBaseAtlas();
+    void this.loadFrontierAtlas();
 
     // --- Instance buffers ---
     const instanceGlBuf = gl.createBuffer()!;
@@ -288,78 +303,83 @@ export class StructurePass {
   }
 
   /**
-   * Construct the ten-column atlas without mutating WebGL state while any
-   * image is loading. A previous version bound TEXTURE1 BEFORE awaiting
-   * four SVG decodes, then wrote texImage2D to whichever texture the render
-   * loop had selected in the meantime. That corrupted borders, font data or
-   * other shared GPU textures and left icon quads looking like solid squares.
+   * Protect WebGL state: decoding is asynchronous, but uploading must be
+   * synchronous with the proper texture bound to the right sampler.
    */
-  private async loadAtlas(): Promise<void> {
+  private uploadAtlas(
+    texture: WebGLTexture,
+    slot: number,
+    image: HTMLCanvasElement | HTMLImageElement,
+  ): void {
+    const gl = this.gl;
+    const previousActive = gl.getParameter(gl.ACTIVE_TEXTURE) as number;
+    gl.activeTexture(slot);
+    const previousBinding = gl.getParameter(gl.TEXTURE_BINDING_2D) as WebGLTexture | null;
+    const previousFlip = gl.getParameter(gl.UNPACK_FLIP_Y_WEBGL) as boolean;
+    const previousPremultiply = gl.getParameter(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL) as boolean;
+    try {
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    } finally {
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, previousFlip);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, previousPremultiply);
+      gl.bindTexture(gl.TEXTURE_2D, previousBinding);
+      gl.activeTexture(previousActive);
+    }
+  }
+
+  /** Exactly the same 384x64, 6-cell icon file used by OpenFront. */
+  private async loadBaseAtlas(): Promise<void> {
     try {
       const original = new Image();
       original.crossOrigin = "anonymous";
       original.src = iconAtlasUrl;
       await original.decode();
+      if (this.disposed) return;
+      this.uploadAtlas(this.atlasTex, this.gl.TEXTURE1, original);
+    } catch (error) {
+      console.error("[StructurePass] Could not load classic icons:", error);
+    }
+  }
 
+  /** Four 64x64 cells, independent of the original six icons. */
+  private async loadFrontierAtlas(): Promise<void> {
+    try {
       const names = [
         "FarmIconWhite.svg", "MineIconWhite.svg",
         "OilWellIconWhite.svg", "GasPlantIconWhite.svg",
       ];
-      const icons = await Promise.all(names.map(async (name): Promise<HTMLImageElement | null> => {
-        const icon = new Image();
-        icon.crossOrigin = "anonymous";
-        icon.src = assetUrl("images/" + name);
+      const images = await Promise.all(names.map(async (name): Promise<HTMLImageElement | null> => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = assetUrl("images/" + name);
         try {
-          await icon.decode();
-          return icon;
+          await img.decode();
+          return img;
         } catch (error) {
-          // A missing new pictogram must not blank the old six icons.
-          console.warn("[StructurePass] Cannot load icon:", name, error);
+          console.warn("[StructurePass] Unable to load new icon", name, error);
           return null;
         }
       }));
       if (this.disposed) return;
-
-      const oldColumns = 6;
-      const colW = original.width / oldColumns;
+      const cell = 64;
       const canvas = document.createElement("canvas");
-      canvas.width = Math.round(colW * ATLAS_COLS);
-      canvas.height = original.height;
+      canvas.width = cell * images.length;
+      canvas.height = cell;
       const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Cannot create structure icon canvas");
+      if (!ctx) throw new Error("Cannot create Frontier icon canvas");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(original, 0, 0);
-      for (let k = 0; k < icons.length; k++) {
-        const icon = icons[k];
-        if (icon !== null) {
-          ctx.drawImage(icon, Math.round((oldColumns + k) * colW),
-            0, Math.round(colW), canvas.height);
-        }
+      for (let i = 0; i < images.length; i++) {
+        if (images[i]) ctx.drawImage(images[i]!, i * cell, 0, cell, cell);
       }
-
-      // IMPORTANT: only bind/upload AFTER every await. Preserve the active
-      // texture unit, bound texture and unpack flags for the rest of WebGL.
-      const gl = this.gl;
-      const previousActive = gl.getParameter(gl.ACTIVE_TEXTURE) as number;
-      gl.activeTexture(gl.TEXTURE1);
-      const previousBinding = gl.getParameter(gl.TEXTURE_BINDING_2D) as WebGLTexture | null;
-      const oldFlip = gl.getParameter(gl.UNPACK_FLIP_Y_WEBGL) as boolean;
-      const oldPremultiply = gl.getParameter(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL) as boolean;
-      try {
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
-        gl.bindTexture(gl.TEXTURE_2D, this.atlasTex);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
-        gl.generateMipmap(gl.TEXTURE_2D);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-      } finally {
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, oldFlip);
-        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, oldPremultiply);
-        gl.bindTexture(gl.TEXTURE_2D, previousBinding);
-        gl.activeTexture(previousActive);
-      }
+      this.uploadAtlas(this.frontierAtlasTex, this.gl.TEXTURE4, canvas);
     } catch (error) {
-      console.error("[StructurePass] Failed to load icon atlas:", error);
+      console.error("[StructurePass] Could not load Frontier icons:", error);
     }
   }
 
@@ -493,6 +513,8 @@ export class StructurePass {
 
     gl.activeTexture(gl.TEXTURE3);
     gl.bindTexture(gl.TEXTURE_2D, this.effectTex);
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_2D, this.frontierAtlasTex);
 
     gl.bindVertexArray(this.vao);
 
@@ -564,5 +586,6 @@ export class StructurePass {
     if (this.ghostInstanceBuf) gl.deleteBuffer(this.ghostInstanceBuf);
     gl.deleteVertexArray(this.vao);
     gl.deleteTexture(this.atlasTex);
+    gl.deleteTexture(this.frontierAtlasTex);
   }
 }

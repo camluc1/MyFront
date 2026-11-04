@@ -2,7 +2,8 @@
 precision highp float;
 
 uniform sampler2D uPalette;
-uniform sampler2D uAtlas;
+uniform sampler2D uAtlas; // Original six sprites
+uniform sampler2D uFrontierAtlas; // Four new sprites, separate texture
 uniform sampler2D uAffiliation;   // 256×2 RGBA8 — row 1 = unit affiliation
 uniform sampler2D uEffect;        // RGBA32F — shared effect palette, keyed by
                                   //   ownerID. The structures block starts at row
@@ -203,16 +204,25 @@ void main() {
   // Only show icon detail when zoomed in enough
   float iconAlpha = 0.0;
   if (vZoom > uDotsThreshold) {
-    // Clamp UV to this atlas column to prevent bleeding into neighbours
-    // when uIconFill shrinks the icon (expanding UV range beyond column).
-    float colStart = vAtlasIdx / float(ATLAS_COLS);
-    float colEnd = (vAtlasIdx + 1.0) / float(ATLAS_COLS);
-    vec2 safeUV = vec2(clamp(vAtlasUV.x, colStart, colEnd), clamp(vAtlasUV.y, 0.0, 1.0));
-    vec4 iconSample = texture(uAtlas, safeUV);
-    // Zero out icon outside the valid UV region (clamped pixels would repeat the edge)
-    float inBounds = step(colStart, vAtlasUV.x) * step(vAtlasUV.x, colEnd)
+    // Vertices keep the stable 0..9 structure IDs. Translate virtual
+    // ten-column UVs into the original six-column or new four-column atlas.
+    float localU = vAtlasUV.x * float(ATLAS_COLS) - vAtlasIdx;
+    float atlasCol = vAtlasIdx < 5.5 ? vAtlasIdx : vAtlasIdx - 6.0;
+    float cols = vAtlasIdx < 5.5 ? 6.0 : 4.0;
+    float colStart = atlasCol / cols;
+    float colEnd = (atlasCol + 1.0) / cols;
+    vec2 safeUV = vec2(
+      clamp((atlasCol + localU) / cols, colStart, colEnd),
+      clamp(vAtlasUV.y, 0.0, 1.0)
+    );
+    vec4 iconSample;
+    if (vAtlasIdx < 5.5) {
+      iconSample = texture(uAtlas, safeUV);
+    } else {
+      iconSample = texture(uFrontierAtlas, safeUV);
+    }
+    float inBounds = step(0.0, localU) * step(localU, 1.0)
                    * step(0.0, vAtlasUV.y) * step(vAtlasUV.y, 1.0);
-    // Clip to fill area so icon doesn't bleed into the border ring.
     iconAlpha = iconSample.a * borderMask * inBounds;
   }
 
