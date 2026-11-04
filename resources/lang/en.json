@@ -2985,7 +2985,8 @@
       "deleting": "This building is marked for deletion",
       "occupied": "This deposit already has an extractor; upgrade it",
       "money": "Not enough gold",
-      "spacing": "No valid location: keep 15 tiles from other buildings"
+      "spacing": "No valid location: keep 15 tiles from other buildings",
+      "max_level": "Maximum productive level reached (50)"
     }
   }
 }

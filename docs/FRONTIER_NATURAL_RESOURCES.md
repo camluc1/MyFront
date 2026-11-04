@@ -93,3 +93,23 @@ The replay viewer without a camera transform retains its raster label fallback.
 
 Economic details use translation keys in en.json. Visual in-game playtesting
 is still required in addition to the targeted automated checks.
+
+## Resource investment authorization
+
+Only active extractors on compatible, non-depleted deposits count toward the
+nation AI resource-installation quota. Sites still under construction count as
+committed capacity; exhausted, invalid and deletion-marked sites do not. An
+exhausted extractor stays on the map but no longer prevents investment in a
+new deposit. The one-extractor-per-deposit rule still applies.
+
+Resource construction searches the existing owned/spacing-valid candidate list
+in nearest-first order and filters each candidate for compatible resource,
+remaining reserves and deposit occupancy. A failing first candidate no longer
+prevents using a later valid tile. Original non-resource placement is unchanged.
+
+Resource upgrade authorization is shared by the engine, preview and AI:
+non-depleted compatible deposits only, up to productive level 50. Bulk upgrade
+quotes contain only the remaining productive levels; oversized execution
+requests stop at 50 and charge only executed levels. Direct upgrade calls also
+reject invalid resource upgrades. These restrictions do not cap original
+cities, ports, factories or other non-resource structures.

@@ -23,7 +23,7 @@ test("economic card exposes quality, payout, upgrade, exhaustion and railway sta
   const host = document.createElement("div");
   render(renderResourceEconomy(info), host);
   expect(host.textContent).toContain("4/4");
-  expect(host.textContent).toContain("resource_economy.next");
+  expect(host.textContent).not.toContain("resource_economy.next");
   expect(host.textContent).toContain("resource_economy.railway.active");
   expect(host.textContent).toContain("resource_economy.exhausted");
   expect(host.querySelector('[role="status"]')).not.toBeNull();
@@ -56,4 +56,36 @@ test("screen labels stay anchored while zooming and cull collisions", () => {
         );
     }
   }
+});
+
+test("hides unavailable maximum-level upgrades and shows the effective gain for valid ones", () => {
+  const info: ResourceEconomyInfo = {
+    resource: "gold",
+    quality: 4,
+    level: 50,
+    remainingCycles: 240,
+    renewable: false,
+    productionPerCycle: 100,
+    currentPerCycle: 100,
+    nextPerCycle: 100,
+    upgradeGainPerCycle: 0,
+    railway: "inactive",
+    reason: "max_level",
+  };
+  const host = document.createElement("div");
+  render(renderResourceEconomy(info), host);
+  expect(host.textContent).toContain("resource_economy.reason.max_level");
+  expect(host.textContent).not.toContain("resource_economy.next");
+  render(
+    renderResourceEconomy({
+      ...info,
+      level: 1,
+      reason: undefined,
+      nextPerCycle: 130,
+      upgradeGainPerCycle: 30,
+    }),
+    host,
+  );
+  expect(host.textContent).toContain("resource_economy.next");
+  expect(host.textContent).toContain("+30");
 });

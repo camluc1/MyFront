@@ -9,8 +9,11 @@ import {
   Structures,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
+import {
+  resourceAt,
+  resourceDeposits,
+} from "@openfront/engine-lib/game/NaturalResources";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
-import { resourceAt, resourceDeposits } from "@openfront/engine-lib/game/NaturalResources";
 import {
   readVersioned,
   snapshotType,
@@ -20,18 +23,16 @@ import {
 import { assertNever } from "@openfront/engine-lib/Util";
 import { z } from "zod";
 import { Attack, Game, Player, Unit } from "../../game/Game";
+import { hasUsableResourceSite } from "../../game/ResourceEconomy";
 import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../../snapshot/SnapshotContext";
 import { ConstructionExecution } from "../ConstructionExecution";
 import { UpgradeStructureExecution } from "../UpgradeStructureExecution";
+import { DEFAULT_NATION_DOCTRINE, type NationDoctrine } from "./NationDoctrine";
 import { isMirvWorthSavingFor } from "./NationMIRVBehavior";
 import { NationStructurePlacement } from "./NationStructurePlacement";
-import {
-  DEFAULT_NATION_DOCTRINE,
-  type NationDoctrine,
-} from "./NationDoctrine";
 import { hasHighStartingGold, isSaveUpWithinReach } from "./NationUtils";
 
 /**
@@ -457,10 +458,19 @@ export class NationStructureBehavior {
     ) {
       const range = this.game.config().defensePostRange();
       const scaledRatio = Math.min(ratio, DEFENSE_POST_FRONT_RATIO_CAP);
-      const maxDist = range * (DEFENSE_POST_FRONT_MIN_DIST +
-        DEFENSE_POST_FRONT_DIST_PER_RATIO * scaledRatio + DEFENSE_POST_FRONT_BAND);
+      const maxDist =
+        range *
+        (DEFENSE_POST_FRONT_MIN_DIST +
+          DEFENSE_POST_FRONT_DIST_PER_RATIO * scaledRatio +
+          DEFENSE_POST_FRONT_BAND);
       const allowed = Math.ceil(ratio / DEFENSE_POST_RATIO_PER_POST);
-      return this.countDefensePostsNearFront(this.getAttackFrontTiles(attacks), maxDist, allowed) < allowed;
+      return (
+        this.countDefensePostsNearFront(
+          this.getAttackFrontTiles(attacks),
+          maxDist,
+          allowed,
+        ) < allowed
+      );
     }
     return true;
   }
@@ -779,17 +789,37 @@ export class NationStructureBehavior {
     if (this.random.nextInt(0, 100) >= chance[difficulty]) return false;
     const player = this.player;
     const game = this.game;
-    const types = [UnitType.Farm, UnitType.Mine, UnitType.OilWell, UnitType.GasPlant] as const;
-    const current = types.flatMap((type) => player.units(type));
+    const types = [
+      UnitType.Farm,
+      UnitType.Mine,
+      UnitType.OilWell,
+      UnitType.GasPlant,
+    ] as const;
+    const current = types
+      .flatMap((type) => player.units(type))
+      .filter((unit) => hasUsableResourceSite(game, unit));
     const limit = Math.max(1, Math.min(9, Math.ceil(this.cityCount() * 0.8)));
     if (current.length >= limit) {
       // Upgrade an established, productive site instead of filling the map.
       for (const unit of current) {
-        const deposit = resourceAt(game.map(), game.config().gameConfig().gameMap, unit.tile());
-        if (deposit?.resource !== "fertile_soil" &&
-            deposit && game.resourceRemaining(deposit.id, deposit.capacity) <= 0) continue;
-        if (player.canUpgradeUnit(unit) && player.gold() >= this.cost(unit.type()) * 2n) {
-          game.addExecution(new UpgradeStructureExecution(player, unit.id(), 1));
+        const deposit = resourceAt(
+          game.map(),
+          game.config().gameConfig().gameMap,
+          unit.tile(),
+        );
+        if (
+          deposit?.resource !== "fertile_soil" &&
+          deposit &&
+          game.resourceRemaining(deposit.id, deposit.capacity) <= 0
+        )
+          continue;
+        if (
+          player.canUpgradeUnit(unit) &&
+          player.gold() >= this.cost(unit.type()) * 2n
+        ) {
+          game.addExecution(
+            new UpgradeStructureExecution(player, unit.id(), 1),
+          );
           return true;
         }
       }
@@ -800,12 +830,19 @@ export class NationStructureBehavior {
     const deposits = resourceDeposits(map, mapType);
     let best: { type: UnitType; tile: TileRef; score: number } | null = null;
     for (const site of deposits) {
-      if (site.resource !== "fertile_soil" &&
-          game.resourceRemaining(site.id, site.capacity) <= 0) continue;
+      if (
+        site.resource !== "fertile_soil" &&
+        game.resourceRemaining(site.id, site.capacity) <= 0
+      )
+        continue;
       const type =
-        site.resource === "fertile_soil" ? UnitType.Farm :
-        site.resource === "oil" ? UnitType.OilWell :
-        site.resource === "gas" ? UnitType.GasPlant : UnitType.Mine;
+        site.resource === "fertile_soil"
+          ? UnitType.Farm
+          : site.resource === "oil"
+            ? UnitType.OilWell
+            : site.resource === "gas"
+              ? UnitType.GasPlant
+              : UnitType.Mine;
       if (game.config().isUnitDisabled(type)) continue;
       const center = map.ref(site.x, site.y);
       if (game.owner(center) !== player) continue;
@@ -813,11 +850,16 @@ export class NationStructureBehavior {
       if (player.gold() < price * 2n) continue;
       const tile = player.canBuild(type, center);
       if (tile === false) continue;
-      const score = site.quality * 100 + (
-        site.resource === "oil" ? 55 :
-        site.resource === "gold" ? 45 :
-        site.resource === "gas" ? 30 : 0
-      ) - Number(price / 10000n);
+      const score =
+        site.quality * 100 +
+        (site.resource === "oil"
+          ? 55
+          : site.resource === "gold"
+            ? 45
+            : site.resource === "gas"
+              ? 30
+              : 0) -
+        Number(price / 10000n);
       if (!best || score > best.score) best = { type, tile, score };
     }
     if (!best) return false;

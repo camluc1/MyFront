@@ -35,6 +35,10 @@ import { ReadonlyTileSet } from "@openfront/engine-api/game/ReadViews";
 import { ClientID } from "@openfront/engine-api/Schemas";
 import { andFN, manhattanDistFN } from "@openfront/engine-lib/game/GameMapImpl";
 import { resourceAt } from "@openfront/engine-lib/game/NaturalResources";
+import {
+  RESOURCE_MAX_LEVEL,
+  resourceMatchesBuilding,
+} from "@openfront/engine-lib/game/ResourceProduction";
 import { TileSet } from "@openfront/engine-lib/game/TileSet";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import {
@@ -82,6 +86,7 @@ import { GameImpl } from "./GameImpl";
 import { diffPlayerUpdate, packAttackTroopDeltas } from "./GameUpdateUtils";
 import {
   RESOURCE_BUILDINGS,
+  resourceUpgradeBlockReason,
   resourceEconomyInfo,
   resourceUnitIncome,
 } from "./ResourceEconomy";
@@ -1494,6 +1499,7 @@ export class PlayerImpl implements Player {
   }
 
   public canUpgradeUnit(unit: Unit): boolean {
+    if (resourceUpgradeBlockReason(this.mg, unit)) return false;
     if (!this.canUpgradeUnitType(unit.type())) {
       return false;
     }
@@ -1507,6 +1513,8 @@ export class PlayerImpl implements Player {
   }
 
   upgradeUnit(unit: Unit) {
+    if (RESOURCE_BUILDINGS.includes(unit.type()) && !this.canUpgradeUnit(unit))
+      return;
     const cost = this.mg.unitInfo(unit.type()).cost(this.mg, this);
     this.removeGold(cost);
     unit.increaseLevel();
@@ -1541,10 +1549,7 @@ export class PlayerImpl implements Player {
       if (tile !== null && this.canBuildUnitType(u, cost) && !inSpawnPhase) {
         if (this.canUpgradeUnitType(u)) {
           const existingUnit = this.findExistingUnitToUpgrade(u, tile);
-          if (
-            existingUnit !== false &&
-            this.isUnitValidToUpgrade(existingUnit)
-          ) {
+          if (existingUnit !== false && this.canUpgradeUnit(existingUnit)) {
             canUpgrade = existingUnit.id();
           }
         }
@@ -1561,9 +1566,16 @@ export class PlayerImpl implements Player {
       // already had n extra units — cost(mg, this, n).
       let upgradeCosts: Gold[] | undefined;
       if (canUpgrade !== false) {
-        upgradeCosts = new Array<Gold>(MAX_UPGRADE_AMOUNT);
+        const existing = mg.unit(canUpgrade)!;
+        const maxUpgrades = RESOURCE_BUILDINGS.includes(u)
+          ? Math.min(
+              MAX_UPGRADE_AMOUNT,
+              Math.max(0, RESOURCE_MAX_LEVEL - existing.level()),
+            )
+          : MAX_UPGRADE_AMOUNT;
+        upgradeCosts = new Array<Gold>(maxUpgrades);
         let total = 0n;
-        for (let n = 0; n < MAX_UPGRADE_AMOUNT; n++) {
+        for (let n = 0; n < maxUpgrades; n++) {
           total += config.unitInfo(u).cost(mg, this, n);
           upgradeCosts[n] = total;
         }
@@ -1657,47 +1669,42 @@ export class PlayerImpl implements Player {
       case UnitType.Mine:
       case UnitType.OilWell:
       case UnitType.GasPlant: {
-        const placement = this.landBasedStructureSpawn(targetTile, validTiles);
-        if (placement === false) return false;
         const map = this.mg.map();
-        const site = resourceAt(
-          map,
-          this.mg.config().gameConfig().gameMap,
-          placement,
-        );
-        if (site === null) return false;
-        if (unitType === UnitType.Farm && site.resource !== "fertile_soil")
-          return false;
-        if (unitType === UnitType.OilWell && site.resource !== "oil")
-          return false;
-        if (unitType === UnitType.GasPlant && site.resource !== "gas")
-          return false;
-        if (
-          unitType === UnitType.Mine &&
-          (site.resource === "fertile_soil" ||
-            site.resource === "oil" ||
-            site.resource === "gas")
-        )
-          return false;
-        if (this.mg.resourceRemaining(site.id, site.capacity) <= 0)
-          return false;
-        // One structure per deposit: the player upgrades rather than spams.
-        const nearby = this.mg.nearbyUnits(
-          placement,
-          site.radius * 3,
-          [UnitType.Farm, UnitType.Mine, UnitType.OilWell, UnitType.GasPlant],
-          undefined,
-          true,
-        );
-        for (const { unit } of nearby) {
-          const occupied = resourceAt(
-            map,
-            this.mg.config().gameConfig().gameMap,
-            unit.tile(),
-          );
-          if (occupied?.id === site.id && unit.isActive()) return false;
+        const mapType = this.mg.config().gameConfig().gameMap;
+        const occupiedSites = new Map<number, boolean>();
+        // The candidates already satisfy ownership and building separation and
+        // are sorted nearest first. Keep searching until resource rules fit too.
+        for (const placement of validTiles ??
+          this.validStructureSpawnTiles(targetTile)) {
+          if (!map.isLand(placement) || map.isImpassable(placement)) continue;
+          const site = resourceAt(map, mapType, placement);
+          if (!site || !resourceMatchesBuilding(unitType, site.resource))
+            continue;
+          if (
+            site.resource !== "fertile_soil" &&
+            this.mg.resourceRemaining(site.id, site.capacity) <= 0
+          )
+            continue;
+          let occupied = occupiedSites.get(site.id);
+          if (occupied === undefined) {
+            occupied = this.mg
+              .nearbyUnits(
+                placement,
+                site.radius * 3,
+                RESOURCE_BUILDINGS,
+                undefined,
+                true,
+              )
+              .some(
+                ({ unit }) =>
+                  unit.isActive() &&
+                  resourceAt(map, mapType, unit.tile())?.id === site.id,
+              );
+            occupiedSites.set(site.id, occupied);
+          }
+          if (!occupied) return placement;
         }
-        return placement;
+        return false;
       }
       case UnitType.MissileSilo:
       case UnitType.DefensePost:

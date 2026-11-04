@@ -21,7 +21,11 @@ export function resourceEconomyLines(info?: ResourceEconomyInfo): string[] {
     lines.push(
       `${t("resource_economy.production")}: ${number(info.level ? info.currentPerCycle : info.productionPerCycle)} ${t("resource_economy.cycle")}`,
     );
-    if (info.level)
+    if (
+      info.level &&
+      info.reason !== "max_level" &&
+      info.reason !== "exhausted"
+    )
       lines.push(
         `${t("resource_economy.next")}: ${number(info.nextPerCycle)} (+${number(info.upgradeGainPerCycle)}) ${t("resource_economy.cycle")}`,
       );

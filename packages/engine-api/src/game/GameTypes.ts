@@ -178,7 +178,7 @@ export interface PublicGameModifiers {
 }
 
 // Largest bulk-purchase amount an intent may carry (mirrored by the intent
-// schemas' max). Also the length of BuildableUnit.upgradeCosts.
+// schemas' max). Also the maximum length of BuildableUnit.upgradeCosts.
 export const MAX_UPGRADE_AMOUNT = 50;
 
 export interface UnitInfo {
@@ -375,6 +375,7 @@ export interface ResourceEconomyInfo {
     | "no_resource"
     | "wrong_resource"
     | "not_owned"
+    | "max_level"
     | "exhausted"
     | "under_construction"
     | "deleting"

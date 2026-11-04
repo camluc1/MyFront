@@ -3,7 +3,11 @@ import {
   type ResourceEconomyInfo,
 } from "@openfront/engine-api/game/GameTypes";
 import { resourceAt } from "@openfront/engine-lib/game/NaturalResources";
-import { resourceProduction } from "@openfront/engine-lib/game/ResourceProduction";
+import {
+  resourceProduction,
+  RESOURCE_MAX_LEVEL,
+  resourceMatchesBuilding,
+} from "@openfront/engine-lib/game/ResourceProduction";
 import type { Game, Player, Unit } from "./Game";
 
 export const RESOURCE_BUILDINGS = [
@@ -12,6 +16,44 @@ export const RESOURCE_BUILDINGS = [
   UnitType.OilWell,
   UnitType.GasPlant,
 ];
+/** Productive or under construction on a usable site; exhausted sites free the AI investment slot. */
+export function hasUsableResourceSite(game: Game, unit: Unit): boolean {
+  const site = resourceAt(
+    game.map(),
+    game.config().gameConfig().gameMap,
+    unit.tile(),
+  );
+  return (
+    unit.isActive() &&
+    !unit.isMarkedForDeletion() &&
+    site !== null &&
+    resourceMatchesBuilding(unit.type(), site.resource) &&
+    (site.resource === "fertile_soil" ||
+      game.resourceRemaining(site.id, site.capacity) > 0)
+  );
+}
+/** Shared by authorization, AI and economic explanations. Other buildings are unaffected. */
+export function resourceUpgradeBlockReason(
+  game: Game,
+  unit: Unit,
+): ResourceEconomyInfo["reason"] {
+  if (!RESOURCE_BUILDINGS.includes(unit.type())) return undefined;
+  const site = resourceAt(
+    game.map(),
+    game.config().gameConfig().gameMap,
+    unit.tile(),
+  );
+  if (!site) return "no_resource";
+  if (!resourceMatchesBuilding(unit.type(), site.resource))
+    return "wrong_resource";
+  if (
+    site.resource !== "fertile_soil" &&
+    game.resourceRemaining(site.id, site.capacity) <= 0
+  )
+    return "exhausted";
+  if (unit.level() >= RESOURCE_MAX_LEVEL) return "max_level";
+  return undefined;
+}
 export function resourceRailMultiplier(game: Game, unit: Unit): number {
   if (unit.type() !== UnitType.Mine) return 1;
   const cluster = game
@@ -66,22 +108,19 @@ export function resourceEconomyInfo(
   const nearby = game
     .nearbyUnits(tile, game.config().structureMinDist(), type, undefined, true)
     .sort((a, b) => a.distSquared - b.distSquared)[0]?.unit;
-  const unit = !newPlacement && nearby?.owner() === player ? nearby : undefined;
+  const unit =
+    !newPlacement &&
+    (canUpgrade !== false || canBuild === false) &&
+    nearby?.owner() === player
+      ? nearby
+      : undefined;
   const placement = unit?.tile() ?? (canBuild !== false ? canBuild : tile);
   const site = resourceAt(
     game.map(),
     game.config().gameConfig().gameMap,
     placement,
   );
-  const compatible =
-    site &&
-    (type === UnitType.Farm
-      ? site.resource === "fertile_soil"
-      : type === UnitType.OilWell
-        ? site.resource === "oil"
-        : type === UnitType.GasPlant
-          ? site.resource === "gas"
-          : !["fertile_soil", "oil", "gas"].includes(site.resource));
+  const compatible = site && resourceMatchesBuilding(type, site.resource);
   const remaining = site
     ? site.resource === "fertile_soil"
       ? null
@@ -96,6 +135,8 @@ export function resourceEconomyInfo(
   else if (remaining === 0) reason = "exhausted";
   else if (unit?.isUnderConstruction()) reason = "under_construction";
   else if (unit?.isMarkedForDeletion()) reason = "deleting";
+  else if (unit && resourceUpgradeBlockReason(game, unit))
+    reason = resourceUpgradeBlockReason(game, unit);
   else if (
     !unit &&
     game
@@ -148,7 +189,10 @@ export function resourceEconomyInfo(
     productionPerCycle: production,
     currentPerCycle: current,
     nextPerCycle: next,
-    upgradeGainPerCycle: unit ? Math.max(0, next - current) : 0,
+    upgradeGainPerCycle:
+      unit && !resourceUpgradeBlockReason(game, unit)
+        ? Math.max(0, next - current)
+        : 0,
     railway:
       type !== UnitType.Mine
         ? "not_applicable"

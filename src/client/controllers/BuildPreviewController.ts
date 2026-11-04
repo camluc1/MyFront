@@ -851,15 +851,22 @@ export class BuildPreviewController implements Controller {
     return { placementTile, snapToPlacement: placementTile !== tileRef };
   }
 
+  private selectedUpgradeAmount(unit: BuildableUnit): number {
+    const requested = this.uiState.upgradeMultiplier || 1;
+    return unit.resourceEconomy &&
+      unit.upgradeCosts &&
+      unit.canUpgrade !== false
+      ? Math.min(requested, unit.upgradeCosts.length)
+      : requested;
+  }
+
   private resolveGhostAffordability(
     myPlayer: NonNullable<ReturnType<GameView["myPlayer"]>>,
     u: BuildableUnit,
   ): { cost: number; multiplier: number; canAfford: boolean } {
     const isNuke = u.type === UnitType.AtomBomb;
     const multiplier =
-      u.canUpgrade !== false || isNuke
-        ? (this.uiState.upgradeMultiplier ?? 1)
-        : 1;
+      u.canUpgrade !== false || isNuke ? this.selectedUpgradeAmount(u) : 1;
     const cost = bulkCost(u, multiplier);
     let canAfford = myPlayer.gold() >= cost;
     if (isNuke) {
@@ -1142,7 +1149,7 @@ export class BuildPreviewController implements Controller {
         new SendUpgradeStructureIntentEvent(
           unit.canUpgrade,
           unit.type,
-          this.uiState.upgradeMultiplier || 1,
+          this.selectedUpgradeAmount(unit),
         ),
       );
       this.removeGhostStructure();
