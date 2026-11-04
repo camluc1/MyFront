@@ -608,6 +608,7 @@ export interface Game extends GameLike {
     includeUnderConstruction?: boolean,
   ): Array<{ unit: Unit; distSquared: number }>;
 
+  executions(): Execution[];
   addExecution(...exec: Execution[]): void;
   displayMessage(
     message: string,

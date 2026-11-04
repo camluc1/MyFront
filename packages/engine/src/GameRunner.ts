@@ -31,6 +31,7 @@ import { simpleHash } from "@openfront/engine-lib/Util";
 import { EngineConfig } from "./configuration/EngineConfig";
 import { DoomsdayClockExecution } from "./execution/DoomsdayClockExecution";
 import { Executor } from "./execution/ExecutionManager";
+import { NationExecution } from "./execution/NationExecution";
 import { RecomputeRailClusterExecution } from "./execution/RecomputeRailClusterExecution";
 import { SpawnTimerExecution } from "./execution/SpawnTimerExecution";
 import { WinCheckExecution } from "./execution/WinCheckExecution";
@@ -386,7 +387,18 @@ export class GameRunner {
     if (!player.isPlayer()) {
       throw new Error(`player with id ${playerID} not found`);
     }
-    return player.playerProfile();
+    const profile = player.playerProfile();
+    if (
+      this.game.config().gameConfig().gameType === GameType.Singleplayer &&
+      player.type() === PlayerType.Nation
+    ) {
+      for (const execution of this.game.executions()) {
+        if (!(execution instanceof NationExecution)) continue;
+        const objective = execution.objectiveInfo(playerID);
+        if (objective) return { ...profile, objective };
+      }
+    }
+    return profile;
   }
   public humanDisconnects(): HumanDisconnects {
     return humanDisconnects(this.game);

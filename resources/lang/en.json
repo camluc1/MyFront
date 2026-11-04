@@ -2988,5 +2988,20 @@
       "spacing": "No valid location: keep 15 tiles from other buildings",
       "max_level": "Maximum productive level reached (50)"
     }
+  },
+  "nation_objective": {
+    "title": "Current strategic objective",
+    "none": "Assessing opportunities",
+    "target": "Target country",
+    "develop": "Develop domestic production",
+    "develop_detail": "Invest in an available resource site when the return justifies its cost and remaining reserves.",
+    "capture": "Capture a valuable area",
+    "capture_detail": "Pursue productive resources or infrastructure while respecting military reserves and access.",
+    "consolidate": "Consolidate and defend",
+    "consolidate_detail": "Secure a captured or threatened position and retain more troops for defense.",
+    "maritime": "Secure useful maritime access",
+    "maritime_detail": "Obtain a viable coast or establish a first port for trade and future operations.",
+    "contain": "Contain a regional threat",
+    "contain_detail": "Seek partners against a threatening neighbor; attack only when relative strength permits."
   }
 }

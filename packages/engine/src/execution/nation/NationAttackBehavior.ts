@@ -119,12 +119,27 @@ export class NationAttackBehavior extends AiAttackBehavior {
     // Only set during a maybeAttack call, so always null between ticks.
     this.landNeighbors = null;
     this.strategicTarget = null;
+    this.consolidating = false;
     this.botAttackTroopsSent = s.botAttackTroopsSent;
     this.followedLandings = s.followedLandings.map((i) => r.attack(i));
     this.navalPressureCooldownUntil = new Map(s.navalPressureCooldowns ?? []);
   }
 
   /** Set by NationExecution's single-player War Director before each campaign decision. */
+  private consolidating = false;
+
+  setConsolidating(value: boolean): void {
+    this.consolidating = value;
+  }
+
+  canPursueObjective(target: Player): boolean {
+    return (
+      !this.isProtectedNationTarget(target) &&
+      !this.player.isFriendly(target) &&
+      (this.player.sharesBorderWith(target) || this.canReach(target))
+    );
+  }
+
   setStrategicTarget(target: Player | null): void {
     this.strategicTarget = target;
   }
@@ -1411,6 +1426,16 @@ export class NationAttackBehavior extends AiAttackBehavior {
         : this.expansionTroopCap(),
     );
 
+    // A temporary defensive plan retains troops without preventing retaliation or free expansion.
+    if (
+      this.consolidating &&
+      this.game.config().gameConfig().gameType === GameType.Singleplayer &&
+      target.isPlayer() &&
+      target.type() !== PlayerType.Bot &&
+      opponent === undefined
+    ) {
+      troops = Math.min(troops, Math.floor(this.player.troops() * 0.2));
+    }
     if (troops < 1) {
       return null;
     }

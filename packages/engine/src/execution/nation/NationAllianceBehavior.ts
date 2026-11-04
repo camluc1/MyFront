@@ -63,6 +63,31 @@ export class NationAllianceBehavior {
     this.player = player;
     this.emojiBehavior = emojiBehavior;
     this.doctrine = doctrine;
+    this.containmentTarget = null;
+  }
+
+  private containmentTarget: number | null = null;
+  setContainmentTarget(id: number | null): void {
+    this.containmentTarget = id;
+  }
+
+  private objectivePartner(other: Player): boolean {
+    if (
+      this.containmentTarget === null ||
+      this.game.config().gameConfig().gameMode !== GameMode.FFA ||
+      this.game.config().gameConfig().gameType !== GameType.Singleplayer
+    )
+      return false;
+    const threat = this.game.playerBySmallID(this.containmentTarget);
+    return (
+      threat.isPlayer() &&
+      threat.isAlive() &&
+      !this.player.isFriendly(threat) &&
+      other !== threat &&
+      !other.isFriendly(threat) &&
+      other.sharesBorderWith(threat) &&
+      this.player.relation(other) >= Relation.Neutral
+    );
   }
 
   handleAllianceRequests() {
@@ -154,6 +179,7 @@ export class NationAllianceBehavior {
     if (this.shouldCounterbalanceRunawayLeader(otherPlayer)) {
       return true;
     }
+    if (this.objectivePartner(otherPlayer)) return true;
     // Before caring about the relation, first check if the otherPlayer is a threat
     // Easy (dumb) nations are blinded by hatred, they don't care about threats, they care about the relation
     // Impossible (smart) nations on the other hand are analyzing the facts

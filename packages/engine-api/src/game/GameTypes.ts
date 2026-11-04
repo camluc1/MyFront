@@ -434,7 +434,24 @@ export const NUKE_BULK_STEPS: readonly number[] = [2, 5];
 
 export const STRUCTURE_BULK_STEPS: readonly number[] = [5, 10];
 
+export type NationObjectiveKind =
+  | "develop"
+  | "capture"
+  | "consolidate"
+  | "maritime"
+  | "contain";
+
+/** Read-only single-player intelligence; the authoritative plan lives in NationExecution. */
+export interface NationObjectiveInfo {
+  kind: NationObjectiveKind;
+  targetSmallID: number | null;
+  tile: TileRef | null;
+  startedTick: number;
+  expiresTick: number;
+}
+
 export interface PlayerProfile {
+  objective?: NationObjectiveInfo;
   relations: Record<number, Relation>;
   alliances: number[];
 }

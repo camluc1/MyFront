@@ -35,6 +35,11 @@ import { ConstructionExecution } from "../ConstructionExecution";
 import { UpgradeStructureExecution } from "../UpgradeStructureExecution";
 import { DEFAULT_NATION_DOCTRINE, type NationDoctrine } from "./NationDoctrine";
 import { isMirvWorthSavingFor } from "./NationMIRVBehavior";
+import {
+  resourceBuilding,
+  objectivesEnabled,
+  type NationObjective,
+} from "./NationObjectives";
 import { NationStructurePlacement } from "./NationStructurePlacement";
 import { hasHighStartingGold, isSaveUpWithinReach } from "./NationUtils";
 
@@ -281,6 +286,7 @@ export class NationStructureBehavior {
     this.game = r.game;
     this.player = player;
     this.doctrine = doctrine;
+    this.objective = null;
     this.placement = new NationStructurePlacement(random, r.game, player);
     this.mirvWorthSavingMemo = null;
     this.lastStructureTick = s.lastStructureTick;
@@ -288,6 +294,132 @@ export class NationStructureBehavior {
     this.builtCrowdedMapFirstStructure = s.builtCrowdedMapFirstStructure;
     this._hasHighStartingGold = s.hasHighStartingGold;
     this._postSaveUpStartTick = s.postSaveUpStartTick;
+  }
+
+  private objective: NationObjective | null = null;
+  setObjective(objective: NationObjective | null): void {
+    this.objective = objective;
+  }
+
+  /** One authorized investment at the objective location; normal defense and pacing run first. */
+  private maybeBuildObjective(): boolean {
+    const goal = this.objective;
+    if (
+      !goal ||
+      !objectivesEnabled(this.game) ||
+      goal.tile === null ||
+      this.game.owner(goal.tile) !== this.player
+    )
+      return false;
+    if (goal.kind === "develop" && goal.siteId !== null) {
+      const site = resourceDeposits(
+        this.game.map(),
+        this.game.config().gameConfig().gameMap,
+      ).find((s) => s.id === goal.siteId);
+      if (
+        !site ||
+        (site.resource !== "fertile_soil" &&
+          this.game.resourceRemaining(site.id, site.capacity) <= 0)
+      )
+        return false;
+      const type = resourceBuilding(site);
+      if (goal.unitId !== null) {
+        const unit = this.game.unit(goal.unitId);
+        if (
+          !unit ||
+          unit.owner() !== this.player ||
+          unit.level() !== goal.initialLevel ||
+          !this.player.canUpgradeUnit(unit) ||
+          this.player.gold() <
+            structureUpgradeCost(this.game, this.player, type) * 2n
+        )
+          return false;
+        this.game.addExecution(
+          new UpgradeStructureExecution(this.player, unit.id(), 1),
+        );
+        return true;
+      }
+      const current = [
+        UnitType.Farm,
+        UnitType.Mine,
+        UnitType.OilWell,
+        UnitType.GasPlant,
+      ]
+        .flatMap((t) => this.player.units(t))
+        .filter((u) => hasUsableResourceSite(this.game, u));
+      if (
+        current.length >=
+        Math.max(1, Math.min(9, Math.ceil(this.cityCount() * 0.8)))
+      )
+        return false;
+      const tile = this.player.canBuild(type, goal.tile);
+      if (tile === false || this.player.gold() < this.cost(type) * 2n)
+        return false;
+      this.game.addExecution(
+        new ConstructionExecution(this.player, type, tile),
+      );
+      return true;
+    }
+    if (
+      goal.kind === "maritime" &&
+      goal.targetSmallID === null &&
+      this.player.units(UnitType.Port).length === 0
+    ) {
+      const tile = this.player.canBuild(UnitType.Port, goal.tile);
+      if (
+        tile !== false &&
+        this.player.gold() >= this.cost(UnitType.Port) * 2n
+      ) {
+        this.game.addExecution(
+          new ConstructionExecution(this.player, UnitType.Port, tile),
+        );
+        return true;
+      }
+    }
+    if (
+      goal.kind === "consolidate" &&
+      !this.game.config().isUnitDisabled(UnitType.DefensePost) &&
+      this.game.config().gameConfig().difficulty !== Difficulty.Easy
+    ) {
+      const range = this.game.config().defensePostRange();
+      if (
+        this.game.hasUnitNearby(
+          goal.tile,
+          range,
+          UnitType.DefensePost,
+          this.player.id(),
+          true,
+        )
+      )
+        return false;
+      // Fortify only an exposed position, not an arbitrary safe interior tile.
+      const threatened = Array.from(this.player.borderTiles()).some(
+        (border) =>
+          this.game.euclideanDistSquared(border, goal.tile!) <=
+            (range * 2) ** 2 &&
+          this.game.neighbors(border).some((n) => {
+            const owner = this.game.owner(n);
+            return (
+              owner.isPlayer() &&
+              owner !== this.player &&
+              !this.player.isFriendly(owner)
+            );
+          }),
+      );
+      const tile = threatened
+        ? this.player.canBuild(UnitType.DefensePost, goal.tile)
+        : false;
+      if (
+        tile !== false &&
+        this.player.gold() >= this.cost(UnitType.DefensePost) * 2n
+      ) {
+        this.game.addExecution(
+          new ConstructionExecution(this.player, UnitType.DefensePost, tile),
+        );
+        return true;
+      }
+    }
+    return false;
   }
 
   handleStructures(): boolean {
@@ -700,6 +832,8 @@ export class NationStructureBehavior {
       return true;
     }
 
+    if (this.placementsCount > 1 && this.maybeBuildObjective()) return true;
+
     // Natural-resource investments share the same money, cooldown and
     // construction execution as every existing nation build.
     if (this.placementsCount > 1 && this.maybeDevelopNaturalResources()) {
@@ -709,7 +843,8 @@ export class NationStructureBehavior {
     // The nation's doctrine changes its development emphasis without
     // replacing the common economy or removing any buildable structure.
     const buildOrder: UnitType[] =
-      this.doctrine.structurePreference === "industry"
+      this.doctrine.structurePreference === "industry" ||
+      this.objective?.kind === "develop"
         ? [
             UnitType.Factory,
             UnitType.Port,

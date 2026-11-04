@@ -1,5 +1,6 @@
 import {
   GameType,
+  type NationObjectiveInfo,
   PlayerType,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
@@ -48,6 +49,79 @@ export class FrontierWorldIntelligence
   private economyQueryPending = false;
   private economyQueryTick = -Infinity;
   private economyPlayerID: number | null = null;
+
+  @state() private nationObjective: {
+    smallID: number;
+    value: NationObjectiveInfo | null;
+  } | null = null;
+  private objectivePending = false;
+  private objectiveQueryTick = -Infinity;
+  private objectivePlayerID: number | null = null;
+  private objectiveQueryVersion = 0;
+
+  private refreshObjective(): void {
+    if (!this.open || this.objectivePending) return;
+    const player = this.game
+      .playerViews()
+      .find((p) => p.smallID() === this.selectedSmallID);
+    if (!player || player.type() !== PlayerType.Nation) {
+      this.nationObjective = null;
+      return;
+    }
+    const tick = this.game.ticks();
+    if (
+      this.objectivePlayerID === player.smallID() &&
+      tick >= this.objectiveQueryTick &&
+      tick - this.objectiveQueryTick < 50
+    )
+      return;
+    this.objectivePlayerID = player.smallID();
+    this.objectiveQueryTick = tick;
+    this.objectivePending = true;
+    const game = this.game;
+    const version = ++this.objectiveQueryVersion;
+    void player
+      .profile()
+      .then((profile) => {
+        if (this.game === game && version === this.objectiveQueryVersion)
+          this.nationObjective = {
+            smallID: player.smallID(),
+            value: profile.objective ?? null,
+          };
+      })
+      .catch(() => {
+        if (version === this.objectiveQueryVersion) this.nationObjective = null;
+      })
+      .finally(() => {
+        if (version === this.objectiveQueryVersion)
+          this.objectivePending = false;
+      });
+  }
+
+  private renderObjective() {
+    const data = this.nationObjective;
+    if (!data || data.smallID !== this.selectedSmallID) return nothing;
+    const goal = data.value;
+    const target =
+      !goal || goal.targetSmallID === null
+        ? null
+        : this.game
+            .playerViews()
+            .find((p) => p.smallID() === goal.targetSmallID);
+    return html`<div
+      class="mt-3 rounded-lg border border-violet-500/30 bg-slate-900 p-3"
+      data-nation-objective
+    >
+      <div class="text-xs text-violet-200">
+        ${translateText("nation_objective.title")}
+      </div>
+      <div class="mt-1 text-sm text-white">
+        ${translateText(goal ? `nation_objective.${goal.kind}` : "nation_objective.none")}
+      </div>
+      ${goal ? html`<div class="mt-1 text-xs text-slate-400">${translateText(`nation_objective.${goal.kind}_detail`)}</div>` : nothing}
+      ${target ? html`<div class="mt-2 text-xs text-slate-300">${translateText("nation_objective.target")}: ${target.displayName()}</div>` : nothing}
+    </div>`;
+  }
 
   private refreshResourceEconomy(): void {
     if (!this.open || this.tab !== "economy" || this.economyQueryPending)
@@ -116,6 +190,11 @@ export class FrontierWorldIntelligence
     this.enabled =
       game.config().gameConfig().gameType === GameType.Singleplayer;
     this.tracker.reset();
+    this.nationObjective = null;
+    this.objectiveQueryTick = -Infinity;
+    this.objectivePlayerID = null;
+    this.objectivePending = false;
+    this.objectiveQueryVersion++;
     this.resourceEconomy = null;
     this.economyQueryTick = -Infinity;
     this.economyPlayerID = null;
@@ -137,6 +216,7 @@ export class FrontierWorldIntelligence
     if (!this.enabled || !this.game || this.game.inSpawnPhase()) return;
 
     this.refreshResourceEconomy();
+    this.refreshObjective();
     const tick = this.game.ticksSinceStart();
     const myPlayer = this.game.myPlayer();
     const inputs: FrontierWorldPlayerInput[] = this.game
@@ -608,7 +688,7 @@ export class FrontierWorldIntelligence
                     </div>
                     <div class="min-w-0">
                       ${this.renderSelectedHistory()}
-                      ${this.renderResourceIncome()}
+                      ${this.renderResourceIncome()} ${this.renderObjective()}
                       ${
                         selected
                           ? html`

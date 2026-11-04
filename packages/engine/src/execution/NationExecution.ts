@@ -35,16 +35,29 @@ import type {
 } from "../snapshot/SnapshotContext";
 import { NationAllianceBehavior } from "./nation/NationAllianceBehavior";
 import { NationAttackBehavior } from "./nation/NationAttackBehavior";
+import {
+  getNationDoctrine,
+  type NationDoctrine,
+} from "./nation/NationDoctrine";
 import { NationEmojiBehavior } from "./nation/NationEmojiBehavior";
 import { NationMIRVBehavior } from "./nation/NationMIRVBehavior";
 import { NationNukeBehavior } from "./nation/NationNukeBehavior";
+import {
+  chooseObjective,
+  objectiveScore,
+  objectiveCandidates,
+  objectiveKey,
+  objectiveStillValid,
+  objectivesEnabled,
+  NationObjectiveSchema,
+  type NationObjective,
+} from "./nation/NationObjectives";
 import { NationStructureBehavior } from "./nation/NationStructureBehavior";
+import { findRunawayLeader } from "./nation/NationUtils";
 import { NationWarshipBehavior } from "./nation/NationWarshipBehavior";
 import { tutorialCollapse } from "./nation/TutorialCollapse";
 import { tutorialSilo, tutorialWarship } from "./nation/TutorialSilo";
 import { SpawnExecution } from "./SpawnExecution";
-import { getNationDoctrine, type NationDoctrine } from "./nation/NationDoctrine";
-import { findRunawayLeader } from "./nation/NationUtils";
 
 export class NationExecution implements Execution {
   private active = true;
@@ -71,6 +84,161 @@ export class NationExecution implements Execution {
   private embargoMalusApplied = new Set<PlayerID>();
 
   // Persist the strategic intent by smallID so it survives save/load.
+  private objective: NationObjective | null = null;
+  private objectiveReviewTick = 0;
+  private objectiveSelection = 0;
+  private objectiveCooldownKey: string | null = null;
+  private objectiveCooldownUntil = 0;
+
+  /** Read-only intelligence, also used to verify save/load continuity. */
+  objectiveInfo(playerID: number) {
+    return this.player?.smallID() === playerID &&
+      this.objective &&
+      this.player.isAlive() &&
+      objectivesEnabled(this.mg)
+      ? {
+          kind: this.objective.kind,
+          targetSmallID: this.objective.targetSmallID,
+          tile: this.objective.tile,
+          startedTick: this.objective.startedTick,
+          expiresTick: this.objective.expiresTick,
+        }
+      : undefined;
+  }
+
+  private applyObjective(): void {
+    this.structureBehavior.setObjective(this.objective);
+    this.allianceBehavior.setContainmentTarget(
+      this.objective?.kind === "contain" ? this.objective.targetSmallID : null,
+    );
+    this.attackBehavior.setConsolidating(
+      this.objective?.kind === "consolidate",
+    );
+  }
+
+  private updateObjective(ticks: number): void {
+    if (!this.player || !objectivesEnabled(this.mg)) {
+      this.objective = null;
+      this.applyObjective();
+      return;
+    }
+    const player = this.player;
+    const current = this.objective;
+    // Capturing the actual prize completes the offensive plan, even if the rival survives.
+    if (
+      current &&
+      (current.kind === "capture" || current.kind === "maritime") &&
+      current.targetSmallID !== null &&
+      current.tile !== null &&
+      this.mg.owner(current.tile) === player
+    ) {
+      this.objective = {
+        ...current,
+        kind: "consolidate",
+        targetSmallID: null,
+        unitId: null,
+        startedTick: ticks,
+        expiresTick: ticks + 600,
+      };
+      this.objectiveReviewTick = ticks + 300;
+      this.warPlanExpiresTick = 0;
+      this.applyObjective();
+      return;
+    }
+    const target =
+      !current || current.targetSmallID === null
+        ? null
+        : this.mg.playerBySmallID(current.targetSmallID);
+    const lostAccess =
+      current !== null &&
+      current.kind !== "contain" &&
+      ticks >= this.objectiveReviewTick &&
+      target?.isPlayer() &&
+      !this.attackBehavior.canPursueObjective(target);
+    if (
+      current &&
+      (!objectiveStillValid(this.mg, player, current) || lostAccess)
+    ) {
+      this.objectiveCooldownKey = objectiveKey(current);
+      this.objectiveCooldownUntil = ticks + 600;
+      this.objective = null;
+      this.objectiveReviewTick = 0;
+      this.warPlanExpiresTick = 0;
+    }
+    // Surviving an urgent attack takes priority over every elective objective.
+    const incoming = player
+      .incomingAttacks()
+      .reduce((n, a) => n + a.troops(), 0);
+    if (
+      incoming > Math.max(1000, player.troops() * 0.5) &&
+      this.objective?.kind !== "consolidate"
+    ) {
+      this.objective = {
+        kind: "consolidate",
+        targetSmallID: null,
+        tile: player.borderTiles().values().next().value ?? null,
+        siteId: null,
+        unitId: null,
+        initialLevel: 0,
+        startedTick: ticks,
+        expiresTick: ticks + 600,
+      };
+      this.objectiveReviewTick = ticks + 300;
+      this.warPlanExpiresTick = 0;
+    }
+    if (ticks < this.objectiveReviewTick) {
+      this.applyObjective();
+      return;
+    }
+    this.objectiveReviewTick = ticks + 300;
+    const candidates = objectiveCandidates(this.mg, player, (p) =>
+      this.attackBehavior.canPursueObjective(p),
+    ).filter(
+      (c) =>
+        ticks >= this.objectiveCooldownUntil ||
+        objectiveKey(c) !== this.objectiveCooldownKey,
+    );
+    const retained = this.objective;
+    // Keep viable plans for at least 60 seconds, then require a meaningful improvement to switch.
+    if (retained && ticks - retained.startedTick < 600) {
+      this.applyObjective();
+      return;
+    }
+    const chosen = chooseObjective(
+      candidates,
+      this.doctrine.id,
+      `${this.gameID}|${player.id()}|${this.objectiveSelection++}`,
+    );
+    if (retained) {
+      const existing = candidates.find(
+        (c) => objectiveKey(c) === objectiveKey(retained),
+      );
+      if (
+        existing &&
+        chosen &&
+        objectiveScore(chosen, this.doctrine.id) <
+          objectiveScore(existing, this.doctrine.id) + 15
+      ) {
+        this.applyObjective();
+        return;
+      }
+    }
+    this.objective = chosen
+      ? {
+          kind: chosen.kind,
+          targetSmallID: chosen.targetSmallID,
+          tile: chosen.tile,
+          siteId: chosen.siteId,
+          unitId: chosen.unitId,
+          initialLevel: chosen.initialLevel,
+          startedTick: ticks,
+          expiresTick: ticks + (chosen.kind === "consolidate" ? 600 : 1800),
+        }
+      : null;
+    this.warPlanExpiresTick = 0;
+    this.applyObjective();
+  }
+
   private warPlanTargetSmallID: number | null = null;
   private warPlanReviewTick = 0;
   private warPlanExpiresTick = 0;
@@ -289,6 +457,7 @@ export class NationExecution implements Execution {
       return;
     }
 
+    this.updateObjective(ticks);
     this.emojiBehavior.maybeSendCasualEmoji();
     this.updateRelationsFromEmbargos();
     this.allianceBehavior.handleAllianceRequests();
@@ -408,6 +577,25 @@ export class NationExecution implements Execution {
       return;
     }
 
+    if (this.objective !== null) {
+      const targetID = this.objective.targetSmallID;
+      const target =
+        targetID === null ? null : this.mg.playerBySmallID(targetID);
+      // Containment can be diplomatic/defensive while an offensive attack is not viable.
+      const ownStrength =
+        this.player.troops() + this.mg.config().maxTroops(this.player) * 0.15;
+      this.warPlanTargetSmallID =
+        target?.isPlayer() &&
+        target.isAlive() &&
+        !this.player.isFriendly(target) &&
+        ownStrength >=
+          (target.troops() + this.mg.config().maxTroops(target) * 0.15) * 0.75
+          ? targetID
+          : null;
+      this.warPlanReviewTick = ticks + 300;
+      this.warPlanExpiresTick = ticks + 300;
+      return;
+    }
     if (ticks < this.warPlanReviewTick) return;
     this.warPlanReviewTick = ticks + 300;
 
@@ -419,14 +607,16 @@ export class NationExecution implements Execution {
     const ownCapacity = this.mg.config().maxTroops(player);
     const ownStrength = Math.max(1, player.troops() + ownCapacity * 0.15);
     const runawayLeader = findRunawayLeader(this.mg);
-    const candidates = player.nearby().filter(
-      (candidate): candidate is Player =>
-        candidate.isPlayer() &&
-        candidate !== player &&
-        candidate.isAlive() &&
-        candidate.type() !== PlayerType.Bot &&
-        !player.isFriendly(candidate),
-    );
+    const candidates = player
+      .nearby()
+      .filter(
+        (candidate): candidate is Player =>
+          candidate.isPlayer() &&
+          candidate !== player &&
+          candidate.isAlive() &&
+          candidate.type() !== PlayerType.Bot &&
+          !player.isFriendly(candidate),
+      );
 
     let best: Player | null = null;
     let bestScore = Number.NEGATIVE_INFINITY;
@@ -449,10 +639,7 @@ export class NationExecution implements Execution {
       if (candidate === runawayLeader && relativeStrength < 0.9) continue;
       if (relativeStrength < 0.55) continue;
 
-      const territoryValue = Math.min(
-        2,
-        candidate.numTilesOwned() / ownTiles,
-      );
+      const territoryValue = Math.min(2, candidate.numTilesOwned() / ownTiles);
       const borderBonus = player.sharesBorderWith(candidate) ? 12 : 0;
       const hostileBonus =
         player.relation(candidate) <= Relation.Hostile ? 5 : 0;
@@ -590,6 +777,11 @@ export class NationExecution implements Execution {
       reserveRatio: this.reserveRatio,
       expandRatio: this.expandRatio,
       embargoMalusApplied: [...this.embargoMalusApplied],
+      objective: this.objective,
+      objectiveReviewTick: this.objectiveReviewTick,
+      objectiveSelection: this.objectiveSelection,
+      objectiveCooldownKey: this.objectiveCooldownKey,
+      objectiveCooldownUntil: this.objectiveCooldownUntil,
       warPlanTargetSmallID: this.warPlanTargetSmallID,
       warPlanReviewTick: this.warPlanReviewTick,
       warPlanExpiresTick: this.warPlanExpiresTick,
@@ -635,6 +827,11 @@ export class NationExecution implements Execution {
     this.reserveRatio = s.reserveRatio;
     this.expandRatio = s.expandRatio;
     this.embargoMalusApplied = new Set(s.embargoMalusApplied);
+    this.objective = s.objective;
+    this.objectiveReviewTick = s.objectiveReviewTick;
+    this.objectiveSelection = s.objectiveSelection;
+    this.objectiveCooldownKey = s.objectiveCooldownKey;
+    this.objectiveCooldownUntil = s.objectiveCooldownUntil;
     this.warPlanTargetSmallID = s.warPlanTargetSmallID;
     this.warPlanReviewTick = s.warPlanReviewTick;
     this.warPlanExpiresTick = s.warPlanExpiresTick;
@@ -654,7 +851,14 @@ export class NationExecution implements Execution {
     const structure = shell(NationStructureBehavior);
     emoji.restoreSnapshot(b.emoji, r, random, player);
     mirv.restoreSnapshot(b.mirv, r, random, player, emoji);
-    alliance.restoreSnapshot(b.alliance, r, random, player, emoji, this.doctrine);
+    alliance.restoreSnapshot(
+      b.alliance,
+      r,
+      random,
+      player,
+      emoji,
+      this.doctrine,
+    );
     warship.restoreSnapshot(b.warship, r, random, player, emoji);
     attack.restoreSnapshot(
       b.attack,
@@ -675,6 +879,7 @@ export class NationExecution implements Execution {
     this.attackBehavior = attack;
     this.nukeBehavior = nuke;
     this.structureBehavior = structure;
+    this.applyObjective();
   }
 }
 
@@ -694,6 +899,11 @@ const NationStateSchema = z.object({
   reserveRatio: zNum(),
   expandRatio: zNum(),
   embargoMalusApplied: z.array(z.string()),
+  objective: NationObjectiveSchema.nullable(),
+  objectiveReviewTick: zNum(),
+  objectiveSelection: zNum(),
+  objectiveCooldownKey: z.string().nullable(),
+  objectiveCooldownUntil: zNum(),
   warPlanTargetSmallID: zPlayerRef().nullable(),
   warPlanReviewTick: zNum(),
   warPlanExpiresTick: zNum(),
@@ -714,9 +924,17 @@ type NationState = z.infer<typeof NationStateSchema>;
 
 export const NationExecutionSnapshot = execSnapshotType({
   name: "Nation",
-  version: 2,
+  version: 3,
   schema: NationStateSchema,
   migrations: {
+    2: (data) => ({
+      ...data,
+      objective: null,
+      objectiveReviewTick: 0,
+      objectiveSelection: 0,
+      objectiveCooldownKey: null,
+      objectiveCooldownUntil: 0,
+    }),
     1: (data) => ({
       ...data,
       warPlanTargetSmallID: null,
