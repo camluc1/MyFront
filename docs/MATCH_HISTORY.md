@@ -11,11 +11,14 @@ its current simulation time; the panel explicitly identifies this limitation.
 A final sample is frozen at the first game-end notification, including a
 winnerless end. Further after-game play does not alter it.
 
-Open Strategic Database > Historial to compare up to four countries. The same
+Open Strategic Database > Historial to compare up to eight countries. The same
 component appears in the scrolling results dialog. Choose territory, economic
 or military position, recurring income, available or deployed troops, banked
 gold, building count or total building levels. Hover or scrub to inspect values;
-range controls zoom the time interval. Eliminated nations remain selectable.
+range controls zoom the time interval. Eliminated nations remain selectable. Click country buttons to show/hide curves;
+a full selection disables additions without silently dropping a country. The
+"Yo + cinco líderes territoriales" preset includes the human and current top
+five living territorial leaders, deduplicating the human if already in the top five.
 
 Recurring income includes workers, extraction, trade ships and trains, but
 excludes conquests, donations and piracy. The rate uses up to two simulation

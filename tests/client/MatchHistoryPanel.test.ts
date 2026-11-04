@@ -99,3 +99,42 @@ test("late responses cannot install a different game's history", async () => {
     panel.remove();
   }
 });
+
+test("compares eight countries without evicting selections and toggles curves", async () => {
+  const data: MatchHistory = {
+    ...history,
+    players: Array.from({ length: 10 }, (_, i) => ({
+      id: i + 1,
+      name: `Country ${i + 1}`,
+      kind: "nation",
+    })),
+    samples: [
+      {
+        tick: 0,
+        rows: Array.from({ length: 10 }, (_, i) => row(i + 1, (i + 1) * 100)),
+      },
+    ],
+  };
+  const { panel } = mount(data);
+  try {
+    await vi.waitFor(() => expect(panel.history).not.toBeNull());
+    for (let id = 2; id <= 9; id++) panel["choose"](id);
+    expect(panel.selected).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    await panel.updateComplete;
+    expect(panel.querySelectorAll("polyline")).toHaveLength(8);
+    expect(
+      new Set(
+        Array.from(panel.querySelectorAll("polyline")).map((p) =>
+          p.getAttribute("stroke"),
+        ),
+      ).size,
+    ).toBe(8);
+    panel["choose"](4);
+    panel["choose"](9);
+    expect(panel.selected).toEqual([1, 2, 3, 5, 6, 7, 8, 9]);
+    panel["selectLeaders"]();
+    expect(panel.selected).toEqual([1, 10, 9, 8, 7, 6]);
+  } finally {
+    panel.remove();
+  }
+});

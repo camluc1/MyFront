@@ -10,7 +10,17 @@ import {
 import { html, svg, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { GameView } from "../../view";
-const colors = ["#67e8f9", "#fbbf24", "#c084fc", "#fb7185"];
+const colors = [
+  "#67e8f9",
+  "#fbbf24",
+  "#c084fc",
+  "#fb7185",
+  "#4ade80",
+  "#fb923c",
+  "#a5b4fc",
+  "#f0abfc",
+];
+const MAX_COMPARISON_COUNTRIES = colors.length;
 const metrics: Record<HistoryMetric, string> = {
   territory: "Territorio (casillas)",
   rank: "Posición territorial",
@@ -100,9 +110,26 @@ export class MatchHistoryPanel extends LitElement {
     }
   }
   private choose(id: number) {
-    this.selected = this.selected.includes(id)
-      ? this.selected.filter((x) => x !== id)
-      : [...this.selected.slice(-3), id];
+    if (this.selected.includes(id))
+      this.selected = this.selected.filter((x) => x !== id);
+    else if (this.selected.length < MAX_COMPARISON_COUNTRIES)
+      this.selected = [...this.selected, id];
+  }
+  private selectLeaders() {
+    const h = this.history;
+    if (!h) return;
+    const me = this.game?.myPlayer()?.smallID();
+    const leaders = [...h.samples[h.samples.length - 1].rows]
+      .filter((r) => r[1] > 0)
+      .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+      .slice(0, 5)
+      .map((r) => r[0]);
+    this.selected = [
+      ...new Set([
+        ...(me !== undefined && h.players.some((p) => p.id === me) ? [me] : []),
+        ...leaders,
+      ]),
+    ];
   }
   render() {
     const h = this.history;
@@ -166,6 +193,20 @@ export class MatchHistoryPanel extends LitElement {
         Historial desde ${time(h.startTick)} · muestras cada 10 s ·
         ${h.startTick > 100 ? "Registro parcial: la partida se cargó sin historial anterior." : "Se conserva el recorrido completo."}
       </p>
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          data-history-leaders
+          class="rounded border border-slate-600 px-2 py-1"
+          @click=${() => this.selectLeaders()}
+        >
+          Yo + cinco líderes territoriales
+        </button>
+        <span
+          >${this.selected.length}/${MAX_COMPARISON_COUNTRIES} seleccionados ·
+          clic en un país para mostrar u ocultar su curva</span
+        >
+      </div>
       <div class="flex flex-wrap gap-2">
         ${h.players.map((p) => {
           const row = h.samples[h.samples.length - 1]!.rows.find(
@@ -175,6 +216,7 @@ export class MatchHistoryPanel extends LitElement {
             type="button"
             class="rounded border border-slate-600 px-2 py-1"
             aria-pressed=${this.selected.includes(p.id)}
+            ?disabled=${!this.selected.includes(p.id) && this.selected.length >= MAX_COMPARISON_COUNTRIES}
             @click=${() => this.choose(p.id)}
             style=${`color:${this.selected.includes(p.id) ? colors[this.selected.indexOf(p.id)] : "#94a3b8"}`}
           >
