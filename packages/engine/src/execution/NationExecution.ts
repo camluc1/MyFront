@@ -191,8 +191,12 @@ export class NationExecution implements Execution {
       return;
     }
     this.objectiveReviewTick = ticks + 300;
-    const candidates = objectiveCandidates(this.mg, player, (p) =>
-      this.attackBehavior.canPursueObjective(p),
+    const candidates = objectiveCandidates(
+      this.mg,
+      player,
+      (p) => this.attackBehavior.canPursueObjective(p),
+      this.objective,
+      this.attackBehavior.objectiveOverseasTargets(),
     ).filter(
       (c) =>
         ticks >= this.objectiveCooldownUntil ||

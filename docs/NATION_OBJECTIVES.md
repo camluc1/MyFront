@@ -22,6 +22,10 @@ Selection uses a deterministic game/nation/decision hash to choose among candida
 
 The plan is reviewed every 300 simulation ticks (30 seconds), retains a valid commitment for at least 600 ticks, and subsequently requires a 15-point improvement to switch to another candidate. Completion, ownership changes, alliances, depletion, major relative-strength changes and urgent defense can override that commitment. Ordinary plans expire after 1800 ticks; consolidation has a 600-tick upper bound and may finish after 300 ticks when recovered. An expired/invalid plan gets a 600-tick cooldown. No suitable candidate means normal legacy decisions continue.
 
+Containment keeps its current target while that country remains a meaningful threat, even if another neighbor briefly ranks higher. Entry requires land/strength ratios of 1.6/1.2 or substantial incoming pressure; retention uses 1.45/1.1 and a lower incoming-pressure threshold. The retained target participates in normal candidate comparison and commitment rules.
+
+Capture candidates also include up to six nearby overseas rivals from the existing transport range and strength shortlist. Full route and warship safety checks still apply. Neighbor and overseas candidates are deduplicated and bounded to thirty countries.
+
 Economic candidates reserve a second construction/upgrade price for other needs. Their first five minutes of marginal production, truncated to remaining reserves, must repay the cost. These are initial tuning choices, not validated balance claims.
 
 ## Persistence and visibility
@@ -35,3 +39,5 @@ The existing player-profile worker query exposes a read-only objective in single
 Capture plans select a prize and a rival; existing land attacks and boat-route selection still determine the tactical path. This is not precise steering of armies to a chosen tile, a new peace treaty system, or a new victory condition. Changing resource distributions was not part of this change.
 
 Tests cover personality trade-offs, bounded deterministic variety, actual economic construction/upgrades, exhausted and low-reserve sites, allied/unreachable rivals, coast acquisition and port construction, capture-to-consolidation transitions, urgent defense, expiry, mode exclusions, read-only queries, UI query races and save/load continuation. Integrated nation snapshot simulations exercise real attacks and building behavior. Interactive playtesting is still needed to tune decision frequency, personality differences and pacing.
+
+A reproducible production-World simulation audit and its limitations are documented in [NATION_OBJECTIVES_AUDIT.md](NATION_OBJECTIVES_AUDIT.md).

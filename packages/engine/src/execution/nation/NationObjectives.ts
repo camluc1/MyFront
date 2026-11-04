@@ -229,38 +229,53 @@ function candidate(
     opportunity,
   };
 }
+/** Evaluate the existing threat itself, not whether it still ranks first among all neighbors. */
+export function containmentThreatScore(
+  game: Game,
+  player: Player,
+  other: Player,
+  retaining = false,
+): number | null {
+  if (
+    game.elapsedGameSeconds() < 120 ||
+    other === player ||
+    !other.isAlive() ||
+    player.isFriendly(other) ||
+    other.type() === PlayerType.Bot ||
+    !player.sharesBorderWith(other)
+  )
+    return null;
+  const incoming = player
+    .incomingAttacks()
+    .filter((a) => a.attacker() === other)
+    .reduce((n, a) => n + a.troops(), 0);
+  const landRatio = other.numTilesOwned() / Math.max(1, player.numTilesOwned());
+  const strengthRatio =
+    (other.troops() + game.config().maxTroops(other) * 0.15) /
+    Math.max(1, player.troops() + game.config().maxTroops(player) * 0.15);
+  // Small fluctuations should not repeatedly end and recreate a still-useful plan.
+  if (
+    incoming < Math.max(1000, player.troops() * (retaining ? 0.1 : 0.15)) &&
+    !(
+      landRatio >= (retaining ? 1.45 : 1.6) &&
+      strengthRatio >= (retaining ? 1.1 : 1.2)
+    )
+  )
+    return null;
+  return strengthRatio + incoming / Math.max(1, player.troops());
+}
 export function objectiveThreat(game: Game, player: Player): Player | null {
-  if (game.elapsedGameSeconds() < 120) return null;
   let best: Player | null = null;
   let bestScore = 0;
   for (const other of player.nearby()) {
+    if (!other.isPlayer()) continue;
+    const score = containmentThreatScore(game, player, other);
     if (
-      !other.isPlayer() ||
-      other === player ||
-      !other.isAlive() ||
-      player.isFriendly(other) ||
-      other.type() === PlayerType.Bot
-    )
-      continue;
-    if (!player.sharesBorderWith(other)) continue;
-    const incoming = player
-      .incomingAttacks()
-      .filter((a) => a.attacker() === other)
-      .reduce((n, a) => n + a.troops(), 0);
-    const landRatio =
-      other.numTilesOwned() / Math.max(1, player.numTilesOwned());
-    const strengthRatio =
-      (other.troops() + game.config().maxTroops(other) * 0.15) /
-      Math.max(1, player.troops() + game.config().maxTroops(player) * 0.15);
-    if (
-      incoming < Math.max(1000, player.troops() * 0.15) &&
-      !(landRatio >= 1.6 && strengthRatio >= 1.2)
-    )
-      continue;
-    const score = strengthRatio + incoming / Math.max(1, player.troops());
-    if (
-      score > bestScore ||
-      (score === bestScore && best !== null && other.smallID() < best.smallID())
+      score !== null &&
+      (score > bestScore ||
+        (score === bestScore &&
+          best !== null &&
+          other.smallID() < best.smallID()))
     ) {
       best = other;
       bestScore = score;
@@ -297,6 +312,8 @@ export function objectiveCandidates(
   game: Game,
   player: Player,
   canReach: (p: Player) => boolean,
+  current: NationObjective | null = null,
+  overseas: readonly Player[] = [],
 ): ObjectiveCandidate[] {
   if (!objectivesEnabled(game)) return [];
   const result: ObjectiveCandidate[] = [];
@@ -424,8 +441,18 @@ export function objectiveCandidates(
   if (game.config().gameConfig().difficulty === Difficulty.Easy) return result;
   const threat = objectiveThreat(game, player);
   if (threat) result.push(candidate("contain", null, threat, 70, 20, 20, 10));
-  const neighbors = player
-    .nearby()
+  // Keep the current viable option in the comparison so the normal commitment
+  // and 15-point switching margin also apply when another neighbor ranks first.
+  if (current?.kind === "contain" && current.targetSmallID !== null) {
+    const prior = game.playerBySmallID(current.targetSmallID);
+    if (
+      prior.isPlayer() &&
+      prior !== threat &&
+      containmentThreatScore(game, player, prior, true) !== null
+    )
+      result.push(candidate("contain", null, prior, 70, 20, 20, 10));
+  }
+  const neighbors = [...new Set([...player.nearby(), ...overseas])]
     .filter(
       (p): p is Player =>
         p.isPlayer() &&
@@ -435,7 +462,7 @@ export function objectiveCandidates(
         p.type() !== PlayerType.Bot,
     )
     .sort((a, b) => a.smallID() - b.smallID())
-    .slice(0, 24);
+    .slice(0, 30);
   for (const other of neighbors) {
     const enemyStrength = Math.max(
       1,
@@ -554,7 +581,7 @@ export function objectiveStillValid(
     if (!target.isPlayer() || !target.isAlive() || player.isFriendly(target))
       return false;
     if (goal.kind === "contain")
-      return objectiveThreat(game, player) === target;
+      return containmentThreatScore(game, player, target, true) !== null;
     if (goal.tile !== null && game.owner(goal.tile) !== target) return false;
     const strength = player.troops() + game.config().maxTroops(player) * 0.15;
     if (

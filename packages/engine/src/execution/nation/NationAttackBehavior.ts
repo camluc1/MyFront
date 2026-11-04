@@ -132,6 +132,27 @@ export class NationAttackBehavior extends AiAttackBehavior {
     this.consolidating = value;
   }
 
+  /** A bounded shortlist reusing the existing naval range and strength filters. */
+  objectiveOverseasTargets(): Player[] {
+    if (
+      this.game.config().isUnitDisabled(UnitType.TransportShip) ||
+      !Array.from(this.player.borderTiles()).some((t) => this.game.isShore(t))
+    )
+      return [];
+    const nearby = this.player
+      .nearby()
+      .filter((p): p is Player => p.isPlayer());
+    const center = this.getPlayerCenter(this.player);
+    const origin = this.game.ref(center.x, center.y);
+    const distance = (p: Player) => {
+      const c = this.getPlayerCenter(p);
+      return this.game.manhattanDist(origin, this.game.ref(c.x, c.y));
+    };
+    return this.overseasTargets(nearby)
+      .sort((a, b) => distance(a) - distance(b) || a.smallID() - b.smallID())
+      .slice(0, 6);
+  }
+
   canPursueObjective(target: Player): boolean {
     return (
       !this.isProtectedNationTarget(target) &&

@@ -448,3 +448,91 @@ test("a route that becomes inaccessible invalidates a campaign at its next revie
     enemy.smallID(),
   );
 });
+
+test("containment persists when a second neighbor becomes slightly stronger, but ends for an ally", async () => {
+  const { game, own, enemy, partner, execution } = await world();
+  game.map().forEachTile((t) => {
+    if (game.isLand(t))
+      (game.x(t) < 40 ? own : game.y(t) < 100 ? enemy : partner).conquer(t);
+  });
+  for (const p of [own, enemy, partner]) p.removeTroops(p.troops());
+  own.addTroops(100000);
+  enemy.addTroops(250000);
+  partner.addTroops(220000);
+  own.removeGold(own.gold());
+  vi.spyOn(game, "ticks").mockReturnValue(3000);
+  expect(objectiveThreat(game, own)).toBe(enemy);
+  const current = goal(
+    makeCandidate("contain", { tile: null, targetSmallID: enemy.smallID() }),
+    3000,
+  );
+  execution["objective"] = current;
+  execution["objectiveReviewTick"] = 3300;
+  partner.addTroops(60000);
+  expect(objectiveThreat(game, own)).toBe(partner);
+  expect(objectiveStillValid(game, own, current)).toBe(true);
+  execution["updateObjective"](3040);
+  expect(execution["objective"]).toEqual(current);
+  const choices = objectiveCandidates(game, own, () => true, current);
+  expect(
+    choices.filter((c) => c.kind === "contain").map((c) => c.targetSmallID),
+  ).toEqual(expect.arrayContaining([enemy.smallID(), partner.smallID()]));
+  execution["updateObjective"](3700);
+  expect(execution["objective"]?.targetSmallID).toBe(enemy.smallID());
+  own.createAllianceRequest(enemy)!.accept();
+  expect(objectiveStillValid(game, own, current)).toBe(false);
+});
+
+test("economic campaigns consider a reachable overseas country, beyond nearby river neighbors", () => {
+  const grid = Array.from({ length: 10000 }, (_, i) =>
+    i % 100 < 30 || i % 100 >= 65 ? L : W,
+  );
+  const game = createGame(
+    { width: 100, height: 100, grid },
+    { gameType: GameType.Singleplayer, difficulty: Difficulty.Hard },
+  );
+  game.endSpawnPhase();
+  const info = new PlayerInfo("own", PlayerType.Nation, null, "own");
+  const own = game.addPlayer(info),
+    other = game.addPlayer(
+      new PlayerInfo("island", PlayerType.Nation, null, "island"),
+    );
+  game.map().forEachTile((t) => {
+    if (game.isLand(t)) (game.x(t) < 30 ? own : other).conquer(t);
+  });
+  own.addTroops(200000);
+  other.addTroops(20000);
+  other.addGold(1000000n);
+  other.buildUnit(UnitType.City, game.ref(80, 50), {});
+  vi.spyOn(game, "ticks").mockReturnValue(3000);
+  const execution = new NationExecution(
+    "overseas-goal",
+    new Nation(undefined, info),
+  );
+  execution.init(game);
+  execution["initializeBehaviors"]();
+  const behavior = execution["attackBehavior"];
+  expect(own.nearby()).not.toContain(other);
+  const overseas = behavior.objectiveOverseasTargets();
+  expect(overseas).toContain(other);
+  expect(behavior.canPursueObjective(other)).toBe(true);
+  expect(
+    objectiveCandidates(
+      game,
+      own,
+      (p) => behavior.canPursueObjective(p),
+      null,
+      overseas,
+    ).some((c) => c.kind === "capture" && c.targetSmallID === other.smallID()),
+  ).toBe(true);
+  const added = vi.spyOn(game, "addExecution");
+  behavior.setStrategicTarget(other);
+  behavior["attackBestTarget"]([], []);
+  expect(
+    added.mock.calls.some(
+      ([execution]) => execution.constructor.name === "TransportShipExecution",
+    ),
+  ).toBe(true);
+  own.createAllianceRequest(other)!.accept();
+  expect(behavior.objectiveOverseasTargets()).not.toContain(other);
+});
