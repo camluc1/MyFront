@@ -10,6 +10,7 @@ import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { AllianceExtensionExecution } from "@openfront/engine/execution/alliance/AllianceExtensionExecution";
 import { AllianceRequestExecution } from "@openfront/engine/execution/alliance/AllianceRequestExecution";
 import { NationAllianceBehavior } from "@openfront/engine/execution/nation/NationAllianceBehavior";
+import { getNationDoctrine } from "@openfront/engine/execution/nation/NationDoctrine";
 import { NationEmojiBehavior } from "@openfront/engine/execution/nation/NationEmojiBehavior";
 import { AllianceRequest, Game, Player } from "@openfront/engine/game/Game";
 import { setup } from "./util/Setup";
@@ -516,6 +517,53 @@ describe("AllianceBehavior.maybeBetray - juicy ally strategy", () => {
       );
 
       expect(result).toBe(true);
+    },
+  );
+});
+
+describe("Doctrine alliance request behavior", () => {
+  test.each([
+    ["fr", true],
+    ["de", true],
+    ["us", false],
+    ["ru", false],
+  ])(
+    "applies the corrected request weight for %s",
+    async (flag, shouldRequest) => {
+      const game = await setup(
+        "big_plains",
+        { difficulty: Difficulty.Impossible },
+        [
+          new PlayerInfo("nation", PlayerType.Nation, flag, "nation"),
+          new PlayerInfo("neighbor", PlayerType.Human, null, "neighbor"),
+        ],
+      );
+      const nation = game.player("nation");
+      const neighbor = game.player("neighbor");
+      for (let y = 0; y < 10; y++) {
+        for (let x = 0; x < 20; x++) {
+          (x < 10 ? nation : neighbor).conquer(game.ref(x, y));
+        }
+      }
+      nation.setTroops(50_000);
+      neighbor.setTroops(50_000);
+      const random = new PseudoRandom(42);
+      // A uniform draw that passes weights 42/26, but not 18/12.
+      vi.spyOn(random, "next").mockReturnValue(20.5 / 900);
+      const behavior = new NationAllianceBehavior(
+        random,
+        game,
+        nation,
+        new NationEmojiBehavior(random, game, nation),
+        getNationDoctrine(flag, flag),
+      );
+      expect(nation.canSendAllianceRequest(neighbor)).toBe(true);
+      const added = vi.spyOn(game, "addExecution");
+      behavior.maybeSendAllianceRequests([neighbor]);
+      const requests = added.mock.calls.filter(
+        ([execution]) => execution instanceof AllianceRequestExecution,
+      );
+      expect(requests).toHaveLength(shouldRequest ? 1 : 0);
     },
   );
 });

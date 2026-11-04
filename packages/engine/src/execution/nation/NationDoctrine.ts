@@ -1,5 +1,7 @@
+import type { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
+
 /**
- * Stable single-player country personalities.
+ * Stable country personalities in both single-player and multiplayer.
  *
  * Doctrines tune the priorities of the existing nation AI. They do not replace
  * its attack, naval, diplomacy, or construction systems, and every doctrine
@@ -22,10 +24,7 @@ export type NationAttackStrategy =
   | "donate"
   | "crown";
 
-export type NationStructurePreference =
-  | "balanced"
-  | "industry"
-  | "military";
+export type NationStructurePreference = "balanced" | "industry" | "military";
 
 export type NationDoctrineId =
   | "imperialist"
@@ -45,10 +44,10 @@ export interface NationDoctrine {
   readonly reserveRatioOffset: number;
   /** Negative values retain fewer troops at home when expanding into free land or weak bots. */
   readonly expandRatioOffset: number;
-  /** Multiplies the existing low-probability overseas attack checks. */
+  /** Multiplies the probability of the existing overseas attack checks. */
   readonly navalAttackMultiplier: number;
-  /** Chance to request an alliance with each eligible border opponent. */
-  readonly allianceRequestChance: number;
+  /** Relative request weight: 30 is the original 1/30 chance; higher means more likely. */
+  readonly allianceRequestWeight: number;
   readonly structurePreference: NationStructurePreference;
   /** Moves these existing strategies ahead of the difficulty's default order. */
   readonly preferredAttackStrategies: readonly NationAttackStrategy[];
@@ -62,15 +61,9 @@ const DOCTRINES: Readonly<Record<NationDoctrineId, NationDoctrine>> = {
     reserveRatioOffset: -0.02,
     expandRatioOffset: -0.025,
     navalAttackMultiplier: 1.05,
-    allianceRequestChance: 18,
+    allianceRequestWeight: 18,
     structurePreference: "balanced",
-    preferredAttackStrategies: [
-      "weakest",
-      "victim",
-      "crown",
-      "island",
-      "bots",
-    ],
+    preferredAttackStrategies: ["weakest", "victim", "crown", "island", "bots"],
   },
   militarist: {
     id: "militarist",
@@ -79,7 +72,7 @@ const DOCTRINES: Readonly<Record<NationDoctrineId, NationDoctrine>> = {
     reserveRatioOffset: 0,
     expandRatioOffset: -0.015,
     navalAttackMultiplier: 1,
-    allianceRequestChance: 12,
+    allianceRequestWeight: 12,
     structurePreference: "military",
     preferredAttackStrategies: [
       "hated",
@@ -96,7 +89,7 @@ const DOCTRINES: Readonly<Record<NationDoctrineId, NationDoctrine>> = {
     reserveRatioOffset: 0.01,
     expandRatioOffset: -0.01,
     navalAttackMultiplier: 0.9,
-    allianceRequestChance: 24,
+    allianceRequestWeight: 24,
     structurePreference: "balanced",
     preferredAttackStrategies: ["veryWeak", "juicy", "victim", "crown"],
   },
@@ -107,7 +100,7 @@ const DOCTRINES: Readonly<Record<NationDoctrineId, NationDoctrine>> = {
     reserveRatioOffset: -0.015,
     expandRatioOffset: -0.02,
     navalAttackMultiplier: 1.1,
-    allianceRequestChance: 20,
+    allianceRequestWeight: 20,
     structurePreference: "balanced",
     preferredAttackStrategies: [
       "afk",
@@ -124,7 +117,7 @@ const DOCTRINES: Readonly<Record<NationDoctrineId, NationDoctrine>> = {
     reserveRatioOffset: 0.02,
     expandRatioOffset: -0.015,
     navalAttackMultiplier: 0.75,
-    allianceRequestChance: 26,
+    allianceRequestWeight: 26,
     structurePreference: "industry",
     preferredAttackStrategies: ["bots", "victim", "weakest", "juicy"],
   },
@@ -135,7 +128,7 @@ const DOCTRINES: Readonly<Record<NationDoctrineId, NationDoctrine>> = {
     reserveRatioOffset: 0,
     expandRatioOffset: -0.015,
     navalAttackMultiplier: 0.8,
-    allianceRequestChance: 42,
+    allianceRequestWeight: 42,
     structurePreference: "balanced",
     preferredAttackStrategies: [
       "assist",
@@ -152,14 +145,9 @@ const DOCTRINES: Readonly<Record<NationDoctrineId, NationDoctrine>> = {
     reserveRatioOffset: 0.03,
     expandRatioOffset: -0.005,
     navalAttackMultiplier: 0.75,
-    allianceRequestChance: 14,
+    allianceRequestWeight: 14,
     structurePreference: "balanced",
-    preferredAttackStrategies: [
-      "retaliate",
-      "veryWeak",
-      "hated",
-      "weakest",
-    ],
+    preferredAttackStrategies: ["retaliate", "veryWeak", "hated", "weakest"],
   },
 };
 
@@ -172,7 +160,7 @@ export const DEFAULT_NATION_DOCTRINE: NationDoctrine = {
   reserveRatioOffset: 0,
   expandRatioOffset: 0,
   navalAttackMultiplier: 1,
-  allianceRequestChance: 30,
+  allianceRequestWeight: 30,
   structurePreference: "balanced",
   preferredAttackStrategies: [],
 };
@@ -243,9 +231,37 @@ export function getNationDoctrine(
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
+  // Empty flag/name strings intentionally fall through to the next identity.
+  // oxlint-disable-next-line typescript/prefer-nullish-coalescing
   const identity = flag || name || "unknown-nation";
   const id =
     FLAG_DOCTRINES[identity] ??
     DOCTRINE_IDS[stableHash(identity) % DOCTRINE_IDS.length];
   return DOCTRINES[id];
+}
+
+/** Keep alliance frequency near the original 1/30 baseline while making a
+ * larger profile weight more diplomatic. One draw, before eligibility checks,
+ * just like the original behavior. Profile weights are integers, not percent.
+ */
+export function rollDoctrineAllianceRequest(
+  random: PseudoRandom,
+  doctrine: NationDoctrine,
+): boolean {
+  return random.nextInt(0, 900) < doctrine.allianceRequestWeight;
+}
+
+/** Scale probability, never the inverse odds expected by chance(). The
+ * hundred-point numerator preserves even small profile differences without
+ * rounding the denominator (e.g. 1.05 really increases naval pressure by 5%).
+ */
+export function rollDoctrineNavalAttack(
+  random: PseudoRandom,
+  baseOdds: 5 | 10,
+  doctrine: NationDoctrine,
+): boolean {
+  return (
+    random.nextInt(0, baseOdds * 100) <
+    Math.round(doctrine.navalAttackMultiplier * 100)
+  );
 }

@@ -39,6 +39,7 @@ import { planBotAttacks, walledInBots } from "./BotAnnexation";
 import { NationAllianceBehavior } from "./NationAllianceBehavior";
 import {
   DEFAULT_NATION_DOCTRINE,
+  rollDoctrineNavalAttack,
   type NationAttackStrategy,
   type NationDoctrine,
 } from "./NationDoctrine";
@@ -120,9 +121,7 @@ export class NationAttackBehavior extends AiAttackBehavior {
     this.strategicTarget = null;
     this.botAttackTroopsSent = s.botAttackTroopsSent;
     this.followedLandings = s.followedLandings.map((i) => r.attack(i));
-    this.navalPressureCooldownUntil = new Map(
-      s.navalPressureCooldowns ?? [],
-    );
+    this.navalPressureCooldownUntil = new Map(s.navalPressureCooldowns ?? []);
   }
 
   /** Set by NationExecution's single-player War Director before each campaign decision. */
@@ -135,7 +134,8 @@ export class NationAttackBehavior extends AiAttackBehavior {
       target.isPlayer() &&
       this.game.config().gameConfig().gameType === GameType.Singleplayer &&
       this.game.isNationSpawnImmunityActive() &&
-      (target.type() === PlayerType.Nation || target.type() === PlayerType.Human)
+      (target.type() === PlayerType.Nation ||
+        target.type() === PlayerType.Human)
     );
   }
 
@@ -144,7 +144,8 @@ export class NationAttackBehavior extends AiAttackBehavior {
     if (
       this.game.config().gameConfig().gameType !== GameType.Singleplayer ||
       target.type() !== PlayerType.Human
-    ) return true;
+    )
+      return true;
     if (this.isProtectedNationTarget(target)) return false;
 
     const now = this.game.ticks();
@@ -169,8 +170,7 @@ export class NationAttackBehavior extends AiAttackBehavior {
         .filter((ship) => {
           const destination = ship.targetTile();
           return (
-            destination !== undefined &&
-            this.game.owner(destination) === target
+            destination !== undefined && this.game.owner(destination) === target
           );
         }).length;
 
@@ -190,7 +190,8 @@ export class NationAttackBehavior extends AiAttackBehavior {
     if (
       this.game.config().gameConfig().gameType !== GameType.Singleplayer ||
       target.type() !== PlayerType.Human
-    ) return;
+    )
+      return;
     const difficulty = this.game.config().gameConfig().difficulty;
     const cooldownSeconds: Record<Difficulty, number> = {
       [Difficulty.Easy]: 45,
@@ -314,18 +315,14 @@ export class NationAttackBehavior extends AiAttackBehavior {
     if (borderingEnemies.length === 0) {
       if (
         !holdBoats &&
-        this.random.chance(
-          Math.min(35, Math.round(5 * this.doctrine.navalAttackMultiplier)),
-        )
+        rollDoctrineNavalAttack(this.random, 5, this.doctrine)
       ) {
         this.attackWithRandomBoat();
       }
     } else {
       if (
         !holdBoats &&
-        this.random.chance(
-          Math.min(40, Math.round(10 * this.doctrine.navalAttackMultiplier)),
-        )
+        rollDoctrineNavalAttack(this.random, 10, this.doctrine)
       ) {
         this.attackWithRandomBoat(borderingEnemies);
         return;
@@ -1150,11 +1147,16 @@ export class NationAttackBehavior extends AiAttackBehavior {
     let richScore = 0;
     for (const enemy of candidates) {
       const infrastructure = enemy.units([
-        UnitType.Mine, UnitType.Farm, UnitType.OilWell, UnitType.GasPlant,
+        UnitType.Mine,
+        UnitType.Farm,
+        UnitType.OilWell,
+        UnitType.GasPlant,
       ]);
       const score = infrastructure.reduce(
-        (sum, unit) => sum + (unit.isActive() && !unit.isUnderConstruction()
-          ? unit.level() : 0), 0
+        (sum, unit) =>
+          sum +
+          (unit.isActive() && !unit.isUnderConstruction() ? unit.level() : 0),
+        0,
       );
       if (score > richScore) {
         richTarget = enemy;

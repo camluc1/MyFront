@@ -21,6 +21,11 @@ import type {
 import { AllianceExtensionExecution } from "../alliance/AllianceExtensionExecution";
 import { AllianceRequestExecution } from "../alliance/AllianceRequestExecution";
 import {
+  DEFAULT_NATION_DOCTRINE,
+  rollDoctrineAllianceRequest,
+  type NationDoctrine,
+} from "./NationDoctrine";
+import {
   EMOJI_CONFUSED,
   EMOJI_HANDSHAKE,
   EMOJI_LOVE,
@@ -28,10 +33,6 @@ import {
   NationEmojiBehavior,
 } from "./NationEmojiBehavior";
 import { findJuiciestTarget, findRunawayLeader } from "./NationUtils";
-import {
-  DEFAULT_NATION_DOCTRINE,
-  type NationDoctrine,
-} from "./NationDoctrine";
 
 export class NationAllianceBehavior {
   constructor(
@@ -111,7 +112,7 @@ export class NationAllianceBehavior {
 
     for (const enemy of borderingEnemies) {
       if (
-        this.random.chance(this.doctrine.allianceRequestChance) &&
+        rollDoctrineAllianceRequest(this.random, this.doctrine) &&
         isAcceptablePlayerType(enemy) &&
         this.player.canSendAllianceRequest(enemy) &&
         this.getAllianceDecision(enemy, false)
@@ -231,11 +232,7 @@ export class NationAllianceBehavior {
     }
 
     const leader = findRunawayLeader(this.game);
-    if (
-      leader === null ||
-      leader === this.player ||
-      leader === otherPlayer
-    ) {
+    if (leader === null || leader === this.player || leader === otherPlayer) {
       return false;
     }
 
