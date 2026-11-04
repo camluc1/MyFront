@@ -130,11 +130,6 @@ export class NationAttackBehavior extends AiAttackBehavior {
     this.strategicTarget = target;
   }
 
-  /** The initial peace applies to nation-states (including the human player), never to tribes/bots. */
-  override shouldAttack(other: Player | TerraNullius): boolean {
-    return !this.isProtectedNationTarget(other) && super.shouldAttack(other);
-  }
-
   private isProtectedNationTarget(target: Player | TerraNullius): boolean {
     return (
       target.isPlayer() &&
@@ -225,6 +220,9 @@ export class NationAttackBehavior extends AiAttackBehavior {
     } finally {
       this.landNeighbors = null;
       this.boatRoutes = null;
+      // The War Director supplies this again before each decision; do not
+      // retain a transient player reference between ticks or snapshots.
+      this.strategicTarget = null;
     }
     this.clearBlockedLane(routes, landFront);
   }
@@ -1265,6 +1263,8 @@ export class NationAttackBehavior extends AiAttackBehavior {
   }
 
   override shouldAttack(other: Player | TerraNullius): boolean {
+    if (this.isProtectedNationTarget(other)) return false;
+
     if (
       // Always attack Terra Nullius, non-humans and traitors
       other.isPlayer() === false ||

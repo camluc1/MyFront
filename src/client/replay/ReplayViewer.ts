@@ -444,6 +444,7 @@ export class ReplayViewer extends LitElement {
       gsi.config.gameMapSize,
       terrainMapFileLoader,
       this.abort.signal,
+      this.hudBus,
     ).init();
     appearance.attach(view);
     this.view = view;

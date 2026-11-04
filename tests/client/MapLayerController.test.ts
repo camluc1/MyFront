@@ -1,12 +1,20 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
 import type { TerrainMapData } from "@openfront/engine-lib/game/TerrainMapLoader";
+import { EventBus } from "@openfront/shared/EventBus";
 import type { GameMapLoader } from "@openfront/shared/GameMapLoader";
-import { MapLayerController } from "../../src/client/controllers/MapLayerController";
+import {
+  MapLayerController,
+  RESOURCE_LAYER_ID,
+} from "../../src/client/controllers/MapLayerController";
 import type { MapRenderer } from "../../src/client/render/gl";
 import { MAP_LAYERS_KEY, UserSettings } from "../../src/client/UserSettings";
+
+vi.mock("@openfront/engine-lib/game/NaturalResources", () => ({
+  resourceDeposits: () => [],
+}));
 
 const LAYERS: MapLayer[] = [
   { id: "forest", placement: "land", nukeable: true, alpha: 0.8 },
@@ -26,20 +34,27 @@ async function startGame() {
   const loader = {
     getMapData: () => ({ layerImage: async () => ({}) as ImageBitmap }),
   } as unknown as GameMapLoader;
+  vi.stubGlobal("createImageBitmap", async () => ({}));
   new MapLayerController(
     view,
-    { layers: LAYERS } as TerrainMapData,
+    {
+      layers: LAYERS,
+      gameMap: { width: () => 8, height: () => 8 },
+    } as unknown as TerrainMapData,
     new UserSettings(),
     GameMapType.Ommatrypta,
     GameMapSize.Normal,
     loader,
     new AbortController().signal,
+    new EventBus(),
   ).init();
   await new Promise((resolve) => setTimeout(resolve, 0));
   return { visibility, alphas };
 }
 
 describe("MapLayerController", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   beforeEach(() => {
     localStorage.clear();
     const settings = new UserSettings();
@@ -58,10 +73,12 @@ describe("MapLayerController", () => {
     expect(visibility).toEqual([
       ["forest", false],
       ["reef", true],
+      [RESOURCE_LAYER_ID, false],
     ]);
     expect(alphas).toEqual([
       ["forest", 0.8],
       ["reef", 0.3],
+      [RESOURCE_LAYER_ID, 0.65],
     ]);
   });
 
@@ -73,6 +90,7 @@ describe("MapLayerController", () => {
     expect(visibility).toEqual([
       ["forest", false],
       ["reef", false],
+      [RESOURCE_LAYER_ID, false],
     ]);
   });
 });

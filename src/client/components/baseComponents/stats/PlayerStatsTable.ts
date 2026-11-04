@@ -21,6 +21,10 @@ const BUILDING_ORDER = {
   defp: 4,
   silo: 5,
   saml: 6,
+  farm: 7,
+  mine: 8,
+  oilw: 9,
+  gasp: 10,
 } as const satisfies Record<
   Exclude<(typeof otherUnits)[number], "wshp">,
   number
@@ -37,6 +41,10 @@ const buildingUnits = (
 // compilation if a new stat unit lands without a label.
 const UNIT_LABEL_KEYS = {
   city: "unit_type.city",
+  farm: "unit_type.farm",
+  mine: "unit_type.mine",
+  oilw: "unit_type.oil_well",
+  gasp: "unit_type.gas_plant",
   defp: "unit_type.defense_post",
   fact: "unit_type.factory",
   port: "unit_type.port",

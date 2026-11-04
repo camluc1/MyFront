@@ -21,6 +21,8 @@ const HUD_TAGS = [
   "game-left-sidebar",
   "control-panel",
   "events-display",
+  "frontier-chronicle",
+  "frontier-world-intelligence",
   "actionable-events",
   "attacks-display",
   "chat-display",
@@ -110,6 +112,7 @@ describe("createRenderer", () => {
       {} as any,
       [],
       {} as any,
+      false,
     );
     const addSpy = vi.spyOn(window, "addEventListener");
     const removeSpy = vi.spyOn(window, "removeEventListener");

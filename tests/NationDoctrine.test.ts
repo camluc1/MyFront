@@ -26,9 +26,9 @@ describe("Nation doctrines", () => {
 
   test("removes the dedicated naval doctrine from the available profiles", () => {
     expect(NATION_DOCTRINE_PROFILES).toHaveLength(7);
-    expect(NATION_DOCTRINE_PROFILES.some((doctrine) => doctrine.id === "naval")).toBe(
-      false,
-    );
+    expect(
+      NATION_DOCTRINE_PROFILES.map((doctrine) => doctrine.id),
+    ).not.toContain("naval");
   });
 
   test("uses a flag before a localized or duplicate display name", () => {
