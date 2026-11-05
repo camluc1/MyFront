@@ -1680,6 +1680,19 @@ export class GameImpl implements Game {
   }
 
   conquerPlayer(conqueror: Player, conquered: Player) {
+    if (
+      this.matchHistory &&
+      this.matchHistory.endTick === undefined &&
+      conquered.type() !== PlayerType.Bot
+    ) {
+      const events = (this.matchHistory.eliminations ??= []);
+      if (!events.some((e) => e.id === conquered.smallID()))
+        events.push({
+          id: conquered.smallID(),
+          tick: Math.round(this.elapsedGameSeconds() * 10),
+          killer: conqueror.smallID(),
+        });
+    }
     if (conquered.isDisconnected() && conqueror.isOnSameTeam(conquered)) {
       const ships = conquered
         .units()

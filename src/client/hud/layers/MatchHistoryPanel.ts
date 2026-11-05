@@ -109,6 +109,29 @@ export class MatchHistoryPanel extends LitElement {
       this.pending = false;
     }
   }
+  private countryColor(id: number): string {
+    return `hsl(${(id * 137.508) % 360} 75% 70%)`;
+  }
+  private zoomPeriod(factor: number, anchor = 0.5) {
+    const minimum = 1 / Math.max(1, (this.history?.samples.length ?? 2) - 1);
+    const width = Math.min(
+      1,
+      Math.max(minimum, (this.to - this.from) * factor),
+    );
+    const center = this.from + (this.to - this.from) * anchor;
+    this.from = Math.max(0, Math.min(1 - width, center - width * anchor));
+    this.to = this.from + width;
+    this.cursor = -1;
+  }
+  private panPeriod(direction: number) {
+    const span = this.to - this.from;
+    this.from = Math.max(
+      0,
+      Math.min(1 - span, this.from + direction * span * 0.4),
+    );
+    this.to = this.from + span;
+    this.cursor = -1;
+  }
   private choose(id: number) {
     if (this.selected.includes(id))
       this.selected = this.selected.filter((x) => x !== id);
@@ -179,7 +202,7 @@ export class MatchHistoryPanel extends LitElement {
     const events = this.cachedEvents;
     return html`<section
       data-match-history
-      class="rounded-xl border border-slate-700 bg-slate-950 p-3 text-slate-100 text-xs space-y-3"
+      class="rounded-xl border border-slate-700 bg-slate-950 p-5 text-slate-100 text-sm space-y-4"
     >
       <div class="flex justify-between gap-2">
         <strong
@@ -207,7 +230,7 @@ export class MatchHistoryPanel extends LitElement {
           clic en un país para mostrar u ocultar su curva</span
         >
       </div>
-      <div class="flex flex-wrap gap-2">
+      <div class="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
         ${h.players.map((p) => {
           const row = h.samples[h.samples.length - 1]!.rows.find(
             (r) => r[0] === p.id,
@@ -218,7 +241,7 @@ export class MatchHistoryPanel extends LitElement {
             aria-pressed=${this.selected.includes(p.id)}
             ?disabled=${!this.selected.includes(p.id) && this.selected.length >= MAX_COMPARISON_COUNTRIES}
             @click=${() => this.choose(p.id)}
-            style=${`color:${this.selected.includes(p.id) ? colors[this.selected.indexOf(p.id)] : "#94a3b8"}`}
+            style=${`color:${this.selected.includes(p.id) ? this.countryColor(p.id) : "#94a3b8"}`}
           >
             ${p.name}${row?.[1] === 0 ? " · eliminado" : ""}
           </button>`;
@@ -237,7 +260,60 @@ export class MatchHistoryPanel extends LitElement {
           ${Object.entries(metrics).map(([key, label]) => html`<option value=${key}>${label}</option>`)}
         </select></label
       >
+      <div class="flex flex-wrap gap-2 items-center">
+        <button
+          class="rounded border border-slate-600 px-3 py-2"
+          @click=${() => this.zoomPeriod(0.6)}
+        >
+          Acercar período +
+        </button>
+        <button
+          class="rounded border border-slate-600 px-3 py-2"
+          @click=${() => this.zoomPeriod(1.6)}
+        >
+          Alejar período −
+        </button>
+        <button
+          class="rounded border border-slate-600 px-3 py-2"
+          @click=${() => {
+            this.from = 0;
+            this.to = 1;
+          }}
+        >
+          Ver toda la partida
+        </button>
+        <span class="text-slate-400"
+          >Rueda: zoom · arrastrá el control Desde para recorrer el
+          período</span
+        >
+      </div>
+      <div class="flex gap-2">
+        <button
+          class="rounded border border-slate-600 px-3 py-2"
+          @click=${() => this.panPeriod(-1)}
+        >
+          ← Período anterior
+        </button>
+        <button
+          class="rounded border border-slate-600 px-3 py-2"
+          @click=${() => this.panPeriod(1)}
+        >
+          Período siguiente →
+        </button>
+      </div>
       <svg
+        @wheel=${(e: WheelEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const box = (
+            e.currentTarget as SVGSVGElement
+          ).getBoundingClientRect();
+          this.zoomPeriod(
+            e.deltaY > 0 ? 1.15 : 0.85,
+            Math.max(0, Math.min(1, (e.clientX - box.left) / box.width)),
+          );
+        }}
+        style="min-height:260px; background:linear-gradient(180deg,#172036,#020617);border-radius:12px"
         viewBox="0 0 700 215"
         role="img"
         aria-label=${metrics[this.metric]}
@@ -266,7 +342,8 @@ export class MatchHistoryPanel extends LitElement {
         <text x="2" y="180" fill="#94a3b8" font-size="10">
           ${["rank", "economicRank", "militaryRank"].includes(this.metric) ? number(max) : 0}
         </text>
-        ${series.map((s, k) => svg`<polyline fill="none" stroke=${colors[k]} stroke-width="2" points=${s.points.map((p) => `${x(p.i)},${y(p.value)}`).join(" ")} />`)}
+        ${[0.25, 0.5, 0.75].map((f) => svg`<path d=${`M40 ${180 - f * 155}H675`} stroke="#334155" stroke-dasharray="3 5"/><text x="3" y=${184 - f * 155} fill="#cbd5e1" font-size="10">${number(["rank", "economicRank", "militaryRank"].includes(this.metric) ? 1 + (max - 1) * (1 - f) : max * f)}</text>`)}
+        ${series.map((s) => svg`<polyline fill="none" stroke=${this.countryColor(s.id)} stroke-width="2" points=${s.points.map((p) => `${x(p.i)},${y(p.value)}`).join(" ")} />`)}
         <path
           d=${`M${x(active)} 20V180`}
           stroke="#cbd5e1"
@@ -314,7 +391,7 @@ export class MatchHistoryPanel extends LitElement {
       </div>
       ${this.selected.map((id, k) => {
         const r = sample.rows.find((r) => r[0] === id);
-        return html`<div style=${`color:${colors[k]}`}>
+        return html`<div style=${`color:${this.countryColor(id)}`}>
           ${h.players.find((p) => p.id === id)?.name}:
           ${r ? number(historyValue(h, active, r, this.metric)) : "Sin muestra"}
         </div>`;
@@ -363,7 +440,134 @@ export class MatchHistoryPanel extends LitElement {
         minutos. Tropas desplegadas siguen vivas; su movilización no se
         interpreta como bajas.
       </p>
-      ${sample.rows.find((r) => r[0] === focus) ? html`<p>Producción acumulada del país seleccionado: ${["Granjas", "Minas", "Petróleo", "Gas"].map((name, i) => html`<span>${name}: ${number(sample.rows.find((r) => r[0] === focus)![9 + i])} · </span>`)}</p>` : nothing}
+      <details open>
+        <summary class="font-semibold py-2">
+          Origen del oro · ${time(sample.tick)}
+        </summary>
+        <p class="text-slate-400">
+          Ingresos acumulados hasta el momento elegido. El saldo disponible
+          incluye gastos y puede diferir del ingreso.
+        </p>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left">
+            <thead>
+              <tr>
+                <th>País / fuente</th>
+                <th>Oro recibido</th>
+                <th>Participación</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${this.selected.map((id) => {
+                const values = sample.sources?.[String(id)];
+                if (!values)
+                  return html`<tr>
+                    <td colspan="3">
+                      ${h.players.find((p) => p.id === id)?.name}: desglose no
+                      disponible en esta muestra.
+                    </td>
+                  </tr>`;
+                const resource = values.slice(7, 11).reduce((a, b) => a + b, 0);
+                const amounts = [
+                  Math.max(0, (values[0] ?? 0) - resource),
+                  ...[7, 8, 9, 10, 2, 4, 5, 1, 3, 6].map((i) => values[i] ?? 0),
+                ];
+                const labels = [
+                  "Trabajo",
+                  "Agricultura",
+                  "Minería",
+                  "Petróleo",
+                  "Gas",
+                  "Comercio marítimo",
+                  "Trenes propios",
+                  "Trenes de terceros",
+                  "Conquista",
+                  "Piratería",
+                  "Donaciones",
+                ];
+                const total = amounts.reduce((a, b) => a + b, 0);
+                return html`<tr style=${`color:${this.countryColor(id)}`}>
+                    <th class="pt-3">
+                      ${h.players.find((p) => p.id === id)?.name}
+                    </th>
+                    <th>${number(total)}</th>
+                    <th>100%</th>
+                  </tr>
+                  ${amounts.map(
+                    (amount, i) =>
+                      html`<tr>
+                        <td class="py-1">${labels[i]}</td>
+                        <td>${number(amount)}</td>
+                        <td>
+                          ${total ? ((amount / total) * 100).toFixed(1) : "0"}%
+                        </td>
+                      </tr>`,
+                  )}`;
+              })}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <details ?open=${this.summary}>
+        <summary class="font-semibold py-2">
+          Clasificación · todos los países
+        </summary>
+        <p class="text-slate-400">
+          Los supervivientes se ordenan por territorio. Las eliminaciones sin
+          evento exacto se indican con la precisión de las muestras.
+        </p>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left">
+            <thead>
+              <tr>
+                <th>Puesto</th>
+                <th>País</th>
+                <th>Eliminación</th>
+                <th>Eliminado por</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${h.players
+                .map((p) => {
+                  const last = h.samples[h.samples.length - 1].rows.find(
+                    (r) => r[0] === p.id,
+                  );
+                  const event = h.eliminations?.find((e) => e.id === p.id);
+                  const sampled = h.samples.find((s) =>
+                    s.rows.some((r) => r[0] === p.id && r[1] === 0),
+                  );
+                  return {
+                    p,
+                    tiles: last?.[1] ?? 0,
+                    tick: event?.tick ?? sampled?.tick,
+                    event,
+                  };
+                })
+                .sort(
+                  (a, b) =>
+                    (b.tiles > 0 ? 1 : 0) - (a.tiles > 0 ? 1 : 0) ||
+                    (a.tiles > 0
+                      ? b.tiles - a.tiles
+                      : (b.tick ?? -1) - (a.tick ?? -1)) ||
+                    a.p.id - b.p.id,
+                )
+                .map(
+                  (entry, i) =>
+                    html`<tr class="border-t border-slate-800">
+                      <td class="py-2">${i + 1} / ${h.players.length}</td>
+                      <td>${entry.p.name}</td>
+                      <td>
+                        ${entry.tick === undefined ? "En pie" : `${entry.event ? "" : "≈ "}${time(entry.tick)} · eliminación ${h.players.length - i} / ${h.players.length}`}
+                      </td>
+                      <td>
+                        ${entry.event ? (h.players.find((p) => p.id === entry.event?.killer)?.name ?? "Otro participante") : "—"}
+                      </td>
+                    </tr>`,
+                )}
+            </tbody>
+          </table>
+        </div>
+      </details>
     </section>`;
   }
 }

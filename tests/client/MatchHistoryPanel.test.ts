@@ -138,3 +138,29 @@ test("compares eight countries without evicting selections and toggles curves", 
     panel.remove();
   }
 });
+
+test("compares source totals without counting extraction twice and ranks eliminated nations", async () => {
+  const data = structuredClone(history);
+  data.samples[1].sources = { "1": [100, 0, 50, 0, 0, 0, 0, 20, 10, 0, 0] };
+  data.eliminations = [{ id: 2, tick: 550, killer: 1 }];
+  const { panel } = mount(data);
+  try {
+    await vi.waitFor(() =>
+      expect(panel.textContent).toContain("Origen del oro"),
+    );
+    expect(panel.textContent).toContain("150");
+    expect(panel.textContent).toContain("Agricultura");
+    expect(panel.textContent).toContain("2 / 2");
+    expect(panel.textContent).toContain("0:55");
+    const old = panel.querySelector("polyline")?.getAttribute("stroke");
+    panel.selected = [2, 1];
+    await panel.updateComplete;
+    expect(panel.querySelectorAll("polyline")[1].getAttribute("stroke")).toBe(
+      old,
+    );
+    (panel as any).zoomPeriod(0.5);
+    expect(panel.to - panel.from).toBeGreaterThan(0);
+  } finally {
+    panel.remove();
+  }
+});

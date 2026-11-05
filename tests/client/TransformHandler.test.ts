@@ -62,3 +62,28 @@ describe("TransformHandler", () => {
     });
   });
 });
+
+it("fills wide and portrait viewports and recalculates the limit on resize", () => {
+  let width = 1600,
+    height = 900;
+  const canvas = document.createElement("canvas");
+  canvas.getBoundingClientRect = () =>
+    ({ width, height, left: 0, top: 0 }) as DOMRect;
+  const handler = new TransformHandler(
+    { width: () => 2000, height: () => 1000 } as GameView,
+    new EventBus(),
+    canvas,
+  );
+  handler.centerAll();
+  expect(handler.scale).toBe(0.9);
+  let [left, right] = handler.screenBoundingRect();
+  expect(left.x).toBeGreaterThanOrEqual(-1);
+  expect(right.x).toBeLessThanOrEqual(2001);
+  width = 600;
+  height = 1000;
+  handler.updateCanvasBoundingRect();
+  expect(handler.scale).toBeGreaterThanOrEqual(1);
+  [left, right] = handler.screenBoundingRect();
+  expect(left.y).toBeGreaterThanOrEqual(-1);
+  expect(right.y).toBeLessThanOrEqual(1001);
+});

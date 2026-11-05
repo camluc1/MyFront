@@ -26,11 +26,13 @@ export function sampleMatchHistory(
   const last = history.samples[history.samples.length - 1];
   if (!finish && last && tick - last.tick < 100) return history;
   const rows: HistoryRow[] = [];
+  const sourceRows: Record<string, number[]> = {};
   for (const p of game.allPlayers()) {
     if (p.type() === PlayerType.Bot || !p.hasSpawned()) continue;
     if (!history.players.some((m) => m.id === p.smallID()))
       history.players.push({ id: p.smallID(), name: p.name(), kind: p.type() });
     const sources = (game.stats() as StatsImpl).historyIncome(p.id());
+    sourceRows[String(p.smallID())] = [...sources];
     const units = p
       .units()
       .filter((u) => u.isActive() && Structures.has(u.type()));
@@ -56,8 +58,12 @@ export function sampleMatchHistory(
     ]);
   }
   if (last?.tick === tick)
-    history.samples[history.samples.length - 1] = { tick, rows };
-  else history.samples.push({ tick, rows });
+    history.samples[history.samples.length - 1] = {
+      tick,
+      rows,
+      sources: sourceRows,
+    };
+  else history.samples.push({ tick, rows, sources: sourceRows });
   if (finish) history.endTick = tick;
   return history;
 }

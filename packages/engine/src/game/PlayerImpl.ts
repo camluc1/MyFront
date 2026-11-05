@@ -196,6 +196,13 @@ export class PlayerImpl implements Player {
   private outgoingQuickChats_ = new Map<number, Tick>();
 
   private sentDonations: Donation[] = [];
+  private militaryAid: Record<string, { tick: number; impact: number }> = {};
+  militaryAidInfluence(donor: Player): number {
+    const aid = this.militaryAid[donor.id()];
+    return aid
+      ? aid.impact * Math.max(0, 1 - (this.mg.ticks() - aid.tick) / 1800) * 0.2
+      : 0;
+  }
 
   private relations = new Map<Player, number>();
 
@@ -1163,6 +1170,19 @@ export class PlayerImpl implements Player {
     if (troops <= 0) return false;
     const removed = this.removeTroops(troops);
     if (removed === 0) return false;
+    if (
+      this.mg.config().gameConfig().gameType === GameType.Singleplayer &&
+      recipient instanceof PlayerImpl
+    ) {
+      const impact = Math.min(1, removed / Math.max(1000, recipient.troops()));
+      const previous = recipient.militaryAid[this.id()];
+      const retained = previous
+        ? previous.impact *
+          Math.max(0, 1 - (this.mg.ticks() - previous.tick) / 1800)
+        : 0;
+      if (impact > retained)
+        recipient.militaryAid[this.id()] = { tick: this.mg.ticks(), impact };
+    }
     recipient.addTroops(removed);
 
     this.sentDonations.push(new Donation(recipient, this.mg.ticks()));
@@ -2115,6 +2135,7 @@ export class PlayerImpl implements Player {
       })),
       outgoingEmojis: this.outgoingEmojis_.map((e) => ({ ...e })),
       outgoingQuickChats: [...this.outgoingQuickChats_],
+      militaryAid: this.militaryAid,
       sentDonations: this.sentDonations.map((d) => ({
         recipient: w.player(d.recipient),
         tick: d.tick,
@@ -2191,6 +2212,7 @@ export class PlayerImpl implements Player {
     }));
     this.outgoingEmojis_ = s.outgoingEmojis.map((e) => ({ ...e }));
     this.outgoingQuickChats_ = new Map(s.outgoingQuickChats);
+    this.militaryAid = s.militaryAid ?? {};
     this.sentDonations = s.sentDonations.map(
       (d) => new Donation(r.player(d.recipient), d.tick),
     );
@@ -2264,6 +2286,9 @@ export const PlayerSnapshot = snapshotType({
       }),
     ),
     outgoingQuickChats: z.array(z.tuple([zInt(), zInt()])),
+    militaryAid: z
+      .record(z.string(), z.object({ tick: zInt(), impact: zNum() }))
+      .optional(),
     sentDonations: z.array(z.object({ recipient: zPlayerRef(), tick: zInt() })),
     relations: z.array(z.tuple([zPlayerRef(), zNum()])),
     lastDeleteUnitTick: zInt(),

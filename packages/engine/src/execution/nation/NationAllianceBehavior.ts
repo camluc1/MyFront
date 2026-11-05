@@ -14,6 +14,7 @@ import {
 import { assertNever } from "@openfront/engine-lib/Util";
 import { z } from "zod";
 import { Game, Player } from "../../game/Game";
+import { PlayerImpl } from "../../game/PlayerImpl";
 import type {
   SnapshotReader,
   SnapshotWriter,
@@ -505,6 +506,13 @@ export class NationAllianceBehavior {
       juiciestAlly === otherPlayer &&
       this.isSafeToBetray(otherPlayer, borderingFriends, borderingEnemies)
     ) {
+      if (
+        this.player instanceof PlayerImpl &&
+        this.player.militaryAidInfluence(otherPlayer) > 0 &&
+        this.random.nextInt(0, 10000) <
+          this.player.militaryAidInfluence(otherPlayer) * 10000
+      )
+        return false;
       this.betray(otherPlayer);
       return true;
     }
@@ -520,6 +528,13 @@ export class NationAllianceBehavior {
       ) &&
       this.player.troops() >= otherPlayer.troops() * 10
     ) {
+      if (
+        this.player instanceof PlayerImpl &&
+        this.player.militaryAidInfluence(otherPlayer) > 0 &&
+        this.random.nextInt(0, 10000) <
+          this.player.militaryAidInfluence(otherPlayer) * 10000
+      )
+        return false;
       this.betray(otherPlayer);
       return true;
     }
@@ -530,6 +545,13 @@ export class NationAllianceBehavior {
       otherPlayer.isTraitor() &&
       otherPlayer.troops() < this.player.troops() * 1.2
     ) {
+      if (
+        this.player instanceof PlayerImpl &&
+        this.player.militaryAidInfluence(otherPlayer) > 0 &&
+        this.random.nextInt(0, 10000) <
+          this.player.militaryAidInfluence(otherPlayer) * 10000
+      )
+        return false;
       this.betray(otherPlayer);
       return true;
     }
@@ -540,6 +562,13 @@ export class NationAllianceBehavior {
       borderingFriends.length + borderingEnemies.length === 1 &&
       otherPlayer.troops() * 3 < this.player.troops()
     ) {
+      if (
+        this.player instanceof PlayerImpl &&
+        this.player.militaryAidInfluence(otherPlayer) > 0 &&
+        this.random.nextInt(0, 10000) <
+          this.player.militaryAidInfluence(otherPlayer) * 10000
+      )
+        return false;
       this.betray(otherPlayer);
       return true;
     }
