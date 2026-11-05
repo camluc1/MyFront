@@ -240,7 +240,7 @@ describe("Objectives in the real engine", () => {
       ),
     ).toBe(false);
   });
-  test("capture produces a defensive consolidation after the prize changes owner", async () => {
+  test("capturing a prize keeps the rival targeted without a defensive pause", async () => {
     const { game, own, enemy, execution } = await world();
     const c = objectiveCandidates(game, own, () => true).find(
       (c) => c.kind === "capture" && c.targetSmallID === enemy.smallID(),
@@ -249,9 +249,22 @@ describe("Objectives in the real engine", () => {
     execution["objective"] = goal(c);
     own.conquer(c.tile!);
     execution["updateObjective"](50);
-    expect(execution.objectiveInfo(own.smallID())?.kind).toBe("consolidate");
-    expect(execution.objectiveInfo(own.smallID())?.tile).toBe(c.tile);
-    expect(execution["attackBehavior"]["consolidating"]).toBe(true);
+    expect(execution.objectiveInfo(own.smallID())?.kind).toBe("capture");
+    expect(execution.objectiveInfo(own.smallID())?.tile).toBeNull();
+    expect(execution.objectiveInfo(own.smallID())?.targetSmallID).toBe(
+      enemy.smallID(),
+    );
+    expect(execution["attackBehavior"]["consolidating"]).toBe(false);
+    expect(execution["objective"]?.siteId).toBeNull();
+    execution["updateWarPlan"](50);
+    expect(execution["currentWarPlanTarget"]()).toBe(enemy);
+    vi.spyOn(game, "isNationSpawnImmunityActive").mockReturnValue(false);
+    own.addTroops(game.config().maxTroops(own));
+    const behavior = execution["attackBehavior"];
+    behavior.setStrategicTarget(execution["currentWarPlanTarget"]());
+    const sent = vi.spyOn(behavior, "sendAttack");
+    behavior["attackBestTarget"]([], [enemy]);
+    expect(sent).toHaveBeenCalledWith(enemy, false, null);
   });
   test("invalid plans are abandoned immediately even during the minimum commitment", async () => {
     const { game, own, enemy, execution } = await world();
@@ -676,4 +689,39 @@ describe("campaign direction and progress", () => {
     for (let i = 0; i < 3; i++) game.executeNextTick();
     await expectSnapshotRoundTrip(game, "big_plains", 30);
   }, 60000);
+});
+
+test("a real threat can interrupt the offensive on the same tick as a prize capture", async () => {
+  const { game, own, enemy, partner, execution } = await world();
+  const tile = game.ref(80, 20);
+  execution["objective"] = goal(
+    makeCandidate("capture", {
+      tile,
+      targetSmallID: enemy.smallID(),
+    }),
+  );
+  own.conquer(tile);
+  partner.createAttack(own, own.troops(), null, new Set());
+  execution["updateObjective"](50);
+  expect(execution.objectiveInfo(own.smallID())?.kind).toBe("consolidate");
+  expect(execution["attackBehavior"]["consolidating"]).toBe(true);
+});
+
+test("finishing the rival clears the campaign instead of retaining a dead target", async () => {
+  const { game, own, enemy, execution } = await world();
+  const tile = game.ref(80, 20);
+  execution["objective"] = goal(
+    makeCandidate("capture", {
+      tile,
+      targetSmallID: enemy.smallID(),
+    }),
+  );
+  for (const t of Array.from(enemy.tiles())) own.conquer(t);
+  expect(enemy.isAlive()).toBe(false);
+  execution["updateObjective"](50);
+  execution["updateWarPlan"](50);
+  expect(execution.objectiveInfo(own.smallID())?.targetSmallID).not.toBe(
+    enemy.smallID(),
+  );
+  expect(execution["currentWarPlanTarget"]()).not.toBe(enemy);
 });

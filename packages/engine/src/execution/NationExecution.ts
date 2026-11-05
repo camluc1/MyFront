@@ -171,8 +171,10 @@ export class NationExecution implements Execution {
       return;
     }
     const player = this.player;
-    const current = this.objective;
-    // Capturing the actual prize completes the offensive plan, even if the rival survives.
+    let current = this.objective;
+    // A captured installation is a tactical milestone, not the end of the war.
+    // Keep the rival as the campaign target and let normal military checks
+    // decide whether to continue. Never impose a post-capture defensive pause.
     if (
       current &&
       (current.kind === "capture" || current.kind === "maritime") &&
@@ -181,17 +183,18 @@ export class NationExecution implements Execution {
       this.mg.owner(current.tile) === player
     ) {
       this.objective = {
-        ...current,
-        kind: "consolidate",
-        targetSmallID: null,
+        kind: "capture",
+        targetSmallID: current.targetSmallID,
+        tile: null,
+        siteId: null,
         unitId: null,
-        startedTick: ticks,
-        expiresTick: ticks + 600,
+        initialLevel: 0,
+        startedTick: current.startedTick,
+        expiresTick: current.expiresTick,
       };
+      current = this.objective;
       this.objectiveReviewTick = ticks + 300;
       this.warPlanExpiresTick = 0;
-      this.applyObjective();
-      return;
     }
     const target =
       !current || current.targetSmallID === null
