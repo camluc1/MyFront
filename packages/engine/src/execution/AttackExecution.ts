@@ -60,6 +60,7 @@ export class AttackExecution implements Execution {
     private _targetID: PlayerID | null,
     private sourceTile: TileRef | null = null,
     private removeTroops: boolean = true,
+    private objectiveTile: TileRef | null = null,
   ) {}
 
   public targetID(): PlayerID | null {
@@ -454,9 +455,17 @@ export class AttackExecution implements Execution {
           break;
       }
 
+      // A soft direction for nation campaigns, not a new combat advantage.
+      // Queue age, terrain and neighboring territory still shape the front.
+      const objectiveDistance =
+        this.objectiveTile !== null &&
+        this.map.ownerID(this.objectiveTile) === this.targetSmallID
+          ? this.mg.manhattanDist(neighbor, this.objectiveTile) * 0.25
+          : 0;
       const priority =
         (this.random.nextInt(0, 7) + 10) * (1 - numOwnedByMe * 0.5 + mag / 2) +
-        tickNow;
+        tickNow +
+        objectiveDistance;
 
       this.toConquer.enqueue(neighbor, priority);
     }
@@ -519,6 +528,7 @@ export class AttackExecution implements Execution {
       targetID: this._targetID,
       sourceTile: this.sourceTile,
       removeTroops: this.removeTroops,
+      objectiveTile: this.objectiveTile,
     });
   }
 
@@ -545,6 +555,7 @@ export class AttackExecution implements Execution {
     this._targetID = s.targetID;
     this.sourceTile = s.sourceTile;
     this.removeTroops = s.removeTroops;
+    this.objectiveTile = s.objectiveTile;
   }
 }
 
@@ -569,12 +580,14 @@ const AttackExecutionStateSchema = z.object({
   targetID: z.string().nullable(),
   sourceTile: zTile().nullable(),
   removeTroops: z.boolean(),
+  objectiveTile: zTile().nullable(),
 });
 type AttackExecutionState = z.infer<typeof AttackExecutionStateSchema>;
 
 export const AttackExecutionSnapshot = execSnapshotType({
   name: "Attack",
-  version: 1,
+  version: 2,
+  migrations: { 1: (data) => ({ ...data, objectiveTile: null }) },
   schema: AttackExecutionStateSchema,
   cls: () => AttackExecution,
 });

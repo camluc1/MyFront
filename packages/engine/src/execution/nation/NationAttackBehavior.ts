@@ -73,6 +73,8 @@ export class NationAttackBehavior extends AiAttackBehavior {
   // Only set during a maybeAttack call: our land neighbors
   private landNeighbors: Set<Player> | null = null;
   private strategicTarget: Player | null = null;
+  private strategicTile: TileRef | null = null;
+  private campaignLandAttackSent = false;
   /** Per-target cooldowns prevent one nation from repeatedly reopening the same naval front. */
   private navalPressureCooldownUntil = new Map<number, number>();
 
@@ -119,6 +121,8 @@ export class NationAttackBehavior extends AiAttackBehavior {
     // Only set during a maybeAttack call, so always null between ticks.
     this.landNeighbors = null;
     this.strategicTarget = null;
+    this.strategicTile = null;
+    this.campaignLandAttackSent = false;
     this.consolidating = false;
     this.botAttackTroopsSent = s.botAttackTroopsSent;
     this.followedLandings = s.followedLandings.map((i) => r.attack(i));
@@ -161,8 +165,9 @@ export class NationAttackBehavior extends AiAttackBehavior {
     );
   }
 
-  setStrategicTarget(target: Player | null): void {
+  setStrategicTarget(target: Player | null, tile: TileRef | null = null): void {
     this.strategicTarget = target;
+    this.strategicTile = tile;
   }
 
   private isProtectedNationTarget(target: Player | TerraNullius): boolean {
@@ -245,7 +250,8 @@ export class NationAttackBehavior extends AiAttackBehavior {
     }
   }
 
-  maybeAttack() {
+  maybeAttack(): boolean {
+    this.campaignLandAttackSent = false;
     const routes = new Map<Player, BoatRoute | null>();
     this.boatRoutes = routes;
     let landFront = false;
@@ -260,8 +266,12 @@ export class NationAttackBehavior extends AiAttackBehavior {
       // The War Director supplies this again before each decision; do not
       // retain a transient player reference between ticks or snapshots.
       this.strategicTarget = null;
+      this.strategicTile = null;
     }
     this.clearBlockedLane(routes, landFront);
+    const campaignSent = this.campaignLandAttackSent;
+    this.campaignLandAttackSent = false;
+    return campaignSent;
   }
 
   // Called every tick. Hard & Impossible boats are beachheads: the moment one lands
@@ -548,8 +558,11 @@ export class NationAttackBehavior extends AiAttackBehavior {
       campaignTarget.isAlive() &&
       !this.player.isFriendly(campaignTarget) &&
       this.canReach(campaignTarget) &&
-      this.sendAttack(campaignTarget)
+      this.sendAttack(campaignTarget, false, this.strategicTile)
     ) {
+      this.campaignLandAttackSent =
+        this.strategicTile !== null &&
+        this.player.sharesBorderWith(campaignTarget);
       return;
     }
 

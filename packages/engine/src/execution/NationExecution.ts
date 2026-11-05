@@ -116,6 +116,54 @@ export class NationExecution implements Execution {
     );
   }
 
+  private objectiveDistance(goal: NationObjective): number {
+    let distance = this.mg.width() + this.mg.height();
+    for (const tile of this.player!.borderTiles())
+      distance = Math.min(distance, this.mg.manhattanDist(tile, goal.tile!));
+    return distance;
+  }
+
+  private recordCampaignAttempt(ticks: number): void {
+    const goal = this.objective;
+    if (
+      !goal ||
+      goal.tile === null ||
+      goal.targetSmallID === null ||
+      (goal.kind !== "capture" && goal.kind !== "maritime")
+    )
+      return;
+    goal.progress ??= {
+      bestDistance: this.objectiveDistance(goal),
+      lastProgressTick: ticks,
+      attempts: 0,
+    };
+    goal.progress.attempts++;
+  }
+
+  private campaignStalled(goal: NationObjective, ticks: number): boolean {
+    const progress = goal.progress;
+    if (
+      !progress ||
+      goal.tile === null ||
+      (goal.kind !== "capture" && goal.kind !== "maritime")
+    )
+      return false;
+    const distance = this.objectiveDistance(goal);
+    // Tiny border fluctuations must not keep a fruitless campaign alive.
+    if (distance <= progress.bestDistance - 3) {
+      progress.bestDistance = distance;
+      progress.lastProgressTick = ticks;
+      progress.attempts = 0;
+    }
+    const patience =
+      this.doctrine.id === "militarist" || this.doctrine.id === "imperialist"
+        ? 1200
+        : 900;
+    return (
+      progress.attempts >= 3 && ticks - progress.lastProgressTick >= patience
+    );
+  }
+
   private updateObjective(ticks: number): void {
     if (!this.player || !objectivesEnabled(this.mg)) {
       this.objective = null;
@@ -155,9 +203,13 @@ export class NationExecution implements Execution {
       ticks >= this.objectiveReviewTick &&
       target?.isPlayer() &&
       !this.attackBehavior.canPursueObjective(target);
+    const stalled =
+      current !== null &&
+      ticks >= this.objectiveReviewTick &&
+      this.campaignStalled(current, ticks);
     if (
       current &&
-      (!objectiveStillValid(this.mg, player, current) || lostAccess)
+      (!objectiveStillValid(this.mg, player, current) || lostAccess || stalled)
     ) {
       this.objectiveCooldownKey = objectiveKey(current);
       this.objectiveCooldownUntil = ticks + 600;
@@ -471,8 +523,16 @@ export class NationExecution implements Execution {
     this.warshipBehavior.maybeSpawnWarship();
     this.handleEmbargoesToHostileNations();
     this.updateWarPlan(ticks);
-    this.attackBehavior.setStrategicTarget(this.currentWarPlanTarget());
-    this.attackBehavior.maybeAttack();
+    const campaignTarget = this.currentWarPlanTarget();
+    const goal = this.objective;
+    const campaignTile =
+      goal &&
+      (goal.kind === "capture" || goal.kind === "maritime") &&
+      goal.targetSmallID === campaignTarget?.smallID()
+        ? goal.tile
+        : null;
+    this.attackBehavior.setStrategicTarget(campaignTarget, campaignTile);
+    if (this.attackBehavior.maybeAttack()) this.recordCampaignAttempt(ticks);
     this.warshipBehavior.counterWarshipInfestation();
     this.nukeBehavior.maybeSendNuke();
   }

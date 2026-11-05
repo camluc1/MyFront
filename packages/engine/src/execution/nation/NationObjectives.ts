@@ -30,6 +30,14 @@ export const NationObjectiveSchema = z.object({
   initialLevel: z.number().int().nonnegative(),
   startedTick: z.number().int().nonnegative(),
   expiresTick: z.number().int().nonnegative(),
+  // Absent until the first actual land campaign launch; old saves remain valid.
+  progress: z
+    .object({
+      bestDistance: z.number().nonnegative(),
+      lastProgressTick: z.number().int().nonnegative(),
+      attempts: z.number().int().nonnegative(),
+    })
+    .optional(),
 });
 export type NationObjective = z.infer<typeof NationObjectiveSchema>;
 export interface ObjectiveCandidate {

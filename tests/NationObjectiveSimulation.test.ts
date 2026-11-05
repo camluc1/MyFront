@@ -21,6 +21,7 @@ import { RecomputeRailClusterExecution } from "@openfront/engine/execution/Recom
 import { WinCheckExecution } from "@openfront/engine/execution/WinCheckExecution";
 import { createGame } from "@openfront/engine/game/GameImpl";
 import { RESOURCE_BUILDINGS } from "@openfront/engine/game/ResourceEconomy";
+import type { StatsImpl } from "@openfront/engine/game/StatsImpl";
 import { createHash } from "node:crypto";
 /** Opt-in, production-map/production-rules audit. Run with OBJECTIVE_AUDIT=1. */
 import fs from "node:fs";
@@ -147,6 +148,9 @@ describe.runIf(runAudit)("production World objective simulations", () => {
           target: number | null;
           tile: number | null;
           reason: string;
+          previousKind: string | null;
+          previousTarget: number | null;
+          previousAgeTicks: number | null;
         }[] = [];
         const byCountry: Record<
           string,
@@ -257,6 +261,9 @@ describe.runIf(runAudit)("production World objective simulations", () => {
                 target: after?.targetSmallID ?? null,
                 tile: after?.tile ?? null,
                 reason,
+                previousKind: before?.kind ?? null,
+                previousTarget: before?.targetSmallID ?? null,
+                previousAgeTicks: before ? tick - before.startedTick : null,
               });
             }
           };
@@ -317,6 +324,8 @@ describe.runIf(runAudit)("production World objective simulations", () => {
             objectives: kinds,
             standings: sorted.map((p) => ({
               country: p.name(),
+              income: (game.stats() as StatsImpl).historyIncome(p.id()).slice(),
+              ports: p.units(UnitType.Port).length,
               tiles: p.numTilesOwned(),
               troops: p.troops(),
               gold: p.gold().toString(),

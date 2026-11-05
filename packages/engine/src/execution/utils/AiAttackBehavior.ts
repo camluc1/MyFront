@@ -92,12 +92,16 @@ export abstract class AiAttackBehavior {
     return s;
   }
 
-  sendAttack(target: Player | TerraNullius, force = false): boolean {
+  sendAttack(
+    target: Player | TerraNullius,
+    force = false,
+    objectiveTile: TileRef | null = null,
+  ): boolean {
     if (!force && !this.shouldAttack(target)) return false;
 
     if (target.isPlayer()) {
       if (this.player.sharesBorderWith(target)) {
-        return this.sendLandAttack(target);
+        return this.sendLandAttack(target, undefined, undefined, objectiveTile);
       } else {
         return this.sendBoatAttack(target);
       }
@@ -198,6 +202,7 @@ export abstract class AiAttackBehavior {
     sendTroops = (reserveTroops: number) =>
       this.player.troops() - reserveTroops,
     opponent?: Player,
+    objectiveTile: TileRef | null = null,
   ): boolean {
     const troops = this.calculateAttackTroops(target, sendTroops, opponent);
     if (troops === null) {
@@ -209,6 +214,9 @@ export abstract class AiAttackBehavior {
         troops,
         this.player,
         target.isPlayer() ? target.id() : this.game.terraNullius().id(),
+        null,
+        true,
+        objectiveTile,
       ),
     );
     return true;

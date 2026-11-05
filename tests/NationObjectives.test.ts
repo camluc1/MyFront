@@ -536,3 +536,144 @@ test("economic campaigns consider a reachable overseas country, beyond nearby ri
   own.createAllianceRequest(other)!.accept();
   expect(behavior.objectiveOverseasTargets()).not.toContain(other);
 });
+
+describe("campaign direction and progress", () => {
+  test("the same land army advances nearer the selected installation", async () => {
+    const advance = async (focused: boolean) => {
+      const { game, own, enemy } = await world();
+      const tile = game.ref(80, 20);
+      const before = new Set(own.tiles());
+      const attack = new AttackExecution(
+        10000,
+        own,
+        enemy.id(),
+        null,
+        true,
+        focused ? tile : null,
+      );
+      attack.init(game, 0);
+      for (let tick = 1; tick <= 60; tick++) attack.tick(tick);
+      const gained = Array.from(own.tiles()).filter((t) => !before.has(t));
+      return {
+        gained: gained.length,
+        distance:
+          gained.reduce((n, t) => n + game.manhattanDist(t, tile), 0) /
+          gained.length,
+      };
+    };
+    const normal = await advance(false);
+    const focused = await advance(true);
+    expect(focused.gained).toBe(normal.gained);
+    expect(focused.distance).toBeLessThan(normal.distance);
+  });
+
+  test("passes the prize to a land attack without bypassing troop gates", async () => {
+    const { game, own, enemy, execution } = await world();
+    const behavior = execution["attackBehavior"];
+    const tile = game.ref(80, 20);
+    vi.spyOn(game, "isNationSpawnImmunityActive").mockReturnValue(false);
+    own.addTroops(game.config().maxTroops(own));
+    behavior.setStrategicTarget(enemy, tile);
+    const send = vi.spyOn(game, "addExecution");
+    expect(behavior.sendAttack(enemy, false, tile)).toBe(true);
+    const attack = send.mock.calls
+      .flat()
+      .find((e) => e instanceof AttackExecution) as AttackExecution;
+    expect(attack["objectiveTile"]).toBe(tile);
+    own.removeTroops(own.troops());
+    expect(behavior.sendAttack(enemy, false, tile)).toBe(false);
+  });
+
+  test("waiting for troops is not classified as a failed campaign", async () => {
+    const { game, enemy, execution } = await world();
+    const current = goal(
+      makeCandidate("capture", {
+        tile: game.ref(80, 20),
+        targetSmallID: enemy.smallID(),
+      }),
+    );
+    execution["objective"] = current;
+    expect(execution["campaignStalled"](current, 1500)).toBe(false);
+    execution["recordCampaignAttempt"](100);
+    expect(execution["campaignStalled"](current, 1500)).toBe(false);
+  });
+
+  test("several failed attempts trigger reconsideration and a cooldown", async () => {
+    const { game, enemy, execution } = await world();
+    const current = goal(
+      makeCandidate("capture", {
+        tile: game.ref(80, 20),
+        targetSmallID: enemy.smallID(),
+      }),
+    );
+    execution["objective"] = current;
+    for (const tick of [100, 200, 300])
+      execution["recordCampaignAttempt"](tick);
+    expect(execution["campaignStalled"](current, 800)).toBe(false);
+    execution["updateObjective"](1400);
+    expect(execution["objectiveCooldownKey"]).toBe(
+      `capture:${current.tile}:${enemy.smallID()}`,
+    );
+    expect(execution["objectiveCooldownUntil"]).toBe(2000);
+    expect(execution["objective"]).not.toBe(current);
+  });
+
+  test("real progress renews patience; retaking the same ground does not", async () => {
+    const { game, own, enemy, execution } = await world();
+    const current = goal(
+      makeCandidate("capture", {
+        tile: game.ref(80, 20),
+        targetSmallID: enemy.smallID(),
+      }),
+    );
+    execution["objective"] = current;
+    for (const tick of [100, 200, 300])
+      execution["recordCampaignAttempt"](tick);
+    for (let x = 50; x <= 54; x++) own.conquer(game.ref(x, 20));
+    expect(execution["campaignStalled"](current, 1300)).toBe(false);
+    expect(current.progress?.lastProgressTick).toBe(1300);
+    expect(current.progress?.attempts).toBe(0);
+    for (let x = 50; x <= 54; x++) enemy.conquer(game.ref(x, 20));
+    for (const tick of [1400, 1500, 1600])
+      execution["recordCampaignAttempt"](tick);
+    for (let x = 50; x <= 54; x++) own.conquer(game.ref(x, 20));
+    expect(execution["campaignStalled"](current, 2600)).toBe(true);
+  });
+
+  test("militarist nations tolerate a longer unsuccessful campaign", async () => {
+    const { game, enemy, execution } = await world();
+    const current = goal(
+      makeCandidate("capture", {
+        tile: game.ref(80, 20),
+        targetSmallID: enemy.smallID(),
+      }),
+    );
+    execution["objective"] = current;
+    for (const tick of [100, 200, 300])
+      execution["recordCampaignAttempt"](tick);
+    execution["doctrine"] = { ...execution["doctrine"], id: "strategist" };
+    expect(execution["campaignStalled"](current, 1000)).toBe(true);
+    execution["doctrine"] = { ...execution["doctrine"], id: "militarist" };
+    expect(execution["campaignStalled"](current, 1000)).toBe(false);
+    expect(execution["campaignStalled"](current, 1300)).toBe(true);
+  });
+
+  test("saves focused attacks and campaign progress with deterministic continuation", async () => {
+    const { game, enemy, own, execution } = await world();
+    execution["objective"] = goal(
+      makeCandidate("capture", {
+        tile: game.ref(80, 20),
+        targetSmallID: enemy.smallID(),
+      }),
+    );
+    execution["recordCampaignAttempt"](0);
+    execution["applyObjective"]();
+    game.addExecution(execution);
+    game.addExecution(
+      new AttackExecution(10000, own, enemy.id(), null, true, game.ref(80, 20)),
+    );
+    await expectSnapshotRoundTrip(game, "big_plains", 30);
+    for (let i = 0; i < 3; i++) game.executeNextTick();
+    await expectSnapshotRoundTrip(game, "big_plains", 30);
+  }, 60000);
+});
