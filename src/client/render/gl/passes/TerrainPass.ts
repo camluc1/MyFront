@@ -1,5 +1,5 @@
 /**
- * TerrainPass — renders the terrain map as a textured quad.
+ * TerrainPass — renders the terrain and static overview surround in one quad.
  *
  * Initial upload happens once; incremental updates flow through
  * applyTerrainRects() so water-nuke conversions (land → water) are reflected
@@ -32,6 +32,7 @@ export class TerrainPass {
   private tex: WebGLTexture;
   private vao: WebGLVertexArrayObject;
   private uCamera: WebGLUniformLocation;
+  private uBackground: WebGLUniformLocation;
   private mapW: number;
   private mapH: number;
   // Base ocean (deep water) color; reused by applyTerrainRects and rebuilds.
@@ -62,6 +63,7 @@ export class TerrainPass {
       "TerrainPass",
     );
     this.uCamera = gl.getUniformLocation(this.program, "uCamera")!;
+    this.uBackground = gl.getUniformLocation(this.program, "uBackground")!;
 
     this.tex = createTexture2D(gl, {
       width: mapW,
@@ -73,7 +75,8 @@ export class TerrainPass {
       filter: gl.NEAREST, // pixel-crisp at all zoom levels
     });
 
-    this.vao = createMapQuad(gl, mapW, mapH);
+    // Fullscreen quad also paints the overview margins in the same draw call.
+    this.vao = createMapQuad(gl, 2, 2);
   }
 
   /**
@@ -151,6 +154,13 @@ export class TerrainPass {
     const gl = this.gl;
     gl.useProgram(this.program);
     gl.uniformMatrix3fv(this.uCamera, false, cameraMatrix);
+    const background = this.terrainColors?.backgroundColor ?? [11, 22, 36];
+    gl.uniform3f(
+      this.uBackground,
+      background[0] / 255,
+      background[1] / 255,
+      background[2] / 255,
+    );
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.tex);

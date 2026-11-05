@@ -17,7 +17,7 @@
     "nameDebug": false
   },
   "terrain": {
-    "backgroundColor": "#3c3c3c",
+    "backgroundColor": "#0b1624",
     "oceanColor": "#4785b5",
     "sandColor": "#CCCB9E",
     "plainsColor": "#BEDC8A",
@@ -356,11 +356,7 @@
     "gradientSolidEnd": 0.1
   },
   "smallPlayerGlow": {
-    "color": [
-      1,
-      0.12,
-      0.1
-    ],
+    "color": [1, 0.12, 0.1],
     "alpha": 0.9,
     "pulseSpeed": 0.003,
     "strength": 0.35

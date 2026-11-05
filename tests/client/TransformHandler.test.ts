@@ -1,5 +1,7 @@
+import { Cell } from "@openfront/engine-api/game/GameTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DragEvent, ZoomEvent } from "../../src/client/InputHandler";
 import {
   GOTO_INTERVAL_MS,
   GoToPositionEvent,
@@ -63,27 +65,63 @@ describe("TransformHandler", () => {
   });
 });
 
-it("fills wide and portrait viewports and recalculates the limit on resize", () => {
-  let width = 1600,
-    height = 900;
-  const canvas = document.createElement("canvas");
-  canvas.getBoundingClientRect = () =>
-    ({ width, height, left: 0, top: 0 }) as DOMRect;
-  const handler = new TransformHandler(
-    { width: () => 2000, height: () => 1000 } as GameView,
-    new EventBus(),
-    canvas,
-  );
-  handler.centerAll();
-  expect(handler.scale).toBe(0.9);
-  let [left, right] = handler.screenBoundingRect();
-  expect(left.x).toBeGreaterThanOrEqual(-1);
-  expect(right.x).toBeLessThanOrEqual(2001);
-  width = 600;
-  height = 1000;
-  handler.updateCanvasBoundingRect();
-  expect(handler.scale).toBeGreaterThanOrEqual(1);
-  [left, right] = handler.screenBoundingRect();
-  expect(left.y).toBeGreaterThanOrEqual(-1);
-  expect(right.y).toBeLessThanOrEqual(1001);
+describe("full map overview", () => {
+  it.each([
+    [2000, 1000, 1600, 900],
+    [1000, 2000, 1600, 900],
+    [2000, 1000, 600, 1000],
+    [1000, 1000, 3440, 1440],
+    [4000, 300, 390, 844],
+  ])("fits map %s × %s in viewport %s × %s", (mapW, mapH, width, height) => {
+    const canvas = document.createElement("canvas");
+    canvas.getBoundingClientRect = () =>
+      ({ width, height, left: 37, top: 21 }) as DOMRect;
+    const handler = new TransformHandler(
+      { width: () => mapW, height: () => mapH } as GameView,
+      new EventBus(),
+      canvas,
+    );
+    const assertFits = () => {
+      const topLeft = handler.worldToCanvasCoordinates(new Cell(0, 0));
+      const bottomRight = handler.worldToCanvasCoordinates(
+        new Cell(mapW, mapH),
+      );
+      expect(topLeft.x).toBeGreaterThanOrEqual(-0.000001);
+      expect(topLeft.y).toBeGreaterThanOrEqual(-0.000001);
+      expect(bottomRight.x).toBeLessThanOrEqual(width + 0.000001);
+      expect(bottomRight.y).toBeLessThanOrEqual(height + 0.000001);
+      expect(topLeft.x + bottomRight.x).toBeCloseTo(width);
+      expect(topLeft.y + bottomRight.y).toBeCloseTo(height);
+    };
+    handler.centerAll();
+    expect(handler.scale).toBe(Math.min(width / mapW, height / mapH));
+    assertFits();
+    handler.onMove(new DragEvent(9999, -9999));
+    assertFits();
+    handler.onZoom(new ZoomEvent(80, 120, 10000));
+    assertFits();
+  });
+
+  it("keeps the overview fitted across resize in either direction", () => {
+    let width = 1600,
+      height = 900;
+    const canvas = document.createElement("canvas");
+    canvas.getBoundingClientRect = () =>
+      ({ width, height, left: 0, top: 0 }) as DOMRect;
+    const handler = new TransformHandler(
+      { width: () => 2000, height: () => 1000 } as GameView,
+      new EventBus(),
+      canvas,
+    );
+    handler.centerAll();
+    expect(handler.scale).toBe(0.8);
+    width = 600;
+    height = 1000;
+    handler.updateCanvasBoundingRect();
+    expect(handler.scale).toBe(0.3);
+    width = 1920;
+    height = 1080;
+    handler.updateCanvasBoundingRect();
+    expect(handler.scale).toBe(0.96);
+  });
 });

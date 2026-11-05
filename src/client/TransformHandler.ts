@@ -57,14 +57,19 @@ export class TransformHandler {
   }
 
   public updateCanvasBoundingRect() {
+    const wasOverview = Math.abs(this.scale - this.minimumScale()) < 1e-6;
     this._boundingRect = this.canvas.getBoundingClientRect();
-    this.scale = Math.max(this.minimumScale(), this.scale);
+    this.scale = wasOverview
+      ? this.minimumScale()
+      : Math.max(this.minimumScale(), this.scale);
+    if (this.targetScale !== null)
+      this.targetScale = Math.max(this.minimumScale(), this.targetScale);
     this.clampOffsets();
     this.changed = true;
   }
 
   private minimumScale(): number {
-    return Math.max(
+    return Math.min(
       this.width() / this.game.width(),
       this.boundingRect().height / this.game.height(),
     );
@@ -252,6 +257,8 @@ export class TransformHandler {
   }
 
   private goTo() {
+    const previousX = this.offsetX;
+    const previousY = this.offsetY;
     const { screenX, screenY } = this.screenCenter();
 
     if (this.target === null) {
@@ -308,6 +315,16 @@ export class TransformHandler {
         (1 / (2 * oldScale) - 1 / (2 * this.scale));
     }
 
+    this.scale = Math.max(this.minimumScale(), this.scale);
+    this.clampOffsets();
+    // At overview, an off-center target cannot be centered without hiding the map.
+    if (
+      Math.abs(this.offsetX - previousX) + Math.abs(this.offsetY - previousY) <
+        1e-8 &&
+      (this.targetScale === null ||
+        Math.abs(this.scale - this.targetScale) < 0.01)
+    )
+      this.clearTarget();
     this.changed = true;
   }
 
@@ -345,25 +362,21 @@ export class TransformHandler {
     const gameH = this.game.height();
     const scale = this.scale;
 
-    // Keep the viewport inside the map at every supported screen aspect ratio.
+    // Center axes that fit on screen; constrain panning only on overflowing axes.
     const minOffsetX = gameWidth / (2 * scale) - gameWidth / 2;
     const maxOffsetX = gameWidth / 2 - (canvasWidth - gameWidth / 2) / scale;
 
     const minOffsetY = gameH / (2 * scale) - gameH / 2;
     const maxOffsetY = gameH / 2 - (canvasHeight - gameH / 2) / scale;
 
-    // Clamp offsets within computed bounds on each axis
-    if (this.offsetX < minOffsetX) {
-      this.offsetX = minOffsetX;
-    } else if (this.offsetX > maxOffsetX) {
-      this.offsetX = maxOffsetX;
-    }
-
-    if (this.offsetY < minOffsetY) {
-      this.offsetY = minOffsetY;
-    } else if (this.offsetY > maxOffsetY) {
-      this.offsetY = maxOffsetY;
-    }
+    this.offsetX =
+      minOffsetX > maxOffsetX
+        ? (gameWidth - canvasWidth) / (2 * scale)
+        : Math.max(minOffsetX, Math.min(maxOffsetX, this.offsetX));
+    this.offsetY =
+      minOffsetY > maxOffsetY
+        ? (gameH - canvasHeight) / (2 * scale)
+        : Math.max(minOffsetY, Math.min(maxOffsetY, this.offsetY));
   }
 
   onMove(event: DragEvent) {
@@ -403,7 +416,7 @@ export class TransformHandler {
 
     const scHor = (vpWidth / mapWidth) * fit;
     const scVer = (vpHeight / mapHeight) * fit;
-    const tScale = Math.max(this.minimumScale(), scHor, scVer);
+    const tScale = Math.max(this.minimumScale(), Math.min(scHor, scVer));
 
     const oHor = (mapWidth - vpWidth) / 2 / tScale;
     const oVer = (mapHeight - vpHeight) / 2 / tScale;
