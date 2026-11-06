@@ -25,6 +25,7 @@ vi.mock("../../src/client/LobbySocket", () => ({
 
 // Registers <game-mode-selector> as a side effect.
 import "../../src/client/GameModeSelector";
+import type { GameModeSelector } from "../../src/client/GameModeSelector";
 
 function lobby(trusted: boolean): PublicGameInfo {
   return {
@@ -80,6 +81,10 @@ beforeEach(async () => {
   selector = document.createElement("game-mode-selector") as HTMLElement & {
     updateComplete: Promise<unknown>;
   };
+  // Exercise the retained online renderer explicitly; FRONTIER defaults to solo.
+  const onlineSelector = selector as GameModeSelector;
+  onlineSelector.render =
+    onlineSelector.renderMultiplayerMenu.bind(onlineSelector);
   document.body.appendChild(selector);
   await selector.updateComplete;
 });

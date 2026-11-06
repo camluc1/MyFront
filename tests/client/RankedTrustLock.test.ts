@@ -19,6 +19,7 @@ vi.mock("../../src/client/UserMeBroadcast", () => ({
 
 // Registers <game-mode-selector> as a side effect.
 import "../../src/client/GameModeSelector";
+import type { GameModeSelector } from "../../src/client/GameModeSelector";
 
 type Selector = HTMLElement & { updateComplete: Promise<unknown> };
 
@@ -31,6 +32,10 @@ function me(trustTier: "trusted" | "untrusted"): UserMeResponse {
 
 async function mount(): Promise<Selector> {
   const selector = document.createElement("game-mode-selector") as Selector;
+  // Exercise the retained online renderer explicitly; FRONTIER defaults to solo.
+  const onlineSelector = selector as GameModeSelector;
+  onlineSelector.render =
+    onlineSelector.renderMultiplayerMenu.bind(onlineSelector);
   document.body.appendChild(selector);
   await selector.updateComplete;
   return selector;
@@ -138,5 +143,18 @@ describe("Ranked button opens the ranked modal regardless of trust", () => {
     await clickRanked(selector);
     expect(showPage).toHaveBeenCalledWith("page-ranked");
     expect(selector.querySelector("confirm-dialog")).toBeNull();
+  });
+});
+
+describe("FRONTIER homepage", () => {
+  it("defaults to map shortcuts without online controls or a lobby feed", async () => {
+    const selector = document.createElement(
+      "game-mode-selector",
+    ) as GameModeSelector;
+    document.body.appendChild(selector);
+    await selector.updateComplete;
+    expect(selector.querySelector("solo-map-menu")).not.toBeNull();
+    expect(selector.textContent).not.toContain("mode_selector.ranked_title");
+    expect(selector.querySelector("[data-trust]")).toBeNull();
   });
 });

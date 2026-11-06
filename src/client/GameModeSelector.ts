@@ -3,6 +3,7 @@ import { UserMeResponse } from "@openfront/shared/ApiSchemas";
 import { PublicGameInfo, PublicGames } from "@openfront/shared/WireSchemas";
 import { html, LitElement, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import "./components/SoloMapMenu";
 import { ClientEnv } from "src/client/ClientEnv";
 import { getDesktopSessionState } from "./Auth";
 import "./components/IOSAddToHomeScreenBanner";
@@ -550,7 +551,7 @@ export class GameModeSelector extends LitElement {
    * snapshot and re-primes the list from the server.
    */
   public start() {
-    this.openLobbyFeed();
+    // FRONTIER is solo: do not subscribe to the online lobby rotation.
   }
 
   private openLobbyFeed(refreshList = false) {
@@ -648,6 +649,22 @@ export class GameModeSelector extends LitElement {
   }
 
   render() {
+    return html`<solo-map-menu
+      @solo-map-selected=${(event: CustomEvent<{ map: GameMapType }>) => {
+        if (!this.validateUsername()) return;
+        whenModalLoaded("single-player-modal", () =>
+          (
+            document.querySelector("single-player-modal") as SinglePlayerModal
+          )?.open({ map: event.detail.map }),
+        );
+      }}
+      @open-solo=${this.openSinglePlayerModal}
+      @solo-tutorial=${this.startTutorial}
+    ></solo-map-menu>`;
+  }
+
+  /** Original online menu retained for a future multiplayer edition. */
+  renderMultiplayerMenu() {
     const ffa = this.lobbies?.games?.["ffa"]?.[0];
     const teams = this.lobbies?.games?.["team"]?.[0];
     const special = this.lobbies?.games?.["special"]?.[0];

@@ -33,6 +33,7 @@ export function toggleFavoriteMap(map: GameMapType): GameMapType[] {
   } catch (error) {
     console.warn("Failed to save favorite maps to localStorage:", error);
   }
+  window.dispatchEvent(new Event("map-favorites-changed"));
   return favorites;
 }
 

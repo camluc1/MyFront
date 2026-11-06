@@ -1,8 +1,9 @@
-import { UnitType } from "@openfront/engine-api/game/GameTypes";
+import { GameMapType, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/client/Cosmetics", () => ({
   getPlayerCosmetics: vi.fn(async () => ({})),
+  prewarmCosmetics: vi.fn(async () => {}),
 }));
 
 vi.mock("../../src/client/CrazyGamesSDK", () => ({
@@ -13,7 +14,9 @@ vi.mock("../../src/client/CrazyGamesSDK", () => ({
 }));
 
 vi.mock("../../src/client/TerrainMapFileLoader", () => ({
-  terrainMapFileLoader: { getMapData: vi.fn() },
+  terrainMapFileLoader: {
+    getMapData: vi.fn(() => ({ manifest: async () => ({ nations: [] }) })),
+  },
 }));
 
 // Side-effect import so the custom element registers (a type-only import
@@ -47,5 +50,16 @@ describe("SinglePlayerModal start", () => {
     const config = events[0].gameStartInfo.config;
     expect(config.playerTeams).toBe(4);
     expect(config.disabledUnits).toEqual([UnitType.Warship]);
+  });
+});
+
+describe("SinglePlayerModal map shortcuts", () => {
+  it("uses the same map-selection handler for a shortcut and ignores invalid maps", () => {
+    const modal = createModal();
+    modal.onOpen({ map: GameMapType.Europe });
+    expect(modal.selectedMap).toBe(GameMapType.Europe);
+    expect(modal.useRandomMap).toBe(false);
+    modal.onOpen({ map: "missing-map" });
+    expect(modal.selectedMap).toBe(GameMapType.Europe);
   });
 });

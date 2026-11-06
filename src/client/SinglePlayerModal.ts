@@ -452,46 +452,94 @@ export class SinglePlayerModal extends BaseModal {
         class="pointer-events-none absolute inset-0 opacity-80"
         style="background: radial-gradient(ellipse at 12% 0%, rgba(34,211,238,.18), transparent 42%), radial-gradient(ellipse at 100% 100%, rgba(37,99,235,.16), transparent 48%);"
       ></div>
-      <div class="relative grid gap-5 p-5 sm:p-6 lg:grid-cols-[1fr_auto] lg:items-end">
+      <div class="relative grid gap-5 p-5 sm:p-6 ">
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-2">
-            <span class="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-200">
-              <span class="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,.9)]"></span>
+            <span
+              class="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-200"
+            >
+              <span
+                class="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,.9)]"
+              ></span>
               FRONTIER
             </span>
-            <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">Single-player command</span>
+            <span
+              class="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35"
+              >Single-player command</span
+            >
           </div>
-          <p class="mt-4 text-[10px] font-bold uppercase tracking-[0.24em] text-white/40">Strategic theater</p>
-          <h2 class="mt-1 truncate text-2xl font-black tracking-tight text-white sm:text-3xl">${mapName}</h2>
+          <p
+            class="mt-4 text-[10px] font-bold uppercase tracking-[0.24em] text-white/40"
+          >
+            Strategic theater
+          </p>
+          <h2
+            class="mt-1 truncate text-2xl font-black tracking-tight text-white sm:text-3xl"
+          >
+            ${this.useRandomMap ? translateText("map.random") : mapName}
+          </h2>
           <p class="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300/75">
-            Configure your theater of war, choose the opposition and prepare your campaign. Your existing OpenFront simulation remains the foundation.
+            Configure your theater of war, choose the opposition and prepare
+            your campaign. Your existing OpenFront simulation remains the
+            foundation.
           </p>
         </div>
-        <div class="grid grid-cols-3 gap-2 lg:min-w-[330px]">
-          <div class="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-3">
-            <p class="text-[9px] font-bold uppercase tracking-[0.16em] text-white/40">Difficulty</p>
-            <p class="mt-1 truncate text-sm font-extrabold text-white">${difficultyName}</p>
+        <div class="grid grid-cols-3 gap-2 ">
+          <div
+            class="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-3"
+          >
+            <p
+              class="text-[9px] font-bold uppercase tracking-[0.16em] text-white/40"
+            >
+              Difficulty
+            </p>
+            <p class="mt-1 truncate text-sm font-extrabold text-white">
+              ${difficultyName}
+            </p>
           </div>
-          <div class="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-3">
-            <p class="text-[9px] font-bold uppercase tracking-[0.16em] text-white/40">AI forces</p>
-            <p class="mt-1 text-sm font-extrabold tabular-nums text-white">${this.bots.toLocaleString()}</p>
+          <div
+            class="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-3"
+          >
+            <p
+              class="text-[9px] font-bold uppercase tracking-[0.16em] text-white/40"
+            >
+              AI forces
+            </p>
+            <p class="mt-1 text-sm font-extrabold tabular-nums text-white">
+              ${this.bots.toLocaleString()}
+            </p>
           </div>
-          <div class="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-3">
-            <p class="text-[9px] font-bold uppercase tracking-[0.16em] text-white/40">Nations</p>
-            <p class="mt-1 text-sm font-extrabold tabular-nums text-white">${this.nations.toLocaleString()}</p>
+          <div
+            class="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-3"
+          >
+            <p
+              class="text-[9px] font-bold uppercase tracking-[0.16em] text-white/40"
+            >
+              Nations
+            </p>
+            <p class="mt-1 text-sm font-extrabold tabular-nums text-white">
+              ${this.nations.toLocaleString()}
+            </p>
           </div>
         </div>
       </div>
-      <div class="relative flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.08] bg-black/20 px-5 py-3 sm:px-6">
-        <span class="text-[9px] font-bold uppercase tracking-[0.2em] text-white/35">Campaign configuration</span>
-        <span class="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200/80">Live settings · updates as you configure</span>
+      <div
+        class="relative flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.08] bg-black/20 px-5 py-3 sm:px-6"
+      >
+        <span
+          class="text-[9px] font-bold uppercase tracking-[0.2em] text-white/35"
+          >Campaign configuration</span
+        >
+        <span
+          class="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200/80"
+          >Live settings · updates as you configure</span
+        >
       </div>
     </section>`;
   }
 
   protected renderBody() {
     const inputCards = [
-
       html`<toggle-input-card
         .labelKey=${"game_settings.max_timer"}
         .checked=${this.maxTimer}
@@ -575,133 +623,153 @@ export class SinglePlayerModal extends BaseModal {
     return html`
       <div class="flex flex-col h-full">
         <div
-          class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 pt-4 pb-6 mr-1 mx-auto w-full max-w-5xl"
+          class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 pt-4 pb-6 mr-1 mx-auto w-full max-w-7xl"
         >
-          ${this.renderFrontierBriefing()}
-          <section
-            aria-label="Configuración del tiempo de paz entre naciones"
-            class="mb-6 rounded-2xl border border-cyan-400/25 bg-gradient-to-r from-cyan-950/55 to-slate-950/70 p-4 sm:p-5"
+          <div
+            class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]"
           >
-            <div class="flex flex-wrap items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p class="text-xs font-black uppercase tracking-[0.16em] text-cyan-200">
-                  Diplomacia inicial
-                </p>
-                <h3 class="mt-1 text-base font-bold text-white">
-                  Tiempo de paz entre naciones
-                </h3>
-                <p class="mt-1 max-w-2xl text-xs leading-relaxed text-slate-300/75">
-                  Durante este período, las naciones no podrán iniciar guerras entre sí ni contra vos. Las tribus continúan actuando normalmente.
-                </p>
-              </div>
-              <div class="flex min-w-[180px] items-center gap-3">
-                <select
-                  id="nation-peace-time"
-                  aria-label="Duración del tiempo de paz entre naciones"
-                  class="min-w-0 flex-1 rounded-lg border border-cyan-300/25 bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white"
-                  .value=${String(this.nationPeaceTimeMinutes)}
-                  @change=${this.handleNationPeaceTimeChange}
-                >
-                  ${[1, 2, 3, 4, 5].map(
-                    (minutes) => html`<option value=${minutes}>${minutes} minuto${minutes === 1 ? "" : "s"}</option>`,
-                  )}
-                </select>
-              </div>
+            <div class="min-w-0">
+              <section
+                aria-label="Configuración del tiempo de paz entre naciones"
+                class="mb-6 rounded-2xl border border-cyan-400/25 bg-gradient-to-r from-cyan-950/55 to-slate-950/70 p-4 sm:p-5"
+              >
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <p
+                      class="text-xs font-black uppercase tracking-[0.16em] text-cyan-200"
+                    >
+                      Diplomacia inicial
+                    </p>
+                    <h3 class="mt-1 text-base font-bold text-white">
+                      Tiempo de paz entre naciones
+                    </h3>
+                    <p
+                      class="mt-1 max-w-2xl text-xs leading-relaxed text-slate-300/75"
+                    >
+                      Durante este período, las naciones no podrán iniciar
+                      guerras entre sí ni contra vos. Las tribus continúan
+                      actuando normalmente.
+                    </p>
+                  </div>
+                  <div class="flex min-w-[180px] items-center gap-3">
+                    <select
+                      id="nation-peace-time"
+                      aria-label="Duración del tiempo de paz entre naciones"
+                      class="min-w-0 flex-1 rounded-lg border border-cyan-300/25 bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white"
+                      .value=${String(this.nationPeaceTimeMinutes)}
+                      @change=${this.handleNationPeaceTimeChange}
+                    >
+                      ${[1, 2, 3, 4, 5].map(
+                        (minutes) =>
+                          html`<option value=${minutes}>
+                            ${minutes} minuto${minutes === 1 ? "" : "s"}
+                          </option>`,
+                      )}
+                    </select>
+                  </div>
+                </div>
+              </section>
+              <saved-games-panel
+                class="block mb-6"
+                .signedIn=${responseHasLinkedIdentity(this.userMeResponse)}
+                .sharedId=${this.sharedSaveId}
+                .busy=${this.starting}
+                @load-saved-game=${this.handleLoadSavedGame}
+                @open-shared-save=${(e: CustomEvent<string>) =>
+                  (this.sharedSaveId = e.detail)}
+              ></saved-games-panel>
+              <game-config-settings
+                class="block"
+                .sectionGapClass=${"space-y-6"}
+                .settings=${{
+                  map: {
+                    selected: this.selectedMap,
+                    useRandom: this.useRandomMap,
+                    showMedals: this.showAchievements,
+                    mapWins: this.mapWins,
+                  },
+                  difficulty: {
+                    selected: this.selectedDifficulty,
+                    disabled: this.nations === 0,
+                  },
+                  gameMode: {
+                    selected: this.gameMode,
+                  },
+                  teamCount: {
+                    selected: this.teamCount,
+                  },
+                  options: {
+                    titleKey: "game_settings.options",
+                    bots: {
+                      value: this.bots,
+                      labelKey: "game_settings.bots",
+                      disabledKey: "common.disabled",
+                    },
+                    nations: {
+                      value: this.nations,
+                      defaultValue: this.defaultNationCount,
+                      labelKey: "game_settings.nations",
+                      disabledKey: "common.disabled",
+                    },
+                    toggles: [
+                      {
+                        labelKey: "game_settings.instant_build",
+                        checked: this.instantBuild,
+                      },
+                      {
+                        labelKey: "game_settings.random_spawn",
+                        checked: this.randomSpawn,
+                      },
+                      {
+                        labelKey: "game_settings.infinite_gold",
+                        checked: this.infiniteGold,
+                      },
+                      {
+                        labelKey: "game_settings.infinite_troops",
+                        checked: this.infiniteTroops,
+                      },
+                      {
+                        labelKey: "game_settings.compact_map",
+                        checked: this.compactMap,
+                      },
+                      {
+                        labelKey: "game_settings.water_nukes",
+                        checked: this.waterNukes,
+                      },
+                      {
+                        labelKey: "game_settings.doomsday_clock",
+                        checked: this.doomsdayClock,
+                        doomsdayClockSpeed: this.doomsdayClockSpeed,
+                      },
+                    ],
+                    inputCards,
+                  },
+                  unitTypes: {
+                    titleKey: "game_settings.disable_units",
+                    disabledUnits: this.disabledUnits,
+                  },
+                }}
+                @map-selected=${this.handleConfigMapSelected}
+                @random-map-selected=${this.handleConfigRandomMapSelected}
+                @difficulty-selected=${this.handleConfigDifficultySelected}
+                @doomsday-clock-speed-selected=${
+                  this.handleConfigDoomsdayClockSpeedSelected
+                }
+                @game-mode-selected=${this.handleConfigGameModeSelected}
+                @team-count-selected=${this.handleConfigTeamCountSelected}
+                @bots-changed=${this.handleBotsChange}
+                @nations-changed=${this.handleNationsChange}
+                @option-toggle-changed=${this.handleConfigOptionToggleChanged}
+                @unit-toggle-changed=${this.handleConfigUnitToggleChanged}
+              ></game-config-settings>
             </div>
-          </section>
-          <saved-games-panel
-            class="block mb-6"
-            .signedIn=${responseHasLinkedIdentity(this.userMeResponse)}
-            .sharedId=${this.sharedSaveId}
-            .busy=${this.starting}
-            @load-saved-game=${this.handleLoadSavedGame}
-            @open-shared-save=${(e: CustomEvent<string>) =>
-              (this.sharedSaveId = e.detail)}
-          ></saved-games-panel>
-          <game-config-settings
-            class="block"
-            .sectionGapClass=${"space-y-6"}
-            .settings=${{
-              map: {
-                selected: this.selectedMap,
-                useRandom: this.useRandomMap,
-                showMedals: this.showAchievements,
-                mapWins: this.mapWins,
-              },
-              difficulty: {
-                selected: this.selectedDifficulty,
-                disabled: this.nations === 0,
-              },
-              gameMode: {
-                selected: this.gameMode,
-              },
-              teamCount: {
-                selected: this.teamCount,
-              },
-              options: {
-                titleKey: "game_settings.options",
-                bots: {
-                  value: this.bots,
-                  labelKey: "game_settings.bots",
-                  disabledKey: "common.disabled",
-                },
-                nations: {
-                  value: this.nations,
-                  defaultValue: this.defaultNationCount,
-                  labelKey: "game_settings.nations",
-                  disabledKey: "common.disabled",
-                },
-                toggles: [
-                  {
-                    labelKey: "game_settings.instant_build",
-                    checked: this.instantBuild,
-                  },
-                  {
-                    labelKey: "game_settings.random_spawn",
-                    checked: this.randomSpawn,
-                  },
-                  {
-                    labelKey: "game_settings.infinite_gold",
-                    checked: this.infiniteGold,
-                  },
-                  {
-                    labelKey: "game_settings.infinite_troops",
-                    checked: this.infiniteTroops,
-                  },
-                  {
-                    labelKey: "game_settings.compact_map",
-                    checked: this.compactMap,
-                  },
-                  {
-                    labelKey: "game_settings.water_nukes",
-                    checked: this.waterNukes,
-                  },
-                  {
-                    labelKey: "game_settings.doomsday_clock",
-                    checked: this.doomsdayClock,
-                    doomsdayClockSpeed: this.doomsdayClockSpeed,
-                  },
-                ],
-                inputCards,
-              },
-              unitTypes: {
-                titleKey: "game_settings.disable_units",
-                disabledUnits: this.disabledUnits,
-              },
-            }}
-            @map-selected=${this.handleConfigMapSelected}
-            @random-map-selected=${this.handleConfigRandomMapSelected}
-            @difficulty-selected=${this.handleConfigDifficultySelected}
-            @doomsday-clock-speed-selected=${
-              this.handleConfigDoomsdayClockSpeedSelected
-            }
-            @game-mode-selected=${this.handleConfigGameModeSelected}
-            @team-count-selected=${this.handleConfigTeamCountSelected}
-            @bots-changed=${this.handleBotsChange}
-            @nations-changed=${this.handleNationsChange}
-            @option-toggle-changed=${this.handleConfigOptionToggleChanged}
-            @unit-toggle-changed=${this.handleConfigUnitToggleChanged}
-          ></game-config-settings>
+            <aside
+              class="min-w-0 lg:sticky lg:top-0"
+              aria-label="Resumen de la partida"
+            >
+              ${this.renderFrontierBriefing()}
+            </aside>
+          </div>
         </div>
 
         <!-- Footer Action -->
@@ -887,6 +955,10 @@ export class SinglePlayerModal extends BaseModal {
   }
 
   protected onOpen(args?: Record<string, unknown>): void {
+    const map = args?.map;
+    if (listedMaps.some((entry) => entry.type === map)) {
+      this.handleMapSelection(map as GameMapType);
+    }
     const save = args?.save;
     this.sharedSaveId = typeof save === "string" ? savedGameIdFrom(save) : null;
     // Saves made since the list last loaded (a game played in between).
