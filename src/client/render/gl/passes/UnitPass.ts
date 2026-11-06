@@ -2,8 +2,8 @@
  * UnitPass — GPU-rendered mobile unit sprites.
  *
  * Renders all mobile (non-structure) units: boats, nukes, shells, SAM
- * missiles, and MIRV warheads. All unit types are rotationally symmetric
- * — no rotation needed. Sprites are tiny grayscale PNGs colorized on the
+ * missiles, and MIRV warheads. Boats and trains use directional procedural
+ * silhouettes; missiles retain the grayscale atlas colorized on the
  * GPU using the standard 3-band gray replacement (180/130/70). MIRV
  * Warhead uses a programmatic 3×3 white square (colorized to border
  * color); Shell is a single white pixel.
@@ -108,8 +108,8 @@ const TRAIN_FIRST_COL = UNIT_ORDER.indexOf("TrainEngine");
  *   float x, y, ownerID   — 12 bytes (3 floats)
  *   uint8 atlasIdx         —  1 byte  (atlas column 0–11)
  *   uint8 flags            —  1 byte  (0 = normal, 1 = flicker, 2 = angry, 3 = trade-friendly, 4 = retreating, 5 = flicker-untargetable)
- *   uint8 flickerHash      —  1 byte  (per-instance flicker phase offset)
- *   1 byte padding         — aligns to 4-byte boundary
+ *   uint8 flickerHash      —  1 byte  (missile flicker phase / ground moving flag)
+ *   uint8 heading          —  1 byte  (ground direction, full turn = 255)
  */
 const FLOATS_PER_INSTANCE = 4;
 const BYTES_PER_INSTANCE = FLOATS_PER_INSTANCE * 4;
@@ -186,9 +186,9 @@ function createUnitVao(
   gl.vertexAttribPointer(1, 3, gl.FLOAT, false, BYTES_PER_INSTANCE, 0);
   gl.vertexAttribDivisor(1, 1);
 
-  // Attribute 2: per-instance (atlasIdx, flags, flickerHash) — 3 uint8s at offset 12, converted to float
+  // Attribute 2: per-instance (atlasIdx, flags, flickerHash/moving, heading) — 4 uint8s at offset 12, converted to float
   gl.enableVertexAttribArray(2);
-  gl.vertexAttribPointer(2, 3, gl.UNSIGNED_BYTE, false, BYTES_PER_INSTANCE, 12);
+  gl.vertexAttribPointer(2, 4, gl.UNSIGNED_BYTE, false, BYTES_PER_INSTANCE, 12);
   gl.vertexAttribDivisor(2, 1);
 
   gl.bindVertexArray(null);
@@ -200,6 +200,7 @@ function createUnitVao(
 // ---------------------------------------------------------------------------
 
 export class UnitPass {
+  private headings = new Map<number, number>();
   private gl: WebGL2RenderingContext;
   private settings: RenderSettings;
   private program: WebGLProgram;
@@ -410,6 +411,8 @@ export class UnitPass {
     ownerID: number,
     atlasIdx: number,
     flags: number,
+    heading: number,
+    moving: boolean,
   ): void {
     this.groundBuf.ensureCapacity(this.groundCount + 1);
     const off = this.groundCount * FLOATS_PER_INSTANCE;
@@ -419,7 +422,8 @@ export class UnitPass {
     const byteOff = this.groundCount * BYTES_PER_INSTANCE;
     this.groundBuf.uint8[byteOff + 12] = atlasIdx;
     this.groundBuf.uint8[byteOff + 13] = flags;
-    this.groundBuf.uint8[byteOff + 14] = flickerHashByte(x, y);
+    this.groundBuf.uint8[byteOff + 14] = moving ? 255 : 0;
+    this.groundBuf.uint8[byteOff + 15] = heading;
     this.groundCount++;
   }
 
@@ -455,7 +459,7 @@ export class UnitPass {
     this.missileCount = 0;
     this.smoothSegs.length = 0;
 
-    for (const unit of units.values()) {
+    for (const [id, unit] of units) {
       if (!unit.isActive || unit.waitTicks > 0) continue;
 
       let atlasIdx = this.typeToAtlasCol.get(unit.unitType);
@@ -542,10 +546,24 @@ export class UnitPass {
           this.emitMissile(lx, ly, unit.ownerID, atlasIdx, flags);
         }
       } else {
-        this.emitGround(x, y, unit.ownerID, atlasIdx, flags);
+        const lx = unit.lastPos % this.mapW;
+        const ly = (unit.lastPos - lx) / this.mapW;
+        const moving = unit.lastPos !== unit.pos;
+        const heading = moving
+          ? Math.round(
+              (((Math.atan2(y - ly, x - lx) + Math.PI * 2) % (Math.PI * 2)) *
+                255) /
+                (Math.PI * 2),
+            )
+          : (this.headings.get(id) ?? 0);
+        this.headings.set(id, heading);
+        this.emitGround(x, y, unit.ownerID, atlasIdx, flags, heading, moving);
       }
     }
 
+    for (const id of this.headings.keys()) {
+      if (!units.get(id)?.isActive) this.headings.delete(id);
+    }
     const gl = this.gl;
     if (this.groundCount > 0) {
       gl.bindBuffer(gl.ARRAY_BUFFER, this.groundBuf.buffer);
@@ -673,6 +691,7 @@ export class UnitPass {
   }
 
   dispose(): void {
+    this.headings.clear();
     const gl = this.gl;
     gl.deleteProgram(this.program);
     this.groundBuf.dispose();

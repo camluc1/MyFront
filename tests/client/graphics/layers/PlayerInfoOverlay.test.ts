@@ -476,3 +476,60 @@ describe("PlayerInfoOverlay", () => {
     });
   });
 });
+
+describe("small fleet ownership", () => {
+  it.each([UnitType.TransportShip, UnitType.TradeShip, UnitType.Warship])(
+    "identifies the nearest active %s, including tile zero",
+    (type) => {
+      const owner = { displayName: () => "Argentina" };
+      const ship = {
+        owner: () => owner,
+        type: () => type,
+        isActive: () => true,
+        hasHealth: () => false,
+        troops: () => 500,
+      };
+      const distant = {
+        ...ship,
+        owner: () => ({ displayName: () => "Other" }),
+      };
+      const nearbyUnits = vi.fn(() => [
+        { unit: distant, distSquared: 40 },
+        { unit: { ...ship, isActive: () => false }, distSquared: 0 },
+        { unit: ship, distSquared: 2 },
+      ]);
+      const overlay = new PlayerInfoOverlay();
+      overlay.transform = {
+        scale: 2,
+        screenToWorldCoordinates: () => ({ x: 0, y: 0 }),
+      } as never;
+      overlay.game = {
+        isValidCoord: () => true,
+        ref: () => 0,
+        owner: () => null,
+        isLand: () => false,
+        nearbyUnits,
+        myPlayer: () => owner,
+      } as never;
+      overlay.maybeShow(0, 0);
+      expect(nearbyUnits).toHaveBeenCalledWith(
+        0,
+        8,
+        expect.arrayContaining([type]),
+      );
+      expect((overlay as any).unit).toBe(ship);
+      expect(flatten((overlay as any).renderUnitInfo(ship))).toContain(
+        "Argentina",
+      );
+      // Enemy ships use their real owner too, rather than the local player.
+      overlay.game = {
+        ...overlay.game,
+        myPlayer: () => ({ isFriendly: () => false }),
+      } as never;
+      overlay.maybeShow(0, 0);
+      expect(flatten((overlay as any).renderUnitInfo(ship))).toContain(
+        "Argentina",
+      );
+    },
+  );
+});

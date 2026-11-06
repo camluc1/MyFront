@@ -6,7 +6,6 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { AllianceView } from "@openfront/engine-api/game/GameUpdates";
-import { UnitLike } from "@openfront/engine-api/game/ReadViews";
 import { renderNumber, renderTroops } from "@openfront/engine-lib/Format";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
@@ -20,6 +19,7 @@ import {
   DoRequestAllianceEvent,
   DoTargetPlayerEvent,
   MouseMoveEvent,
+  MouseUpEvent,
   TouchEvent,
 } from "../../InputHandler";
 import { Platform } from "../../Platform";
@@ -62,26 +62,6 @@ const missileSiloIcon = assetUrl("images/MissileSiloIconWhite.svg");
 const portIcon = assetUrl("images/PortIcon.svg");
 const samLauncherIcon = assetUrl("images/SamLauncherIconWhite.svg");
 const soldierIcon = assetUrl("images/SoldierIcon.svg");
-
-function euclideanDistWorld(
-  coord: { x: number; y: number },
-  tileRef: TileRef,
-  game: GameView,
-): number {
-  const x = game.x(tileRef);
-  const y = game.y(tileRef);
-  const dx = coord.x - x;
-  const dy = coord.y - y;
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
-function distSortUnitWorld(coord: { x: number; y: number }, game: GameView) {
-  return (a: UnitLike, b: UnitLike) => {
-    const distA = euclideanDistWorld(coord, a.tile(), game);
-    const distB = euclideanDistWorld(coord, b.tile(), game);
-    return distA - distB;
-  };
-}
 
 @customElement("player-info-overlay")
 export class PlayerInfoOverlay extends LitElement implements Controller {
@@ -154,6 +134,9 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
       this.onMouseEvent(e),
     );
     this.eventBus.on(ContextMenuEvent, (e: ContextMenuEvent) =>
+      this.maybeShow(e.x, e.y),
+    );
+    this.eventBus.on(MouseUpEvent, (e: MouseUpEvent) =>
       this.maybeShow(e.x, e.y),
     );
     this.eventBus.on(TouchEvent, (e: TouchEvent) => this.maybeShow(e.x, e.y));
@@ -231,7 +214,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     }
 
     const tile = this.game.ref(worldCoord.x, worldCoord.y);
-    if (!tile) return;
+    if (tile === undefined || tile === null) return;
 
     const owner = this.game.owner(tile);
 
@@ -244,13 +227,26 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
       this.refreshPlayerActions(this.player, tile);
       this.setVisible(true);
     } else if (!this.game.isLand(tile)) {
-      const units = this.game
-        .units(UnitType.Warship, UnitType.TradeShip, UnitType.TransportShip)
-        .filter((u) => euclideanDistWorld(worldCoord, u.tile(), this.game) < 50)
-        .sort(distSortUnitWorld(worldCoord, this.game));
-
-      if (units.length > 0) {
-        this.unit = units[0];
+      // Screen-space hit target remains usable at overview without selecting
+      // a ship dozens of visible pixels away when zoomed in. Spatial index:
+      // no full-fleet filter/sort on every hover.
+      const radius = Math.min(64, Math.max(8, 12 / this.transform.scale));
+      const nearby = this.game.nearbyUnits(tile, radius, [
+        UnitType.Warship,
+        UnitType.TradeShip,
+        UnitType.TransportShip,
+      ]);
+      let closest: UnitView | null = null;
+      let distance = Infinity;
+      for (const hit of nearby) {
+        if (hit.unit.isActive() && hit.distSquared < distance) {
+          closest = hit.unit;
+          distance = hit.distSquared;
+        }
+      }
+      if (closest) {
+        this.unit = closest;
+        this.tile = tile;
         this.setVisible(true);
       }
     }

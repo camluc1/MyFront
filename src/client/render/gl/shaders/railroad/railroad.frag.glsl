@@ -69,27 +69,17 @@ bool isBridgePixel(uint rt, ivec2 lp) {
 
 // Detailed-mode coverage: 3x3 sub-grid with cross-ties, rail band width
 // scaled by uRailThickness (clamped so the two bands never overlap fully).
+float railLineDist(uint rt, vec2 p);
 float railDetailCoverage(uint rt, vec2 f) {
   if (rt == 0u) return 0.0;
-  float T = 1.0 / 3.0;
-  float T2 = 2.0 / 3.0;
-  float w = min(T * uRailThickness, 0.5);
-  bool center = (f.x >= T && f.x < T2 && f.y >= T && f.y < T2);
-  bool hit = false;
-  if (rt == 1u) {
-    hit = (f.x < w) || (f.x >= 1.0 - w) || center;
-  } else if (rt == 2u) {
-    hit = (f.y < w) || (f.y >= 1.0 - w) || center;
-  } else if (rt == 3u) {
-    hit = (f.y < w) || (f.x < w) || center;
-  } else if (rt == 4u) {
-    hit = (f.y < w) || (f.x >= 1.0 - w) || center;
-  } else if (rt == 5u) {
-    hit = (f.y >= 1.0 - w) || (f.x < w) || center;
-  } else if (rt == 6u) {
-    hit = (f.y >= 1.0 - w) || (f.x >= 1.0 - w) || center;
-  }
-  return hit ? 1.0 : 0.0;
+  float d = railLineDist(rt, f);
+  float aa = 0.5 / uZoom;
+  float gauge = 0.23 * uRailThickness;
+  float rails = 1.0 - smoothstep(0.035, 0.035 + aa, abs(d - gauge));
+  float phase = abs(fract((f.x + f.y) * 3.0) - 0.5);
+  float sleepers = (1.0 - smoothstep(0.10, 0.10 + aa, phase))
+    * (1.0 - smoothstep(gauge + 0.09, gauge + 0.09 + aa, d));
+  return max(rails, sleepers);
 }
 
 float segDist(vec2 p, vec2 a, vec2 b) {
@@ -224,6 +214,11 @@ void main() {
       : (owner == uint(uLocalPlayerID)
         ? uLocalRailColor
         : texture(uPalette, vec2((float(owner) + 0.5) / float(PALETTE_SIZE), 0.75)).rgb);
+    if (detailMode) {
+      float d = railLineDist(railType, f);
+      float metal = 1.0 - smoothstep(0.04, 0.04 + 0.5 / uZoom, abs(d - 0.23 * uRailThickness));
+      railColor = mix(vec3(0.22, 0.19, 0.15), mix(railColor, vec3(0.72, 0.79, 0.83), 0.35), metal);
+    }
     // railroad cosmetic: rails are colored by the tile owner, so the owner's
     // railroad effect (raw catalog colors, like trails) replaces that color —
     // including the local player's white/black rail color. Like the

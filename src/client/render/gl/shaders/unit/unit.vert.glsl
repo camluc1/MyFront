@@ -5,7 +5,7 @@ layout(location = 0) in vec2 aPos;
 
 // Per-instance attributes
 layout(location = 1) in vec3 aInstPos;   // x, y, ownerID
-layout(location = 2) in vec3 aInstFlags; // atlasIdx, flags, flickerHash (uint8→float)
+layout(location = 2) in vec4 aInstFlags; // atlasIdx, flags, flickerHash (uint8→float)
 
 uniform mat3  uCamera;
 
@@ -40,13 +40,23 @@ void main() {
   float isHBomb = step(abs(atlasCol - float(HYDROGEN_BOMB_COL)), 0.5);
   vGlow = isHBomb;
   float scale = mix(1.0, uHBombGlowScale, isHBomb);
+  bool vessel = atlasCol < 2.5;
+  bool train = atlasCol > 8.5;
+  // Extra space behind a hull holds its wake, in the same instanced quad.
+  if (vessel) scale = 1.65;
 
   // UNIT_SIZE is in world-space tiles — no zoom division needed.
   // Units scale with the map like territory tiles do.
   float halfSize = uUnitSize * 0.5 * scale;
 
   vec2 center = vec2(worldX + 0.5, worldY + 0.5);
-  vec2 worldPos = center + (aPos - 0.5) * halfSize * 2.0;
+  vec2 localPos = (aPos - 0.5) * halfSize * 2.0;
+  if (vessel || train) {
+    float angle = aInstFlags.w * (6.28318530718 / 255.0);
+    float c = cos(angle), s = sin(angle);
+    localPos = mat2(c, s, -s, c) * localPos;
+  }
+  vec2 worldPos = center + localPos;
   vWorldPos = worldPos;
 
   vec3 clip = uCamera * vec3(worldPos, 1.0);
@@ -56,5 +66,5 @@ void main() {
 
   // Map the enlarged quad back to sprite cell space: the central 1/scale
   // portion is the sprite, anything outside [0,1] is glow-only margin.
-  vCellUV = (aPos - 0.5) * scale + 0.5;
+  vCellUV = (vessel || train) ? aPos : (aPos - 0.5) * scale + 0.5;
 }

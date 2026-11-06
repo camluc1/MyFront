@@ -94,6 +94,57 @@ bool spriteEffectColor(int rowBase, int owner, float coord, bool iconSpace, out 
   return true;
 }
 
+// Compact vector silhouettes. No texture download or per-vessel draw call.
+// +X is the bow; palette gray bands retain ownership, combat and cosmetics.
+vec4 vehicleSprite(vec2 q, float col) {
+  float aa = max(fwidth(q.x), fwidth(q.y));
+  float detail = 1.0 - smoothstep(0.10, 0.25, aa);
+  float gray = 0.706;
+  float d;
+  if (col < 2.5) {
+    bool warship = col > 1.5;
+    bool cargo = col > 0.5 && col < 1.5;
+    float length = warship ? 0.55 : 0.38;
+    float beam = warship ? 0.22 : 0.17;
+    float taper = clamp((length - q.x) / (length * 0.48), 0.0, 1.0);
+    float width = beam * taper;
+    d = max(abs(q.y) - width, max(-length * 0.75 - q.x, q.x - length));
+    if (abs(q.y) > width - 0.035 || q.x < -length * 0.75 + 0.035) gray = 0.275;
+    if (detail > 0.1) {
+      // Raised bridge and a bright deck seam; different cargo/transport decks.
+      if (abs(q.x + length * 0.35) < length * 0.20 && abs(q.y) < beam * 0.65) gray = 0.51;
+      if (cargo && q.x > -0.06 && q.x < length * 0.55 && abs(q.y) < beam * 0.65)
+        gray = mod(floor(q.x * 22.0), 2.0) < 1.0 ? 0.51 : 0.706;
+      if (abs(q.x + length * 0.35) < length * 0.14 && abs(q.y) < beam * 0.42) gray = 0.92;
+      if (warship) {
+        if (abs(q.x + 0.03) < 0.08 && abs(q.y) < 0.105) gray = 0.51;
+        if (abs(q.x + 0.03) < 0.045 && abs(q.y) < 0.065) gray = 0.92;
+        if (distance(q, vec2(0.23,0.0)) < 0.065) gray = 0.51;
+        if (q.x > 0.23 && q.x < 0.43 && abs(q.y) < 0.018) gray = 0.275;
+        if (q.x > -0.28 && q.x < 0.30 && abs(q.y + 0.155) < 0.012) gray = 0.92;
+      }
+    }
+  } else {
+    bool engine = col < 9.5;
+    vec2 halfBody = vec2(engine ? 0.39 : 0.34, 0.18);
+    d = max(abs(q.x) - halfBody.x, abs(q.y) - halfBody.y);
+    if (abs(q.y) > 0.13 || abs(q.x) > halfBody.x - 0.04) gray = 0.275;
+    if (engine && q.x > 0.14 && abs(q.y) < 0.12) gray = 0.51;
+    if (engine && detail > 0.1) {
+      if (q.x > 0.18 && q.x < 0.29 && abs(q.y) < 0.10) gray = 0.92;
+      if (q.x < 0.08 && q.x > -0.22 && abs(q.y) < 0.09) gray = 0.51;
+    }
+    if (!engine && col > 10.5 && abs(q.x) < 0.26 && abs(q.y) < 0.11)
+      gray = mod(floor(q.x * 18.0), 2.0) < 1.0 ? 0.51 : 0.706;
+    if (detail > 0.1 && abs(q.y) > 0.16 && abs(abs(q.x) - 0.22) < 0.06) {
+      d = min(d, max(abs(abs(q.x) - 0.22) - 0.06, abs(q.y) - 0.23));
+      gray = 0.275;
+    }
+  }
+  float alpha = 1.0 - smoothstep(-aa, aa, d);
+  return vec4(vec3(gray), alpha);
+}
+
 void main() {
   // Untargetable nukes render translucent so players know SAMs can't hit them
   float alphaMul = abs(vFlags - FLAG_FLICKER_UNTARGETABLE) < 0.1
@@ -105,7 +156,26 @@ void main() {
   vec4 texel = vec4(0.0);
   bool inSprite = vCellUV.x >= 0.0 && vCellUV.x <= 1.0 &&
                   vCellUV.y >= 0.0 && vCellUV.y <= 1.0;
-  if (inSprite) {
+  bool vessel = vAtlasCol < 2.5;
+  bool train = vAtlasCol > 8.5;
+  vec2 q = (vCellUV - 0.5) * 2.0;
+  if (vessel || train) {
+    texel = vehicleSprite(q, vAtlasCol);
+    // A short, tapered V wake fades out at distant zoom. No particles or history buffers.
+    if (vessel && vHash > 0.5 && texel.a < 0.05 && uAltView == 0) {
+      float stern = vAtlasCol > 1.5 ? -0.4125 : -0.285;
+      float behind = stern - q.x;
+      float aa = max(fwidth(q.x), fwidth(q.y));
+      float spread = 0.10 + behind * 0.32;
+      float edge = abs(abs(q.y) - spread);
+      float foam = 1.0 - smoothstep(0.012, 0.025 + aa, edge);
+      float fade = (1.0 - smoothstep(0.0, 0.55, behind)) * step(0.0, behind);
+      float lod = 1.0 - smoothstep(0.12, 0.28, aa);
+      float ripple = 0.80 + 0.20 * sin(behind * 35.0 - uTime * 3.0);
+      float wake = foam * fade * lod * ripple * 0.38;
+      if (wake > 0.005) { fragColor = vec4(0.78, 0.90, 0.94, wake); return; }
+    }
+  } else if (inSprite) {
     vec2 atlasUV = vec2((vAtlasCol + vCellUV.x) / float(ATLAS_COLS), vCellUV.y);
     texel = texture(uAtlas, atlasUV);
   }
@@ -218,5 +288,11 @@ void main() {
     color = borderColor;
   }
 
+  if ((vessel || train) && gray > 0.45) {
+    // Baked-style bevel, not dynamic lighting or a shadow pass.
+    if (gray > 0.85) color = mix(territoryColor, vec3(0.86, 0.91, 0.89), 0.65);
+    float edgeLight = (1.0 - smoothstep(-0.16, 0.10, q.y)) * 0.18;
+    color = mix(color, vec3(0.87, 0.93, 0.95), edgeLight);
+  }
   fragColor = vec4(color, texel.a * alphaMul);
 }
