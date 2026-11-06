@@ -107,8 +107,28 @@ describe("createRenderer", () => {
   });
 
   it("cleans up window resize listener on dispose", () => {
+    const disconnect = vi.fn();
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe = vi.fn();
+        disconnect = disconnect;
+      },
+    );
     const renderer = new GameRenderer(
-      { updateCanvasBoundingRect: vi.fn(), centerAll: vi.fn() } as any,
+      {
+        updateCanvasBoundingRect: vi.fn(),
+        centerAll: vi.fn(),
+        boundingRect: () => ({
+          left: 0,
+          top: 0,
+          right: 1600,
+          bottom: 900,
+          width: 1600,
+          height: 900,
+        }),
+        setViewportInsets: vi.fn(),
+      } as any,
       {} as any,
       [],
       {} as any,
@@ -123,5 +143,7 @@ describe("createRenderer", () => {
     expect(resizeListener).toEqual(expect.any(Function));
     renderer.dispose();
     expect(removeSpy).toHaveBeenCalledWith("resize", resizeListener);
+    expect(disconnect).toHaveBeenCalledOnce();
+    vi.unstubAllGlobals();
   });
 });

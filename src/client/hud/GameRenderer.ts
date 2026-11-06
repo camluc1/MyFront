@@ -430,8 +430,52 @@ export class GameRenderer {
     private frontierHud: boolean,
   ) {}
 
+  private hudResizeObserver?: ResizeObserver;
+  private hudMeasureFrame?: number;
+
+  private updateCameraInsets = () => {
+    const canvas = this.transformHandler.boundingRect();
+    const insets = { left: 0, top: 0, right: 0, bottom: 0 };
+    const reserve = (element: Element, edge: keyof typeof insets) => {
+      const rect = element.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+      const overlapX = rect.right > canvas.left && rect.left < canvas.right;
+      const overlapY = rect.bottom > canvas.top && rect.top < canvas.bottom;
+      if (!overlapX || !overlapY) return;
+      const amount =
+        edge === "top"
+          ? rect.bottom - canvas.top
+          : edge === "bottom"
+            ? canvas.bottom - rect.top
+            : edge === "left"
+              ? rect.right - canvas.left
+              : canvas.right - rect.left;
+      insets[edge] = Math.max(insets[edge], amount);
+    };
+    document
+      .querySelectorAll('[data-frontier-hud="bottom"]')
+      .forEach((el) => reserve(el, "bottom"));
+    document
+      .querySelectorAll(
+        "game-left-sidebar > aside, game-right-sidebar > aside, player-info-overlay > div",
+      )
+      .forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        // Expanded sidebars reserve their side rather than a tall horizontal band.
+        const edge =
+          rect.height > canvas.height * 0.25 && rect.width < canvas.width * 0.45
+            ? rect.left + rect.width / 2 < canvas.left + canvas.width / 2
+              ? "left"
+              : "right"
+            : "top";
+        reserve(el, edge);
+      });
+    this.transformHandler.setViewportInsets(insets);
+  };
+
   private onResize = () => {
     this.transformHandler.updateCanvasBoundingRect();
+    this.updateCameraInsets();
   };
 
   initialize() {
@@ -445,11 +489,31 @@ export class GameRenderer {
 
     window.addEventListener("resize", this.onResize);
 
-    //show whole map on startup
-    this.transformHandler.centerAll(0.9);
+    // Track dock size changes too (panel toggles, mobile stacking and replay HUD).
+    this.hudResizeObserver = new ResizeObserver(this.updateCameraInsets);
+    document
+      .querySelectorAll(
+        '[data-frontier-hud="bottom"], game-left-sidebar, game-right-sidebar, player-info-overlay',
+      )
+      .forEach((el) => this.hudResizeObserver?.observe(el));
+    this.updateCameraInsets();
+    this.transformHandler.centerAll();
+    // Lit renders the actual fixed panels on the next microtask. Observing
+    // their hosts alone misses size changes when those hosts use display: contents.
+    this.hudMeasureFrame = requestAnimationFrame(() => {
+      document
+        .querySelectorAll(
+          "game-left-sidebar > aside, game-right-sidebar > aside, player-info-overlay > div",
+        )
+        .forEach((el) => this.hudResizeObserver?.observe(el));
+      this.updateCameraInsets();
+    });
   }
 
   dispose() {
+    if (this.hudMeasureFrame !== undefined)
+      cancelAnimationFrame(this.hudMeasureFrame);
+    this.hudResizeObserver?.disconnect();
     window.removeEventListener("resize", this.onResize);
     if (this.frontierHud) {
       document.body.classList.remove("frontier-hud");

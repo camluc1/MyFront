@@ -41,6 +41,54 @@ export class TransformHandler {
   private targetScale: number | null = null;
   private intervalID: NodeJS.Timeout | null = null;
   private changed = false;
+  private viewportInsets = { left: 0, top: 0, right: 0, bottom: 0 };
+
+  /** Reserve HUD space without moving or resizing the canvas itself. */
+  public setViewportInsets(insets: typeof this.viewportInsets) {
+    if (
+      (["left", "top", "right", "bottom"] as const).every(
+        (key) => insets[key] === this.viewportInsets[key],
+      )
+    )
+      return;
+    const wasOverview = Math.abs(this.scale - this.minimumScale()) < 1e-6;
+    this.viewportInsets = insets;
+    this.scale = wasOverview
+      ? this.minimumScale()
+      : Math.max(this.minimumScale(), this.scale);
+    if (this.targetScale !== null)
+      this.targetScale = Math.max(this.minimumScale(), this.targetScale);
+    this.clampOffsets();
+    this.changed = true;
+  }
+
+  private cameraViewport() {
+    const { width, height } = this.boundingRect();
+    const border = Math.min(24, width * 0.04, height * 0.04);
+    // Preserve a small usable area if panels overlap on very small screens.
+    let left = Math.max(0, this.viewportInsets.left);
+    let right = Math.max(0, this.viewportInsets.right);
+    let top = Math.max(0, this.viewportInsets.top);
+    let bottom = Math.max(0, this.viewportInsets.bottom);
+    const horizontalRatio = Math.min(
+      1,
+      Math.max(0, width - 2 * border - 1) / Math.max(1, left + right),
+    );
+    const verticalRatio = Math.min(
+      1,
+      Math.max(0, height - 2 * border - 1) / Math.max(1, top + bottom),
+    );
+    left *= horizontalRatio;
+    right *= horizontalRatio;
+    top *= verticalRatio;
+    bottom *= verticalRatio;
+    return {
+      left: left + border,
+      top: top + border,
+      width: Math.max(1, width - left - right - 2 * border),
+      height: Math.max(1, height - top - bottom - 2 * border),
+    };
+  }
 
   constructor(
     private game: GameView,
@@ -69,9 +117,10 @@ export class TransformHandler {
   }
 
   private minimumScale(): number {
+    const viewport = this.cameraViewport();
     return Math.min(
-      this.width() / this.game.width(),
-      this.boundingRect().height / this.game.height(),
+      viewport.width / this.game.width(),
+      viewport.height / this.game.height(),
     );
   }
 
@@ -211,11 +260,12 @@ export class TransformHandler {
   }
 
   screenCenter(): { screenX: number; screenY: number } {
-    const [upperLeft, bottomRight] = this.screenBoundingRect();
-    return {
-      screenX: upperLeft.x + Math.floor((bottomRight.x - upperLeft.x) / 2),
-      screenY: upperLeft.y + Math.floor((bottomRight.y - upperLeft.y) / 2),
-    };
+    const viewport = this.cameraViewport();
+    const point = this.screenToWorldCoordinatesFloat(
+      this.boundingRect().left + viewport.left + viewport.width / 2,
+      this.boundingRect().top + viewport.top + viewport.height / 2,
+    );
+    return { screenX: Math.floor(point.x), screenY: Math.floor(point.y) };
   }
 
   onGoToPlayer(event: GoToPlayerEvent) {
@@ -306,7 +356,9 @@ export class TransformHandler {
         Math.abs(smoothStep) >= Math.abs(minStep) ? smoothStep : minStep;
       // Keep screen center pinned as scale changes: (canvasSize - mapSize) / (2 * scale)
       // shifts the apparent center when canvas != map dimensions (always on mobile).
-      const { width: canvasWidth, height: canvasHeight } = this.boundingRect();
+      const viewport = this.cameraViewport();
+      const canvasWidth = viewport.width + 2 * viewport.left;
+      const canvasHeight = viewport.height + 2 * viewport.top;
       this.offsetX +=
         (canvasWidth - this.game.width()) *
         (1 / (2 * oldScale) - 1 / (2 * this.scale));
@@ -355,27 +407,29 @@ export class TransformHandler {
   }
 
   private clampOffsets() {
-    const canvasRect = this.boundingRect();
-    const canvasWidth = canvasRect.width;
-    const canvasHeight = canvasRect.height;
+    const viewport = this.cameraViewport();
+    const canvasWidth = viewport.width;
+    const canvasHeight = viewport.height;
     const gameWidth = this.game.width();
     const gameH = this.game.height();
     const scale = this.scale;
 
     // Center axes that fit on screen; constrain panning only on overflowing axes.
-    const minOffsetX = gameWidth / (2 * scale) - gameWidth / 2;
-    const maxOffsetX = gameWidth / 2 - (canvasWidth - gameWidth / 2) / scale;
+    const minOffsetX = (gameWidth / 2 - viewport.left) / scale - gameWidth / 2;
+    const maxOffsetX =
+      gameWidth / 2 - (viewport.left + canvasWidth - gameWidth / 2) / scale;
 
-    const minOffsetY = gameH / (2 * scale) - gameH / 2;
-    const maxOffsetY = gameH / 2 - (canvasHeight - gameH / 2) / scale;
+    const minOffsetY = (gameH / 2 - viewport.top) / scale - gameH / 2;
+    const maxOffsetY =
+      gameH / 2 - (viewport.top + canvasHeight - gameH / 2) / scale;
 
     this.offsetX =
       minOffsetX > maxOffsetX
-        ? (gameWidth - canvasWidth) / (2 * scale)
+        ? (gameWidth - canvasWidth - 2 * viewport.left) / (2 * scale)
         : Math.max(minOffsetX, Math.min(maxOffsetX, this.offsetX));
     this.offsetY =
       minOffsetY > maxOffsetY
-        ? (gameH - canvasHeight) / (2 * scale)
+        ? (gameH - canvasHeight - 2 * viewport.top) / (2 * scale)
         : Math.max(minOffsetY, Math.min(maxOffsetY, this.offsetY));
   }
 
@@ -409,8 +463,9 @@ export class TransformHandler {
   centerAll(fit: number = 1) {
     //position entire map centered on the screen
 
-    const vpWidth = this.boundingRect().width;
-    const vpHeight = this.boundingRect().height;
+    const viewport = this.cameraViewport();
+    const vpWidth = viewport.width;
+    const vpHeight = viewport.height;
     const mapWidth = this.game.width();
     const mapHeight = this.game.height();
 
@@ -418,8 +473,8 @@ export class TransformHandler {
     const scVer = (vpHeight / mapHeight) * fit;
     const tScale = Math.max(this.minimumScale(), Math.min(scHor, scVer));
 
-    const oHor = (mapWidth - vpWidth) / 2 / tScale;
-    const oVer = (mapHeight - vpHeight) / 2 / tScale;
+    const oHor = (mapWidth - vpWidth - 2 * viewport.left) / 2 / tScale;
+    const oVer = (mapHeight - vpHeight - 2 * viewport.top) / 2 / tScale;
 
     this.override(oHor, oVer, tScale);
   }

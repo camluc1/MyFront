@@ -94,7 +94,10 @@ describe("full map overview", () => {
       expect(topLeft.y + bottomRight.y).toBeCloseTo(height);
     };
     handler.centerAll();
-    expect(handler.scale).toBe(Math.min(width / mapW, height / mapH));
+    const border = Math.min(24, width * 0.04, height * 0.04);
+    expect(handler.scale).toBe(
+      Math.min((width - 2 * border) / mapW, (height - 2 * border) / mapH),
+    );
     assertFits();
     handler.onMove(new DragEvent(9999, -9999));
     assertFits();
@@ -114,14 +117,58 @@ describe("full map overview", () => {
       canvas,
     );
     handler.centerAll();
-    expect(handler.scale).toBe(0.8);
+    expect(handler.scale).toBe(0.776);
     width = 600;
     height = 1000;
     handler.updateCanvasBoundingRect();
-    expect(handler.scale).toBe(0.3);
+    expect(handler.scale).toBe(0.276);
     width = 1920;
     height = 1080;
     handler.updateCanvasBoundingRect();
-    expect(handler.scale).toBe(0.96);
+    expect(handler.scale).toBe(0.936);
   });
+});
+
+describe("HUD-safe overview", () => {
+  it.each([
+    [1600, 900, 2000, 1000, 80, 220],
+    [390, 844, 1000, 2000, 100, 400],
+    [900, 500, 4000, 300, 60, 140],
+  ])(
+    "leaves a border and clears HUD in %s × %s",
+    (width, height, mapW, mapH, top, bottom) => {
+      const canvas = document.createElement("canvas");
+      canvas.getBoundingClientRect = () =>
+        ({ width, height, left: 0, top: 0 }) as DOMRect;
+      const handler = new TransformHandler(
+        { width: () => mapW, height: () => mapH } as GameView,
+        new EventBus(),
+        canvas,
+      );
+      handler.setViewportInsets({ left: 0, right: 0, top, bottom });
+      handler.centerAll();
+      const assertVisible = () => {
+        const a = handler.worldToCanvasCoordinates(new Cell(0, 0));
+        const b = handler.worldToCanvasCoordinates(new Cell(mapW, mapH));
+        expect(a.x).toBeGreaterThan(0);
+        expect(b.x).toBeLessThan(width);
+        expect(a.y).toBeGreaterThan(top);
+        expect(b.y).toBeLessThan(height - bottom);
+        expect(a.y + b.y).toBeCloseTo(height + top - bottom);
+      };
+      assertVisible();
+      handler.onZoom(new ZoomEvent(100, 100, 10000));
+      handler.onMove(new DragEvent(99999, -99999));
+      assertVisible();
+      // An expanded bottom dock re-fits an overview instead of covering land.
+      handler.setViewportInsets({
+        left: 0,
+        right: 0,
+        top,
+        bottom: bottom + 20,
+      });
+      const b = handler.worldToCanvasCoordinates(new Cell(mapW, mapH));
+      expect(b.y).toBeLessThan(height - bottom - 20);
+    },
+  );
 });
