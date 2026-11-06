@@ -219,6 +219,11 @@
   },
   "unit": {
     "unitSize": 13,
+    "transportMinPixels": 10,
+    "merchantMinPixels": 12,
+    "warshipMinPixels": 24,
+    "fleetMaxEnlargement": 3,
+    "warshipScale": 1.25,
     "headingMemory": 0.72,
     "turnDurationMs": 280,
     "wakeFadeMs": 400,

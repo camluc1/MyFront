@@ -10,6 +10,9 @@ layout(location = 2) in vec4 aInstFlags; // atlasIdx, flags, flickerHash (uint8�
 uniform mat3  uCamera;
 
 uniform float uUnitSize;
+uniform vec2 uViewport;
+uniform vec4 uFleetReadability; // minimum hull pixels: transport, cargo, warship; maximum enlargement
+uniform float uFleetWarshipScale;
 uniform float uHBombGlowScale; // quad enlargement for the hydrogen bomb glow halo
 
 out vec2  vQuadPos;     // quad coords [0,1] — drives the radial glow falloff
@@ -19,6 +22,7 @@ flat out float vAtlasCol;
 flat out float vOwnerID;
 flat out float vFlags;  // 0.0 = normal, 1.0 = flicker, 2.0 = angry
 flat out float vHash;   // per-instance hash for flicker phase offset
+flat out float vStrategic;
 flat out float vGlow;   // 1.0 if this instance is a hydrogen bomb (draw glow), else 0.0
 
 void main() {
@@ -43,7 +47,18 @@ void main() {
   bool vessel = atlasCol < 2.5;
   bool train = atlasCol > 8.5;
   // Extra space behind a hull holds its wake, in the same instanced quad.
-  if (vessel) scale = 1.65;
+  vStrategic = 0.0;
+  if (vessel) {
+    scale = 1.65 * (atlasCol > 1.5 ? uFleetWarshipScale : 1.0);
+    // Screen-space readability, bounded so distant fleets do not cover the map.
+    float pixelsPerTile = length(uCamera[0].xy * uViewport * 0.5);
+    float hullFraction = atlasCol < 0.5 ? 0.30 : (atlasCol < 1.5 ? 0.43 : 0.685);
+    float minimumPixels = atlasCol < 0.5 ? uFleetReadability.x : (atlasCol < 1.5 ? uFleetReadability.y : uFleetReadability.z);
+    float hullPixels = max(0.001, uUnitSize * scale * hullFraction * pixelsPerTile);
+    float enlargement = clamp(minimumPixels / hullPixels, 1.0, uFleetReadability.w);
+    scale *= enlargement;
+    vStrategic = smoothstep(0.45, 0.95, minimumPixels / (hullPixels * enlargement));
+  }
 
   // UNIT_SIZE is in world-space tiles — no zoom division needed.
   // Units scale with the map like territory tiles do.

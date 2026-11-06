@@ -680,6 +680,7 @@ export class GPURenderer {
     this.canvas.width = Math.round(cssWidth * dpr);
     this.canvas.height = Math.round(cssHeight * dpr);
     this.camera.resize(cssWidth, cssHeight);
+    this.unitPass.setViewportSize(cssWidth, cssHeight);
   }
 
   setCameraState(x: number, y: number, z: number): void {
@@ -1432,7 +1433,12 @@ export class GPURenderer {
         console.warn(`[Renderer] Layer image "${layer.id}" not found`);
         continue;
       }
-      const placement: 0 | 1 | 2 = layer.id === "frontier-resources" ? 2 : layer.placement === "water" ? 1 : 0;
+      const placement: 0 | 1 | 2 =
+        layer.id === "frontier-resources"
+          ? 2
+          : layer.placement === "water"
+            ? 1
+            : 0;
       const pass = new MapLayerPass(
         gl,
         this.terrainBytesTex,

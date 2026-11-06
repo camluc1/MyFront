@@ -210,6 +210,11 @@ export class UnitPass {
   private uCamera: WebGLUniformLocation;
   private uTick: WebGLUniformLocation;
   private uTime: WebGLUniformLocation;
+  private viewportWidth = 1;
+  private viewportHeight = 1;
+  private uViewport: WebGLUniformLocation;
+  private uFleetReadability: WebGLUniformLocation;
+  private uFleetWarshipScale: WebGLUniformLocation;
   private uUnitSize: WebGLUniformLocation;
   private uFlickerSpeed: WebGLUniformLocation;
   private uAngryColor: WebGLUniformLocation;
@@ -307,6 +312,15 @@ export class UnitPass {
     this.uCamera = gl.getUniformLocation(this.program, "uCamera")!;
     this.uTick = gl.getUniformLocation(this.program, "uTick")!;
     this.uTime = gl.getUniformLocation(this.program, "uTime")!;
+    this.uViewport = gl.getUniformLocation(this.program, "uViewport")!;
+    this.uFleetReadability = gl.getUniformLocation(
+      this.program,
+      "uFleetReadability",
+    )!;
+    this.uFleetWarshipScale = gl.getUniformLocation(
+      this.program,
+      "uFleetWarshipScale",
+    )!;
     this.uUnitSize = gl.getUniformLocation(this.program, "uUnitSize")!;
     this.uFlickerSpeed = gl.getUniformLocation(this.program, "uFlickerSpeed")!;
     this.uAngryColor = gl.getUniformLocation(this.program, "uAngryColor")!;
@@ -446,6 +460,11 @@ export class UnitPass {
     this.missileBuf.uint8[byteOff + 13] = flags;
     this.missileBuf.uint8[byteOff + 14] = flickerHashByte(x, y);
     this.missileCount++;
+  }
+
+  setViewportSize(width: number, height: number): void {
+    this.viewportWidth = Math.max(1, width);
+    this.viewportHeight = Math.max(1, height);
   }
 
   setFrameTick(frameTick: number): void {
@@ -634,6 +653,15 @@ export class UnitPass {
     gl.uniform1f(this.uTick, this.frameTick);
     gl.uniform1f(this.uTime, (performance.now() - this.startTime) / 1000);
     gl.uniform1f(this.uUnitSize, us.unitSize);
+    gl.uniform2f(this.uViewport, this.viewportWidth, this.viewportHeight);
+    gl.uniform4f(
+      this.uFleetReadability,
+      us.transportMinPixels,
+      us.merchantMinPixels,
+      us.warshipMinPixels,
+      us.fleetMaxEnlargement,
+    );
+    gl.uniform1f(this.uFleetWarshipScale, us.warshipScale);
     gl.uniform1f(this.uFlickerSpeed, us.flickerSpeed);
     gl.uniform3f(this.uAngryColor, us.angryR, us.angryG, us.angryB);
     gl.uniform1i(this.uAltView, this.altView ? 1 : 0);

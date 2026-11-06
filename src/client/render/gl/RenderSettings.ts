@@ -260,6 +260,11 @@ export interface RenderSettings {
   };
   unit: {
     unitSize: number;
+    transportMinPixels: number;
+    merchantMinPixels: number;
+    warshipMinPixels: number;
+    fleetMaxEnlargement: number;
+    warshipScale: number;
     headingMemory: number;
     turnDurationMs: number;
     wakeFadeMs: number;

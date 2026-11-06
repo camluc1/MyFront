@@ -31,6 +31,7 @@ flat in float vAtlasCol;
 flat in float vOwnerID;
 flat in float vFlags;
 flat in float vHash;
+flat in float vStrategic;
 flat in float vGlow;
 
 out vec4 fragColor;
@@ -322,10 +323,33 @@ void main() {
 
   if ((vessel || train) && gray > 0.45) {
     // Baked-style bevel, not dynamic lighting or a shadow pass.
-    if (vAtlasCol > 0.5 && vAtlasCol < 1.5 && gray > 0.77 && gray < 0.83) color = mix(territoryColor, vec3(0.76, 0.43, 0.23), 0.65);
+    if (vAtlasCol > 0.5 && vAtlasCol < 1.5 && gray > 0.77 && gray < 0.83) color = vec3(1.0, 0.85, 0.32);
     if (gray > 0.85) color = mix(territoryColor, vec3(0.86, 0.91, 0.89), 0.65);
     float edgeLight = (1.0 - smoothstep(-0.16, 0.10, q.y)) * 0.18;
     color = mix(color, vec3(0.87, 0.93, 0.95), edgeLight);
+  }
+  if (vessel) {
+    float aa = max(fwidth(q.x), fwidth(q.y));
+    float strategic = vStrategic;
+    // Large, simple class markings replace deck micro-detail at a distance.
+    // Hull keeps owner color; affiliation mode returned above, combat signals win.
+    float mark = 0.0;
+    vec3 accent = vec3(0.96, 0.97, 1.0);
+    if (vAtlasCol < 0.5) {
+      // Bright embarkation chevron on a dark open troop well.
+      float chevron = abs(q.x - (0.11 - abs(q.y) * 0.9));
+      mark = (1.0-smoothstep(0.045,0.045+aa,chevron)) * (1.0-smoothstep(0.125,0.125+aa,abs(q.y)));
+    } else if (vAtlasCol < 1.5) {
+      float box = max(abs(q.x-0.04)-0.23,abs(q.y)-0.21);
+      mark = 1.0-smoothstep(-aa,aa,box);
+      accent = vec3(1.0,0.85,0.32);
+    } else {
+      // Twin pale gun/deck bands survive when individual turrets are subpixel.
+      float bars = max(abs(abs(q.x)-0.28)-0.075, abs(q.y)-0.13);
+      mark = 1.0-smoothstep(-aa,aa,bars);
+    }
+    if (abs(vFlags-FLAG_ANGRY) > 0.1 && abs(vFlags-FLAG_RETREATING) > 0.1)
+      color = mix(color,accent,mark*strategic);
   }
   fragColor = vec4(color, texel.a * alphaMul);
 }
