@@ -260,6 +260,9 @@ export interface RenderSettings {
   };
   unit: {
     unitSize: number;
+    headingMemory: number;
+    turnDurationMs: number;
+    wakeFadeMs: number;
     flickerSpeed: number;
     angryR: number;
     angryG: number;

@@ -60,6 +60,7 @@ import {
   WARSHIP_EFFECT_BLOCK,
 } from "../utils/ColorUtils";
 import { createProgram, shaderSrc } from "../utils/GlUtils";
+import { VesselMotion } from "../utils/VesselMotion";
 
 const unitAtlasUrl = assetUrl("atlases/unit-atlas.png");
 
@@ -200,7 +201,8 @@ function createUnitVao(
 // ---------------------------------------------------------------------------
 
 export class UnitPass {
-  private headings = new Map<number, number>();
+  private motions = new Map<number, VesselMotion>();
+  private groundMotions: VesselMotion[] = [];
   private gl: WebGL2RenderingContext;
   private settings: RenderSettings;
   private program: WebGLProgram;
@@ -455,6 +457,8 @@ export class UnitPass {
       this.lastGameTick = gameTick;
       this.lastUnitsUpdateMs = performance.now();
     }
+    const now = performance.now();
+    this.groundMotions.length = 0;
     this.groundCount = 0;
     this.missileCount = 0;
     this.smoothSegs.length = 0;
@@ -548,21 +552,38 @@ export class UnitPass {
       } else {
         const lx = unit.lastPos % this.mapW;
         const ly = (unit.lastPos - lx) / this.mapW;
-        const moving = unit.lastPos !== unit.pos;
-        const heading = moving
-          ? Math.round(
-              (((Math.atan2(y - ly, x - lx) + Math.PI * 2) % (Math.PI * 2)) *
-                255) /
-                (Math.PI * 2),
-            )
-          : (this.headings.get(id) ?? 0);
-        this.headings.set(id, heading);
-        this.emitGround(x, y, unit.ownerID, atlasIdx, flags, heading, moving);
+        let motion = this.motions.get(id);
+        if (!motion) {
+          motion = new VesselMotion(
+            x,
+            y,
+            lx,
+            ly,
+            now,
+            this.tickIntervalMs,
+            this.settings.unit,
+          );
+          this.motions.set(id, motion);
+        } else {
+          motion.update(x, y, now, this.tickIntervalMs);
+        }
+        motion.sample(now);
+        this.groundMotions.push(motion);
+        this.emitGround(
+          motion.x,
+          motion.y,
+          unit.ownerID,
+          atlasIdx,
+          flags,
+          motion.headingByte(),
+          motion.wake(now) > 0,
+        );
       }
     }
 
-    for (const id of this.headings.keys()) {
-      if (!units.get(id)?.isActive) this.headings.delete(id);
+    for (const id of this.motions.keys()) {
+      if (!units.get(id)?.isActive || units.get(id)!.waitTicks > 0)
+        this.motions.delete(id);
     }
     const gl = this.gl;
     if (this.groundCount > 0) {
@@ -648,10 +669,32 @@ export class UnitPass {
   /** Draw ground/sea units (boats, trains). Render below structures. */
   drawGround(cameraMatrix: Float32Array): void {
     if (this.groundCount === 0) return;
+    this.applyGroundSmoothing();
     this.bindProgram(cameraMatrix);
     const gl = this.gl;
     gl.bindVertexArray(this.groundVao);
     gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this.groundCount);
+  }
+
+  private applyGroundSmoothing(): void {
+    const now = performance.now();
+    for (let i = 0; i < this.groundMotions.length; i++) {
+      const motion = this.groundMotions[i];
+      motion.sample(now);
+      this.groundBuf.float32[i * 4] = motion.x;
+      this.groundBuf.float32[i * 4 + 1] = motion.y;
+      this.groundBuf.uint8[i * 16 + 14] = Math.round(motion.wake(now) * 255);
+      this.groundBuf.uint8[i * 16 + 15] = motion.headingByte();
+    }
+    const gl = this.gl;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.groundBuf.buffer);
+    gl.bufferSubData(
+      gl.ARRAY_BUFFER,
+      0,
+      this.groundBuf.float32,
+      0,
+      this.groundCount * FLOATS_PER_INSTANCE,
+    );
   }
 
   /** Draw missiles/projectiles (nukes, shells, SAM, MIRV warheads). Render above structures. */
@@ -691,7 +734,8 @@ export class UnitPass {
   }
 
   dispose(): void {
-    this.headings.clear();
+    this.motions.clear();
+    this.groundMotions.length = 0;
     const gl = this.gl;
     gl.deleteProgram(this.program);
     this.groundBuf.dispose();

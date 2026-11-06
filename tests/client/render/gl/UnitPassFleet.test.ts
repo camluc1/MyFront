@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { UnitPass } from "../../../../src/client/render/gl/passes/UnitPass";
+import defaults from "../../../../src/client/render/gl/render-settings.json";
 import type { UnitState } from "../../../../src/client/render/types";
 
 function harness(count: number) {
@@ -9,9 +10,12 @@ function harness(count: number) {
   Object.assign(pass, {
     gl: { ARRAY_BUFFER: 34962, bindBuffer: vi.fn(), bufferSubData },
     mapW: 1000,
+    settings: defaults,
     lastGameTick: 0,
     smoothSegs: [],
-    headings: new Map(),
+    motions: new Map(),
+    groundMotions: [],
+    tickIntervalMs: 100,
     typeToAtlasCol: new Map([
       ["Transport", 0],
       ["Trade Ship", 1],
@@ -49,11 +53,12 @@ describe("directional fleet batches", () => {
     expect(h.bytes[15]).toBe(64); // south: quarter turn
     units.set(1, ship(2000, 2000));
     h.pass.updateUnits(units, 2);
-    expect(h.bytes[14]).toBe(0); // no wake when stopped
+    // Wake decays instead of popping off at a stopped snapshot.
+    expect(h.bytes[14]).toBe(255);
     expect(h.bytes[15]).toBe(64); // retain heading
     units.clear();
     h.pass.updateUnits(units, 3);
-    expect((h.pass as any).headings.size).toBe(0);
+    expect((h.pass as any).motions.size).toBe(0);
   });
   it("uploads ten thousand ships in a single ground buffer update", () => {
     const h = harness(10000);

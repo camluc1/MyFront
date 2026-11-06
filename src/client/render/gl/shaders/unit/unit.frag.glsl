@@ -102,37 +102,68 @@ vec4 vehicleSprite(vec2 q, float col) {
   float gray = 0.706;
   float d;
   if (col < 2.5) {
-    bool warship = col > 1.5;
-    bool cargo = col > 0.5 && col < 1.5;
-    float length = warship ? 0.55 : 0.38;
-    float beam = warship ? 0.22 : 0.17;
-    float taper = clamp((length - q.x) / (length * 0.48), 0.0, 1.0);
-    float width = beam * taper;
-    d = max(abs(q.y) - width, max(-length * 0.75 - q.x, q.x - length));
-    if (abs(q.y) > width - 0.035 || q.x < -length * 0.75 + 0.035) gray = 0.275;
-    if (detail > 0.1) {
-      // Raised bridge and a bright deck seam; different cargo/transport decks.
-      if (abs(q.x + length * 0.35) < length * 0.20 && abs(q.y) < beam * 0.65) gray = 0.51;
-      if (cargo && q.x > -0.06 && q.x < length * 0.55 && abs(q.y) < beam * 0.65)
-        gray = mod(floor(q.x * 22.0), 2.0) < 1.0 ? 0.51 : 0.706;
-      if (abs(q.x + length * 0.35) < length * 0.14 && abs(q.y) < beam * 0.42) gray = 0.92;
-      if (warship) {
-        if (abs(q.x + 0.03) < 0.08 && abs(q.y) < 0.105) gray = 0.51;
-        if (abs(q.x + 0.03) < 0.045 && abs(q.y) < 0.065) gray = 0.92;
-        if (distance(q, vec2(0.23,0.0)) < 0.065) gray = 0.51;
-        if (q.x > 0.23 && q.x < 0.43 && abs(q.y) < 0.018) gray = 0.275;
-        if (q.x > -0.28 && q.x < 0.30 && abs(q.y + 0.155) < 0.012) gray = 0.92;
+    if (col < 0.5) {
+      // Landing craft: broad square ramp at the BOW, recessed open troop well,
+      // twin side sponsons and a small stern cockpit. No pointed cargo hull.
+      d = max(abs(q.x) - 0.30, abs(q.y) - 0.19);
+      gray = 0.706;
+      if (abs(q.y) > 0.145 || q.x < -0.255) gray = 0.275;
+      if (q.x > 0.19) gray = 0.92;
+      if (detail > 0.1) {
+        if (q.x > -0.17 && q.x < 0.16 && abs(q.y) < 0.12) gray = 0.275;
+        // Two rows of seats/troops, visibly an open transport rather than cargo.
+        if (q.x > -0.14 && q.x < 0.13 && abs(abs(q.y)-0.07) < 0.027)
+          gray = mod(floor((q.x+0.14)*30.0), 2.0) < 1.0 ? 0.92 : 0.51;
+        if (q.x < -0.18 && q.x > -0.25 && abs(q.y) < 0.10) gray = 0.92;
+        if (q.x > 0.22 && abs(q.y) < 0.14) gray = 0.51;
+      }
+    } else if (col < 1.5) {
+      // Merchant: short, rounded, full-bellied hull; stacked container blocks
+      // and an aft white wheelhouse. Its width is unlike either combat vessel.
+      vec2 h = vec2(q.x / 0.43, q.y / 0.29);
+      d = (length(h) - 1.0) * 0.29;
+      gray = d > -0.035 ? 0.275 : 0.706;
+      if (detail > 0.1) {
+        if (q.x > -0.13 && q.x < 0.26 && abs(q.y) < 0.20) {
+          vec2 cells = fract(vec2((q.x+0.13)*8.0,(q.y+0.20)*7.5));
+          gray = (cells.x < 0.12 || cells.y < 0.14) ? 0.275 : 0.80;
+          if (cells.y > 0.82) gray = 0.92;
+        }
+        if (q.x > -0.31 && q.x < -0.16 && abs(q.y) < 0.19) gray = 0.92;
+        if (q.x > -0.20 && q.x < -0.16 && abs(q.y) < 0.14) gray = 0.275;
+        if (q.x > -0.32 && q.x < -0.27 && abs(q.y) < 0.07) gray = 0.51;
+      }
+    } else {
+      // Destroyer: long knife bow, tapered stern, stepped central bridge,
+      // two round gun mounts and barrels. Recognizable even without detail.
+      float width = 0.185 * min(clamp((0.73-q.x)/0.36,0.0,1.0), clamp((q.x+0.66)/0.16,0.0,1.0));
+      d = max(abs(q.y)-width, max(-0.64-q.x,q.x-0.73));
+      gray = abs(q.y) > width-0.026 ? 0.275 : 0.706;
+      if (detail > 0.1) {
+        if (q.x > -0.27 && q.x < 0.13 && abs(q.y) < 0.115) gray = 0.51;
+        if (q.x > -0.11 && q.x < 0.08 && abs(q.y) < 0.085) gray = 0.92;
+        if (q.x > 0.04 && q.x < 0.08 && abs(q.y) < 0.07) gray = 0.275;
+        if (q.x > -0.25 && q.x < -0.15 && abs(q.y) < 0.055) gray = 0.275;
+        float turret = min(length(q-vec2(0.31,0.0)),length(q-vec2(-0.43,0.0)));
+        if (turret < 0.084) gray = 0.275;
+        if (turret < 0.060) gray = 0.92;
+        if ((q.x > 0.31 && q.x < 0.55 || q.x < -0.43 && q.x > -0.62) && abs(q.y) < 0.021) gray = 0.51;
+        if (q.x > -0.30 && q.x < 0.18 && abs(abs(q.y)-0.145) < 0.012) gray = 0.92;
       }
     }
   } else {
     bool engine = col < 9.5;
-    vec2 halfBody = vec2(engine ? 0.39 : 0.34, 0.18);
+    vec2 halfBody = vec2(engine ? 0.45 : 0.34, 0.18);
     d = max(abs(q.x) - halfBody.x, abs(q.y) - halfBody.y);
     if (abs(q.y) > 0.13 || abs(q.x) > halfBody.x - 0.04) gray = 0.275;
     if (engine && q.x > 0.14 && abs(q.y) < 0.12) gray = 0.51;
     if (engine && detail > 0.1) {
       if (q.x > 0.18 && q.x < 0.29 && abs(q.y) < 0.10) gray = 0.92;
-      if (q.x < 0.08 && q.x > -0.22 && abs(q.y) < 0.09) gray = 0.51;
+      if (q.x < 0.08 && q.x > -0.31 && abs(q.y) < 0.09) gray = 0.51;
+      if (q.x < 0.03 && q.x > -0.27 && abs(q.y) < 0.07)
+        gray = mod(floor(q.x*35.0),2.0) < 1.0 ? 0.275 : 0.51;
+      if (q.x > 0.30 && q.x < 0.36 && abs(q.y) < 0.11) gray = 0.275;
+      if (q.x > 0.39 && abs(q.y) < 0.09) gray = 0.92;
     }
     if (!engine && col > 10.5 && abs(q.x) < 0.26 && abs(q.y) < 0.11)
       gray = mod(floor(q.x * 18.0), 2.0) < 1.0 ? 0.51 : 0.706;
@@ -162,17 +193,18 @@ void main() {
   if (vessel || train) {
     texel = vehicleSprite(q, vAtlasCol);
     // A short, tapered V wake fades out at distant zoom. No particles or history buffers.
-    if (vessel && vHash > 0.5 && texel.a < 0.05 && uAltView == 0) {
-      float stern = vAtlasCol > 1.5 ? -0.4125 : -0.285;
+    if (vessel && vHash > 0.01 && texel.a < 0.05 && uAltView == 0) {
+      float stern = vAtlasCol > 1.5 ? -0.64 : (vAtlasCol > 0.5 ? -0.40 : -0.30);
       float behind = stern - q.x;
       float aa = max(fwidth(q.x), fwidth(q.y));
-      float spread = 0.10 + behind * 0.32;
+      float spread = 0.07 + behind * 0.30;
       float edge = abs(abs(q.y) - spread);
       float foam = 1.0 - smoothstep(0.012, 0.025 + aa, edge);
-      float fade = (1.0 - smoothstep(0.0, 0.55, behind)) * step(0.0, behind);
+      float fade = (1.0 - smoothstep(0.0, min(0.55, 0.98 + stern), behind)) * step(0.0, behind);
       float lod = 1.0 - smoothstep(0.12, 0.28, aa);
       float ripple = 0.80 + 0.20 * sin(behind * 35.0 - uTime * 3.0);
-      float wake = foam * fade * lod * ripple * 0.38;
+      float churn = exp(-q.y*q.y / (0.004 + behind*0.04)) * 0.32;
+      float wake = (foam + churn) * fade * lod * ripple * 0.45 * vHash;
       if (wake > 0.005) { fragColor = vec4(0.78, 0.90, 0.94, wake); return; }
     }
   } else if (inSprite) {
@@ -290,6 +322,7 @@ void main() {
 
   if ((vessel || train) && gray > 0.45) {
     // Baked-style bevel, not dynamic lighting or a shadow pass.
+    if (vAtlasCol > 0.5 && vAtlasCol < 1.5 && gray > 0.77 && gray < 0.83) color = mix(territoryColor, vec3(0.76, 0.43, 0.23), 0.65);
     if (gray > 0.85) color = mix(territoryColor, vec3(0.86, 0.91, 0.89), 0.65);
     float edgeLight = (1.0 - smoothstep(-0.16, 0.10, q.y)) * 0.18;
     color = mix(color, vec3(0.87, 0.93, 0.95), edgeLight);

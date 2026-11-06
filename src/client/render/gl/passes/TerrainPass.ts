@@ -32,6 +32,8 @@ export class TerrainPass {
   private tex: WebGLTexture;
   private vao: WebGLVertexArrayObject;
   private uCamera: WebGLUniformLocation;
+  private uTime: WebGLUniformLocation;
+  private startTime = performance.now();
   private uBackground: WebGLUniformLocation;
   private mapW: number;
   private mapH: number;
@@ -63,6 +65,7 @@ export class TerrainPass {
       "TerrainPass",
     );
     this.uCamera = gl.getUniformLocation(this.program, "uCamera")!;
+    this.uTime = gl.getUniformLocation(this.program, "uTime")!;
     this.uBackground = gl.getUniformLocation(this.program, "uBackground")!;
 
     this.tex = createTexture2D(gl, {
@@ -71,12 +74,25 @@ export class TerrainPass {
       internalFormat: gl.RGBA8,
       format: gl.RGBA,
       type: gl.UNSIGNED_BYTE,
-      data: buildTerrainRGBA(terrainBytes, mapW, mapH, terrainColors),
+      data: this.bakeTerrain(terrainBytes),
       filter: gl.NEAREST, // pixel-crisp at all zoom levels
     });
 
     // Fullscreen quad also paints the overview margins in the same draw call.
     this.vao = createMapQuad(gl, 2, 2);
+  }
+
+  // Reuse the otherwise opaque alpha byte for terrain classification. The
+  // terrain pass writes alpha=1; no new map-sized texture is required.
+  private bakeTerrain(bytes: Uint8Array): Uint8Array {
+    const rgba = buildTerrainRGBA(
+      bytes,
+      this.mapW,
+      this.mapH,
+      this.terrainColors,
+    );
+    for (let i = 0; i < bytes.length; i++) rgba[i * 4 + 3] = bytes[i];
+    return rgba;
   }
 
   /**
@@ -97,12 +113,7 @@ export class TerrainPass {
       this.mapH,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      buildTerrainRGBA(
-        this.terrainSource(),
-        this.mapW,
-        this.mapH,
-        terrainColors,
-      ),
+      this.bakeTerrain(this.terrainSource()),
     );
   }
 
@@ -132,6 +143,7 @@ export class TerrainPass {
           i * 4,
           this.terrainColors,
         );
+        this.rgbaScratch[i * 4 + 3] = bytes[offset + i];
       }
       gl.texSubImage2D(
         gl.TEXTURE_2D,
@@ -154,6 +166,7 @@ export class TerrainPass {
     const gl = this.gl;
     gl.useProgram(this.program);
     gl.uniformMatrix3fv(this.uCamera, false, cameraMatrix);
+    gl.uniform1f(this.uTime, (performance.now() - this.startTime) / 1000);
     const background = this.terrainColors?.backgroundColor ?? [11, 22, 36];
     gl.uniform3f(
       this.uBackground,

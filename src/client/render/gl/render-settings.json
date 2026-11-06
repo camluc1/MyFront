@@ -219,6 +219,9 @@
   },
   "unit": {
     "unitSize": 13,
+    "headingMemory": 0.72,
+    "turnDurationMs": 280,
+    "wakeFadeMs": 400,
     "flickerSpeed": 0.3,
     "angryR": 0.784,
     "angryG": 0,
