@@ -45,6 +45,7 @@ import { RailroadCache } from "../render/frame/RailroadCache";
 import type { SpiralParams } from "../render/frame/SpiralTrails";
 import { SpiralTrails } from "../render/frame/SpiralTrails";
 import { TrailManager } from "../render/frame/TrailManager";
+import { buildSailingRoute } from "../render/gl/utils/SailingRoute";
 import type { FrameData, NameEntry } from "../render/types";
 import { STRUCTURE_TYPES, TRAIL_TYPES } from "../render/types";
 import { UserSettings } from "../UserSettings";
@@ -478,6 +479,25 @@ export class GameView implements GameLike {
       }
     });
 
+    for (const [id, plan] of this.motion.gridPlans()) {
+      const state = this._unitStates.get(id);
+      if (
+        !state ||
+        (state.unitType !== UnitType.TradeShip &&
+          state.unitType !== UnitType.TransportShip)
+      )
+        continue;
+      if (state.sailingRoute?.planId === plan.planId) continue;
+      const original = new Set(plan.path);
+      state.sailingRoute = buildSailingRoute(
+        plan,
+        this.width(),
+        (x, y) =>
+          this._map.isValidCoord(x, y) &&
+          (this._map.isWater(this._map.ref(x, y)) ||
+            original.has(this._map.ref(x, y))),
+      );
+    }
     this.motion.advance(gu.tick, this.plannedUnits);
 
     this.populateFrame(gu);

@@ -1,3 +1,4 @@
+import { packMotionPlans } from "@openfront/engine-lib/game/MotionPlans";
 /**
  * GameView is the client-side simulation mirror — it accumulates player /
  * unit / tile state from per-tick GameUpdateViewData. The FrameBuilder reads
@@ -920,4 +921,34 @@ describe("GameView.unitsOwnedBy — per-tick owner index", () => {
     alice.units().pop();
     expect(alice.units()).toHaveLength(3);
   });
+});
+
+it("pushes a cached sailing centerline from the real motion-plan channel into the renderer frame", () => {
+  const game = makeGameView();
+  const gu = withPlayers(1, [makePlayerUpdate({ id: "alice", smallID: 1 })]);
+  gu.updates[GameUpdateType.Unit] = [
+    makeUnitUpdate({
+      id: 7,
+      ownerID: 1,
+      unitType: UnitType.TradeShip,
+      pos: 11,
+      lastPos: 11,
+    }),
+  ];
+  gu.packedMotionPlans = packMotionPlans([
+    {
+      kind: "grid",
+      unitId: 7,
+      planId: 1,
+      startTick: 1,
+      ticksPerStep: 1,
+      path: [11, 12, 22, 23, 33],
+    },
+  ]);
+  game.update(gu);
+  const route = game.frameData().units.get(7)!.sailingRoute!;
+  expect(route.planId).toBe(1);
+  expect(route.segments).toHaveLength(1);
+  game.update(makeEmptyGu(2));
+  expect(game.frameData().units.get(7)!.sailingRoute).toBe(route);
 });

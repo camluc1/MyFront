@@ -1,4 +1,5 @@
 import type { TileRef } from "@openfront/engine-api/game/GameMap";
+import type { SailingRoute } from "../gl/utils/SailingRoute";
 
 /** TrainType enum — numeric values matching UnitState.trainType. */
 export enum TrainType {
@@ -96,6 +97,8 @@ export interface PlayerState {
 }
 
 export interface UnitState {
+  /** Render-only route, derived from the already available engine motion plan. */
+  sailingRoute?: SailingRoute;
   id: number;
   unitType: string;
   ownerID: number;

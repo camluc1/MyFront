@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { UnitPass } from "../../../../src/client/render/gl/passes/UnitPass";
 import defaults from "../../../../src/client/render/gl/render-settings.json";
+import { buildSailingRoute } from "../../../../src/client/render/gl/utils/SailingRoute";
 import type { UnitState } from "../../../../src/client/render/types";
 
 function harness(count: number) {
@@ -85,4 +86,31 @@ describe("directional fleet batches", () => {
     expect(h.bytes[12]).toBe(11);
     expect(h.bytes[14]).toBe(0);
   });
+});
+
+it("uses the supplied navigation centerline in the actual fleet buffer", () => {
+  const clock = vi.spyOn(performance, "now").mockReturnValue(200);
+  try {
+    const h = harness(1);
+    const state = ship(1001, 1);
+    state.sailingRoute = buildSailingRoute(
+      {
+        planId: 1,
+        startTick: 0,
+        ticksPerStep: 1,
+        path: Uint32Array.from([0, 1, 1001, 1002, 2002]),
+      },
+      1000,
+      () => true,
+    );
+    h.pass.updateUnits(new Map([[1, state]]), 2);
+    clock.mockReturnValue(250);
+    (h.pass as any).applyGroundSmoothing();
+    const f = new Float32Array(h.bytes.buffer);
+    expect(f[0]).toBeCloseTo(1.25);
+    expect(f[1]).toBeCloseTo(1.25);
+    expect(h.bytes[15]).toBe(32);
+  } finally {
+    clock.mockRestore();
+  }
 });

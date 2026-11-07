@@ -65,3 +65,25 @@ describe("vessel trajectory and body alignment", () => {
     expect(m.wake(3000)).toBe(0);
   });
 });
+
+it("keeps an unplanned warship's position and bow stable on a two-cell stair route", () => {
+  const m = new VesselMotion(0, 0, 0, 0, 0, 100);
+  let x = 0,
+    y = 0;
+  const angles: number[] = [],
+    sides: number[] = [];
+  for (let tick = 1; tick <= 180; tick++) {
+    if ((tick - 1) % 4 < 2) x++;
+    else y++;
+    m.update(x, y, tick * 100, 100);
+    for (let f = 1; f <= 5; f++) {
+      m.sample(tick * 100 + f * 16);
+      if (tick > 100) {
+        angles.push(m.angle);
+        sides.push(m.x - m.y);
+      }
+    }
+  }
+  expect(Math.max(...angles) - Math.min(...angles)).toBeLessThan(0.02);
+  expect(Math.max(...sides) - Math.min(...sides)).toBeLessThan(0.02);
+});

@@ -116,10 +116,24 @@ vec4 vehicleSprite(vec2 q, float col) {
     gray=abs(q.y)>width-0.025 ? 0.275 : 0.706;
     // Large clear deck areas, rather than dozens of subpixel grid lines.
     if(cargo) {
-      if(q.x> -0.12 && q.x<0.28 && abs(q.y)<0.16) gray=0.80;
-      if(detail>0.1 && abs(q.x-0.075)<0.018 && abs(q.y)<0.16)gray=0.275;
-      if(q.x> -0.29 && q.x< -0.16 && abs(q.y)<0.16)gray=0.92;
-      if(detail>0.1 && q.x> -0.18 && q.x< -0.15 && abs(q.y)<0.12)gray=0.275;
+      // Coaster seen from above: rounded transom, raised rear bridge, long
+      // recessed cargo hold, tapered forecastle. The hold is not the hull.
+      float fore=clamp((bow-q.x)/0.22,0.0,1.0);
+      float aft=sqrt(clamp((q.x-stern)/0.12,0.0,1.0));
+      width=beam*min(fore,aft);
+      d=max(abs(q.y)-width,max(stern-q.x,q.x-bow));
+      gray=abs(q.y)>width-0.028 ? 0.275 : 0.706;
+      if(q.x>-.13 && q.x<.27 && abs(q.y)<.17)gray=.51;
+      // Separate, staggered container bays; broad forms survive small scales.
+      if(q.x>-.09 && q.x<.23 && abs(q.y)<.135)gray=.80;
+      if(detail>.1 && q.x>-.09 && q.x<.23 && abs(q.y)<.14) {
+        if(abs(q.x-.015)<.015 || abs(q.x-.125)<.015 || abs(q.y)<.012)gray=.51;
+      }
+      if(q.x>-.30 && q.x<-.17 && abs(q.y)<.15)gray=.92;
+      if(q.x>-.27 && q.x<-.23 && abs(q.y)<.055)gray=.51;
+      if(length(q-vec2(-.28,.08))<.025)gray=.275;
+      if(detail>.1 && q.x>-.20 && q.x<-.17 && abs(q.y)<.10)gray=.275;
+      if(detail>.1 && q.x>.29 && q.x<.34 && abs(q.y)<.025)gray=.92;
     } else if(warship) {
       if(q.x> -0.32 && q.x<0.30 && abs(q.y)<0.115)gray=0.51;
       if(q.x> -0.15 && q.x<0.12 && abs(q.y)<0.08)gray=0.92;
@@ -321,11 +335,34 @@ void main() {
 
   if ((vessel || train) && gray > 0.45) {
     // Baked-style bevel, not dynamic lighting or a shadow pass.
-    if (vAtlasCol > 0.5 && vAtlasCol < 1.5 && gray > 0.77 && gray < 0.83) color = vec3(1.0, 0.85, 0.32);
+    if (vAtlasCol > 0.5 && vAtlasCol < 1.5 && gray > 0.77 && gray < 0.83) {
+      // Honey, faded terracotta and desaturated teal cargo; ownership stays on
+      // the gunwale. At distance the same bays resolve to a warm cargo accent.
+      float bay=floor((q.x+.09)/.11);
+      vec3 cargoColor=bay<1.0 ? vec3(.87,.62,.29) : (bay<2.0 ? vec3(.31,.58,.56) : vec3(.76,.39,.28));
+      float cargoDetail=1.0-smoothstep(.06,.18,max(fwidth(q.x),fwidth(q.y)));
+      color=mix(vec3(.95,.76,.36),cargoColor,cargoDetail);
+    }
     if (vessel && gray > 0.45 && gray < 0.6) color = mix(vec3(0.40,0.46,0.48),territoryColor,0.22);
     if (gray > 0.85) color = mix(vec3(0.86,0.89,0.86),territoryColor,0.20);
     float edgeLight = (1.0 - smoothstep(-0.16, 0.10, q.y)) * 0.18;
     color = mix(color, vec3(0.87, 0.93, 0.95), edgeLight);
+  }
+  if (vessel && vAtlasCol>0.5 && vAtlasCol<1.5) {
+    // A pale recessed working deck separates the cargo from the colored hull.
+    // Windows, coamings and the funnel remain crisp negative shapes.
+    if(q.x>-.145 && q.x<.275 && abs(q.y)>.14 && abs(q.y)<.175)
+      color=mix(vec3(.68,.71,.62),territoryColor,.12);
+    if(q.x>-.30 && q.x<-.17 && abs(q.y)<.15 && gray>.85)
+      color=vec3(.89,.89,.80);
+    if(q.x>-.20 && q.x<-.17 && abs(q.y)<.10 && gray<.34)
+      color=vec3(.13,.25,.29);
+    // Light falls across each bay independently, rather than washing the boat
+    // into one yellow rectangle. Broad cargo color remains at overview scale.
+    if(gray>.77 && gray<.83){
+      float face=1.0-smoothstep(-.12,.12,q.y);
+      color*=mix(.84,1.10,face);
+    }
   }
   if (vessel) {
     float aa = max(fwidth(q.x), fwidth(q.y));

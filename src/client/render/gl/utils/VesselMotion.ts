@@ -1,4 +1,5 @@
 import defaults from "../render-settings.json";
+import { sampleSailingRoute, type SailingRoute } from "./SailingRoute";
 
 /** Render-only motion: continuous velocity and a stable course across grid stairs. */
 export class VesselMotion {
@@ -20,6 +21,12 @@ export class VesselMotion {
   private courseAngle: number;
   private lastCourseAngle = 0;
   private stableCourseSamples = 0;
+  private route?: SailingRoute;
+  private routeTick = 0;
+  private routeAt = -1;
+  private routeSpeed = 0;
+  private anchorX = 0;
+  private anchorY = 0;
 
   constructor(
     x: number,
@@ -43,8 +50,23 @@ export class VesselMotion {
     this.courseAngle = this.angle;
     this.changedAt = this.sampledAt = now;
     this.duration = duration;
+    this.anchorX = this.x;
+    this.anchorY = this.y;
   }
 
+  setRoute(route: SailingRoute | undefined, tick: number, now: number) {
+    const changed = this.route !== route;
+    this.route = route;
+    if (
+      changed ||
+      tick !== this.routeTick ||
+      now === this.routeAt ||
+      this.routeAt < 0
+    ) {
+      this.routeTick = tick;
+      this.routeAt = now;
+    }
+  }
   update(x: number, y: number, now: number, duration: number): void {
     if (now === this.updatedAt) return;
     this.sample(now);
@@ -89,10 +111,41 @@ export class VesselMotion {
       this.targetX += this.history[i] / 4;
       this.targetY += this.history[i + 1] / 4;
     }
+    if (!this.route) {
+      const dx = Math.cos(this.courseAngle),
+        dy = Math.sin(this.courseAngle);
+      const lateral =
+        (this.targetX - this.anchorX) * -dy +
+        (this.targetY - this.anchorY) * dx;
+      // The sub-tile corridor removes lateral stair motion. Real bends and
+      // stops recenter it; the body follows the resulting trajectory tangent.
+      if (Math.abs(lateral) > 0.7 || now - this.changedAt > duration * 2) {
+        this.anchorX = this.targetX;
+        this.anchorY = this.targetY;
+      } else {
+        const along =
+          (this.targetX - this.anchorX) * dx +
+          (this.targetY - this.anchorY) * dy;
+        this.targetX = this.anchorX + along * dx;
+        this.targetY = this.anchorY + along * dy;
+      }
+    }
     this.duration = duration;
   }
 
   sample(now: number): void {
+    if (this.route) {
+      const fraction = Math.min(
+        1,
+        Math.max(0, (now - this.routeAt) / Math.max(1, this.duration)),
+      );
+      const step =
+        (this.routeTick + fraction - this.route.startTick) /
+        Math.max(1, this.route.ticksPerStep);
+      this.routeSpeed = sampleSailingRoute(this.route, step, this);
+      this.sampledAt = now;
+      return;
+    }
     const dt = Math.max(0, now - this.sampledAt) / 1000;
     this.sampledAt = now;
     // Exact critically damped solution. Velocity stays continuous at tick boundaries.
@@ -113,8 +166,8 @@ export class VesselMotion {
       Math.hypot(this.vx, this.vy) > 0.001
     ) {
       const delta = Math.atan2(
-        Math.sin(this.courseAngle - this.angle),
-        Math.cos(this.courseAngle - this.angle),
+        Math.sin(Math.atan2(this.vy, this.vx) - this.angle),
+        Math.cos(Math.atan2(this.vy, this.vx) - this.angle),
       );
       const step = delta * (1 - Math.exp(-5 * dt));
       this.angle += Math.max(
@@ -125,6 +178,7 @@ export class VesselMotion {
   }
 
   wake(now: number): number {
+    if (this.route) return Math.min(1, this.routeSpeed);
     return (
       Math.min(1, (Math.hypot(this.vx, this.vy) * this.duration) / 1000) *
       Math.max(

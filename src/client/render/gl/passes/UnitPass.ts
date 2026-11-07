@@ -594,6 +594,8 @@ export class UnitPass {
         } else {
           motion.update(x, y, now, this.tickIntervalMs);
         }
+        if (motion instanceof VesselMotion)
+          motion.setRoute(unit.sailingRoute, gameTick, now);
         motion.sample(now);
         this.groundMotions.push(motion);
         this.emitGround(
