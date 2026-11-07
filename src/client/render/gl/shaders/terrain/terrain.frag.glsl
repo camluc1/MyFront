@@ -58,17 +58,26 @@ void main() {
       float nw=elevation(coord-ivec2(1),limit,float(height));
       float se=elevation(coord+ivec2(1),limit,float(height));
       float relief=clamp((se-nw)*0.11,-1.0,1.0);
-      // A fixed upper-left light keeps the terrain readable while panning.
-      float textureGrain=grain(world*0.30)-0.5;
+      // Material detail shares the same two grain evaluations at every zoom.
+      // Grass is fine and slightly directional; rock has broader broken facets.
+      bool shore=(terrain&64)!=0;
+      float grass=shore ? 0.0 : 1.0-smoothstep(7.0,11.0,float(height));
+      float rocky=smoothstep(15.0,23.0,float(height));
+      float dry=smoothstep(8.0,12.0,float(height))*(1.0-rocky);
+      float closeDetail=1.0-smoothstep(0.45,1.5,footprint);
+      vec2 materialCoord=mix(world*0.30,vec2(world.x*0.24+world.y*0.08,world.y*0.65),grass*closeDetail);
+      float textureGrain=grain(materialCoord)-0.5;
       float broad=grain(world*0.055)-0.5;
-      float rock=height>=16 ? 1.3 : 0.7;
-      // Broad vegetation patches use the existing grain sample. Subtle tint
-      // changes read as grass from above without blades, geometry or flicker.
-      if (height<10 && (terrain&64)==0) {
-        float vegetation=(broad+0.5)*uSurface.w*detail;
-        color*=vec3(1.0-vegetation,1.0+vegetation*0.2,1.0-vegetation*1.4);
-      }
-      color*=1.0+(relief*uSurface.z+(textureGrain*rock+broad)*uSurface.w)*detail;
+      float materialContrast=mix(0.7,1.5,rocky);
+      if(shore) materialContrast=1.1;
+      float vegetation=(broad+0.5)*uSurface.w*detail*grass;
+      color*=vec3(1.0-vegetation,1.0+vegetation*0.2,1.0-vegetation*1.4);
+      float dryVariation=(textureGrain+broad)*uSurface.w*dry*closeDetail;
+      color*=vec3(1.0+dryVariation*0.5,1.0+dryVariation*0.15,1.0-dryVariation*0.5);
+      // Fixed upper-left light follows real elevations; a restrained extra
+      // contrast on rocky slopes separates ridges from valleys.
+      color*=1.0+(relief*uSurface.z*mix(1.0,1.12,rocky)
+        +(textureGrain*materialContrast+broad)*uSurface.w)*detail;
     }
     fragColor = vec4(color, 1.0);
     return;
