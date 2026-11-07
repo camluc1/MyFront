@@ -216,6 +216,10 @@ void main() {
   // Outside the sprite: render the steady soft glow under the hydrogen bomb,
   // otherwise discard. Glow is suppressed in alt (affiliation) view.
   if (texel.a < 0.01) {
+    if (vAtlasCol > 1.5 && vAtlasCol < 2.5 && abs(vFlags-FLAG_ANGRY) < 0.1 && uAltView == 0) {
+      float halo = (1.0-smoothstep(0.15,0.90,length(q/vec2(1.0,0.65)))) * 0.18;
+      if (halo > 0.001) { fragColor = vec4(uAngryColor,halo); return; }
+    }
     if (vGlow > 0.5 && uAltView == 0) {
       float d = length(vQuadPos - 0.5) * 2.0; // 0 at center → ~1 at quad edge
       float g = (1.0 - smoothstep(uHBombGlowInner, 1.0, d)) * uHBombGlowStrength;
@@ -246,19 +250,7 @@ void main() {
   vec3 territoryColor = texture(uPalette, vec2(u, 0.25)).rgb;
   vec3 borderColor    = texture(uPalette, vec2(u, 0.75)).rgb;
 
-  // warship cosmetic: recolor the warship's territory-color bands with the
-  // owner's effect (raw catalog colors, like trails). The border band keeps
-  // the player color so ownership stays readable, and combat signals win: the
-  // angry (attacking) override below replaces this with red, and the retreat
-  // blink still darkens the center band.
-  if (abs(vAtlasCol - float(WARSHIP_COL)) < 0.1) {
-    vec3 effectRGB;
-    float dn = (vCellUV.x + vCellUV.y) * 0.5; // sprite diagonal, 0..1
-    if (spriteEffectColor(WARSHIP_EFFECT_ROW_BASE, int(vOwnerID + 0.5), dn, true, effectRGB)) {
-      territoryColor = effectRGB;
-    }
-  }
-
+  // Vessel hulls always retain the owning country palette.
   // train cosmetic: the train sprites (engine, carriage, loaded carriage) are
   // the last three atlas columns. The engine is drawn entirely in the border
   // band and the carriages are a border-band frame around a territory-band
@@ -284,8 +276,7 @@ void main() {
   //   4 = retreating (warships fleeing to port — blinking black center)
   float retreatBlink = 0.0;
   if (abs(vFlags - FLAG_ANGRY) < 0.1) {
-    // Angry: the outer ring (180) and center (100) go red via territoryColor
-    territoryColor = uAngryColor;
+    // Combat is shown on the water; the country-colored hull stays unchanged.
   } else if (abs(vFlags - FLAG_RETREATING) < 0.1) {
     // Retreating: slowly blink the center (100 band) black so the ship reads as fleeing
     retreatBlink = step(0.5, fract(uTick * 0.07));
