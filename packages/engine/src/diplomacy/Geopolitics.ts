@@ -896,6 +896,28 @@ export class Geopolitics {
       kind = "peace";
       give.gold = Math.min(Number(a.gold()), Math.max(0, Math.trunc(Number(a.gold()) / 12)));
       give.troops = Math.min(a.troops(), Math.trunc(a.troops() / 30));
+      // When defeat is imminent, a nation can proactively offer a less vital
+      // harbor as the price of ending the offensive. Harder AI resists until
+      // the military situation is considerably more desperate.
+      const severity = this.militaryPressure(a, target);
+      const threshold: Record<Difficulty, number> = {
+        [Difficulty.Easy]: 12,
+        [Difficulty.Medium]: 19,
+        [Difficulty.Hard]: 27,
+        [Difficulty.Impossible]: 34,
+      };
+      const ports = a.units(UnitType.Port)
+        .filter((u) => u.isActive() && this.game.owner(u.tile()) === a)
+        .sort((x, y) => this.portLeverage(x.tile(), a, target!) -
+          this.portLeverage(y.tile(), a, target!) || x.id() - y.id());
+      if (severity >= threshold[this.game.config().gameConfig().difficulty] &&
+          power(target) > power(a) * 1.25 && ports.length > 1 &&
+          a.numTilesOwned() > 1) {
+        give.tiles = [ports[0].tile()];
+        give.buildings = this.game.units().filter((u) =>
+          u.isActive() && STRUCTURES.has(u.type()) &&
+          u.tile() === ports[0].tile()).map((u) => u.id());
+      }
     } else {
       // Turn territorial military success into a playable peace settlement.
       // A victorious nation may seek a functioning enemy port without
