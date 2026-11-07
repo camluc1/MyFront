@@ -9,6 +9,8 @@
  */
 
 import type { TerrainRect } from "../../types";
+import defaults from "../render-settings.json";
+import type { RenderSettings } from "../RenderSettings";
 import terrainFragSrc from "../shaders/terrain/terrain.frag.glsl?raw";
 import terrainVertSrc from "../shaders/terrain/terrain.vert.glsl?raw";
 import {
@@ -32,6 +34,7 @@ export class TerrainPass {
   private tex: WebGLTexture;
   private vao: WebGLVertexArrayObject;
   private uCamera: WebGLUniformLocation;
+  private uSurface: WebGLUniformLocation;
   private uTime: WebGLUniformLocation;
   private startTime = performance.now();
   private uBackground: WebGLUniformLocation;
@@ -54,6 +57,7 @@ export class TerrainPass {
     mapW: number,
     mapH: number,
     terrainColors?: TerrainColorOverrides,
+    private surface: RenderSettings["terrain"] = defaults.terrain,
   ) {
     this.mapW = mapW;
     this.mapH = mapH;
@@ -65,6 +69,7 @@ export class TerrainPass {
       "TerrainPass",
     );
     this.uCamera = gl.getUniformLocation(this.program, "uCamera")!;
+    this.uSurface = gl.getUniformLocation(this.program, "uSurface")!;
     this.uTime = gl.getUniformLocation(this.program, "uTime")!;
     this.uBackground = gl.getUniformLocation(this.program, "uBackground")!;
 
@@ -166,6 +171,13 @@ export class TerrainPass {
     const gl = this.gl;
     gl.useProgram(this.program);
     gl.uniformMatrix3fv(this.uCamera, false, cameraMatrix);
+    gl.uniform4f(
+      this.uSurface,
+      this.surface.waterMotionStrength,
+      this.surface.waterHighlightStrength,
+      this.surface.reliefStrength,
+      this.surface.surfaceTextureStrength,
+    );
     gl.uniform1f(this.uTime, (performance.now() - this.startTime) / 1000);
     const background = this.terrainColors?.backgroundColor ?? [11, 22, 36];
     gl.uniform3f(

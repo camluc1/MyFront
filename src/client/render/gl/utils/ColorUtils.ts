@@ -74,6 +74,11 @@ const BACKGROUND_BASE: readonly [number, number, number] = hexToRgb(
   renderDefaults.terrain.backgroundColor,
 )!;
 
+const DEFAULT_SAND = hexToRgb(renderDefaults.terrain.sandColor)!;
+const DEFAULT_PLAINS = hexToRgb(renderDefaults.terrain.plainsColor)!;
+const DEFAULT_HIGHLAND = hexToRgb(renderDefaults.terrain.highlandColor)!;
+const DEFAULT_MOUNTAIN = hexToRgb(renderDefaults.terrain.mountainColor)!;
+
 /**
  * Compute a static RGBA8 texture from raw terrain bytes.
  * The single source of truth for terrain colors.
@@ -121,10 +126,10 @@ export function encodeTerrainTile(
   const terrainColors = {
     ocean: oceanColor ?? DEEP_WATER_BASE,
     shoreWater: [100, 143, 255],
-    sand: sandColor ?? [204, 203, 158],
-    plains: plainsColor ?? [190, 220, 138],
-    highland: highlandColor ?? [200, 183, 138],
-    mountain: mountainColor ?? [230, 230, 230],
+    sand: sandColor ?? DEFAULT_SAND,
+    plains: plainsColor ?? DEFAULT_PLAINS,
+    highland: highlandColor ?? DEFAULT_HIGHLAND,
+    mountain: mountainColor ?? DEFAULT_MOUNTAIN,
     peak: backgroundColor ?? BACKGROUND_BASE,
   };
 
@@ -136,36 +141,32 @@ export function encodeTerrainTile(
   } else if (isLand && isShoreline) {
     [r, g, b] = terrainColors.sand;
   } else if (isLand) {
+    // Smooth biome ramps prevent abrupt white plateaus at height 20.
+    // Height 31 remains impassable and was handled above.
+    let low: readonly number[], high: readonly number[], t: number;
     if (magnitude < 10) {
-      // Plains
-      const base = terrainColors.plains;
-
-      r = base[0];
-      g = base[1] - 2 * magnitude;
-      b = base[2];
+      low = terrainColors.plains;
+      high = terrainColors.highland;
+      t = Math.max(0, (magnitude - 5) / 5);
     } else if (magnitude < 20) {
-      // Highland
-      const base = terrainColors.highland;
-      const m = magnitude - 10;
-
-      r = Math.min(255, base[0] + 2 * m);
-      g = Math.min(255, base[1] + 2 * m);
-      b = Math.min(255, base[2] + 2 * m);
+      low = terrainColors.highland;
+      high = terrainColors.mountain;
+      t = (magnitude - 10) / 16;
     } else {
-      // Mountain
-      const base = terrainColors.mountain;
-      const m = Math.floor(magnitude / 2);
-
-      r = Math.min(255, base[0] + m);
-      g = Math.min(255, base[1] + m);
-      b = Math.min(255, base[2] + m);
+      low = terrainColors.highland;
+      high = terrainColors.mountain;
+      t = 0.625 + (magnitude - 20) * 0.0375;
     }
+    t = Math.min(1, t);
+    r = Math.round(low[0] + (high[0] - low[0]) * t);
+    g = Math.round(low[1] + (high[1] - low[1]) * t);
+    b = Math.round(low[2] + (high[2] - low[2]) * t);
   } else if (isShoreline) {
-    // Shoreline water — computed dynamically by blending 70% ocean color and 30% white
+    // Coastal shallows stay related to the selected ocean color.
     const base = oceanColor ?? DEEP_WATER_BASE;
-    r = Math.round(0.7 * base[0] + 76.5);
-    g = Math.round(0.7 * base[1] + 76.5);
-    b = Math.round(0.7 * base[2] + 76.5);
+    r = Math.min(255, base[0] + 24);
+    g = Math.min(255, base[1] + 34);
+    b = Math.min(255, base[2] + 30);
   } else {
     // Deep water — darkens with depth (magnitude). The base color sets the
     // shallowest (brightest) shade; the per-depth gradient is preserved by

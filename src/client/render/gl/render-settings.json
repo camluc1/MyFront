@@ -18,11 +18,15 @@
   },
   "terrain": {
     "backgroundColor": "#0b1624",
-    "oceanColor": "#4785b5",
-    "sandColor": "#CCCB9E",
-    "plainsColor": "#BEDC8A",
-    "highlandColor": "#DCCB9E",
-    "mountainColor": "#e6e6e6"
+    "oceanColor": "#35677F",
+    "sandColor": "#CDBB95",
+    "plainsColor": "#A2B681",
+    "highlandColor": "#A99C85",
+    "mountainColor": "#E5E9E6",
+    "waterMotionStrength": 0.05,
+    "waterHighlightStrength": 0.055,
+    "reliefStrength": 0.15,
+    "surfaceTextureStrength": 0.035
   },
   "falloutBloom": {
     "broilSpeedCold": 0.0018,
@@ -368,7 +372,11 @@
     "gradientSolidEnd": 0.1
   },
   "smallPlayerGlow": {
-    "color": [1, 0.12, 0.1],
+    "color": [
+      1,
+      0.12,
+      0.1
+    ],
     "alpha": 0.9,
     "pulseSpeed": 0.003,
     "strength": 0.35

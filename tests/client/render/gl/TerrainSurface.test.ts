@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { TerrainPass } from "../../../../src/client/render/gl/passes/TerrainPass";
-import { buildTerrainRGBA } from "../../../../src/client/render/gl/utils/ColorUtils";
+import {
+  buildTerrainRGBA,
+  encodeTerrainTile,
+} from "../../../../src/client/render/gl/utils/ColorUtils";
 
 describe("terrain surface classification", () => {
   it("retains user colors while packing land, water and impassable metadata", () => {
@@ -30,5 +33,24 @@ describe("terrain surface classification", () => {
     );
     const rgba = upload.mock.calls[0][8] as Uint8Array;
     expect([rgba[3], rgba[7]]).toEqual([32, 64]);
+  });
+  it("keeps impassable tiles and custom coast colors recognizable", () => {
+    const pixel = new Uint8Array(4);
+    encodeTerrainTile(159, pixel, 0, { backgroundColor: [9, 18, 27] });
+    expect([...pixel]).toEqual([9, 18, 27, 255]);
+    encodeTerrainTile(192, pixel, 0, { sandColor: [123, 145, 167] });
+    expect([...pixel]).toEqual([123, 145, 167, 255]);
+  });
+  it("avoids a white cliff at the rock/snow boundary and leaves source data intact", () => {
+    const source = Uint8Array.from({ length: 31 }, (_, i) => 128 + i);
+    const original = source.slice();
+    const rgba = buildTerrainRGBA(source, 31, 1);
+    expect(source).toEqual(original);
+    for (let h = 1; h < 31; h++)
+      for (let channel = 0; channel < 3; channel++)
+        expect(
+          Math.abs(rgba[h * 4 + channel] - rgba[(h - 1) * 4 + channel]),
+        ).toBeLessThan(12);
+    expect(rgba[20 * 4]).toBeLessThan(rgba[30 * 4]);
   });
 });

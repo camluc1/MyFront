@@ -79,6 +79,10 @@ export interface RenderSettings {
     plainsColor: string;
     highlandColor: string;
     mountainColor: string;
+    waterMotionStrength: number;
+    waterHighlightStrength: number;
+    reliefStrength: number;
+    surfaceTextureStrength: number;
   };
   falloutBloom: {
     broilSpeedCold: number;
