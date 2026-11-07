@@ -2120,6 +2120,14 @@
     "message": "Hay una nueva versión de OpenFront disponible. La página se actualizará ahora."
   },
   "user_setting": {
+    "build_farm": "Construir Granja",
+    "build_farm_desc": "Construí una granja bajo el cursor.",
+    "build_mine": "Construir Mina",
+    "build_mine_desc": "Construí una mina bajo el cursor.",
+    "build_oil_well": "Construir Pozo petrolero",
+    "build_oil_well_desc": "Construí un pozo petrolero bajo el cursor.",
+    "build_gas_plant": "Construir Planta de gas",
+    "build_gas_plant_desc": "Construí una planta de gas bajo el cursor.",
     "alert_frame_desc": "Alterna el marco de alerta. Cuando está activado, el marco se mostrará cuando te traicionen o te ataquen por tierra.",
     "alert_frame_label": "Cuadro de alerta",
     "ally_keybinds": "Teclas de aliado",
