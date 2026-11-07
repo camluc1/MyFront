@@ -130,6 +130,28 @@ export class Geopolitics {
     const wait = Math.min(6000, 900 * 2 ** Math.min(3, m.rejections - 1));
     this.state.cooldowns[`ai:pair:${other}:${actor}`] = this.game.ticks() + wait;
   }
+  /** Encodes meaningful changes in an ongoing war without reacting to every tick. */
+  private diplomaticContext(actor: Player, target: Player): number {
+    const pressure = this.militaryPressure(actor, target);
+    const counterPressure = this.militaryPressure(target, actor);
+    const threatTier = pressure >= 28 ? 3 : pressure >= 12 ? 2 : pressure > 0 ? 1 : 0;
+    const counterTier = counterPressure >= 24 ? 2 : counterPressure > 0 ? 1 : 0;
+    const ratio = this.strategicPower(actor) / Math.max(1, this.strategicPower(target));
+    const balanceTier = ratio < 0.5 ? 1 : ratio < 0.85 ? 2 : ratio < 1.5 ? 3 : 4;
+    return threatTier * 100 + counterTier * 10 + balanceTier;
+  }
+  private canInitiateTo(actor: Player, target: Player, tick: number): boolean {
+    const pair = `ai:pair:${actor.id()}:${target.id()}`;
+    if ((this.state.cooldowns[pair] ?? 0) <= tick) return true;
+    // A genuinely new severe offensive can reopen peace talks early, but
+    // never create an offer on every minor troop change.
+    const context = this.diplomaticContext(actor, target);
+    const lastContext = this.state.cooldowns[`ai:context:${actor.id()}:${target.id()}`] ?? context;
+    const lastSent = this.state.cooldowns[`ai:sent:${actor.id()}:${target.id()}`] ?? tick;
+    return Math.trunc(context / 100) >= 2 &&
+      Math.trunc(context / 100) > Math.trunc(lastContext / 100) &&
+      tick - lastSent >= 180;
+  }
   private participants(a: string, b: string) {
     return [
       ...new Set([
@@ -878,7 +900,7 @@ export class Geopolitics {
     const eligible = this.game.players().filter(
       (p) => p !== a && p.isAlive() && p.type() !== PlayerType.Bot &&
         !this.friendly(a.id(), p.id()) &&
-        (this.state.cooldowns[`ai:pair:${a.id()}:${p.id()}`] ?? 0) <= tick,
+        this.canInitiateTo(a, p, tick),
     );
     if (!eligible.length) {
       this.state.cooldowns[initiativeKey] = tick + 300;
@@ -1037,6 +1059,9 @@ export class Geopolitics {
       // A non-rejected AI offer also needs room to breathe. Backoff after
       // rejection is handled above and takes precedence for this pair.
       this.state.cooldowns[`ai:pair:${a.id()}:${target.id()}`] = tick + 900;
+      this.state.cooldowns[`ai:context:${a.id()}:${target.id()}`] =
+        this.diplomaticContext(a, target);
+      this.state.cooldowns[`ai:sent:${a.id()}:${target.id()}`] = tick;
     }
     if (ultimatum && this.state.offers.length > before)
       this.state.cooldowns[`ultimatum:${a.id()}`] = tick + 1800;
