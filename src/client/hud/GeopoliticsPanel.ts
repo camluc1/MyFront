@@ -58,6 +58,9 @@ export class GeopoliticsPanel extends LitElement {
   @state() private receive = emptyAssets();
   @state() private selected: DiplomaticOffer | null = null;
   @state() private tab = "countries";
+  @state() private mapLayer: "relations" | "blocs" | "conflicts" | "assets" = "relations";
+  private politicalTick = -1;
+  private politicalLayer = "";
   @state() private side: "give" | "receive" = "receive";
   @state() private radius = 3;
   @state() private search = "";
@@ -289,6 +292,8 @@ export class GeopoliticsPanel extends LitElement {
       padding: 6px 0;
       border-bottom: 1px solid #304552;
     }
+    .geo-map { cursor: default; max-height: 300px; object-fit: contain; }
+    .map-legend { display:flex; flex-wrap:wrap; gap:12px; margin:8px 0 14px; color:#b8c8d0; font-size:12px; }
     .preview {
       width: 100%;
       height: auto;
@@ -429,6 +434,7 @@ export class GeopoliticsPanel extends LitElement {
   }
   protected updated() {
     this.drawPreview();
+    this.drawPoliticalMap();
   }
   private send(action: DiplomacyAction) {
     this.bus.emit(new SendDiplomacyIntentEvent(action));
@@ -936,8 +942,98 @@ export class GeopoliticsPanel extends LitElement {
       ${recent.map((event) => html`<div class="event"><span class="muted">${Math.floor(event.tick / 10)}s</span> · <strong>${this.name(event.actor)}</strong> ${t("event_" + event.event)} ${event.target ? "· " + this.name(event.target) : ""}</div>`)}
     </section>` : nothing;
   }
+  private renderPoliticalLayers() {
+    const legends: Record<typeof this.mapLayer, string> = {
+      relations: "Verde: aliados · Rojo: enemigos · Gris: neutrales",
+      blocs: "Cada bloque comparte color; las naciones independientes quedan grises",
+      conflicts: "Rojo: países en guerra con vos · Naranja: conflictos activos",
+      assets: "Puntos celestes: puertos · Amarillos: infraestructura estratégica",
+    };
+    return html`<section class="card" aria-label="Mapa geopolítico">
+      <div class="row wrap"><h3>Mapa geopolítico</h3>
+        <select aria-label="Capa geopolítica" style="width:auto"
+          .value=${this.mapLayer}
+          @change=${(e: Event) => {
+            this.mapLayer = (e.target as HTMLSelectElement).value as typeof this.mapLayer;
+            this.politicalTick = -1;
+          }}>
+          <option value="relations">Relaciones</option>
+          <option value="blocs">Bloques de poder</option>
+          <option value="conflicts">Conflictos</option>
+          <option value="assets">Activos estratégicos</option>
+        </select></div>
+      <canvas class="preview geo-map" width="512"
+        height=${Math.max(1, Math.round(512 * this.game.height() / this.game.width()))}
+        aria-label="Mapa político de países, coaliciones, conflictos y activos"></canvas>
+      <div class="map-legend">${legends[this.mapLayer]}</div>
+      ${this.mapLayer === "blocs" ? html`<div class="stack">${this.game.diplomacy.coalitions.map((c, index) => html`<div class="row"><span>Bloque ${index + 1}: ${c.members.map((id) => this.name(id)).join(" · ")}</span><span class="gold">${c.members.length} miembros</span></div>`)}</div>` : nothing}
+    </section>`;
+  }
+  private drawPoliticalMap() {
+    if (!this.opened || this.tab !== "countries") return;
+    const canvas = this.renderRoot.querySelector(".geo-map") as HTMLCanvasElement | null;
+    if (!canvas || (this.politicalLayer === this.mapLayer &&
+      this.game.ticks() - this.politicalTick < 50)) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const w = canvas.width, h = canvas.height;
+    const data = ctx.createImageData(w, h);
+    const me = this.mine()?.id() ?? "";
+    const blocColors = ["#56c9ac", "#e9a75f", "#9e9af6", "#e478a2", "#60b1e8"];
+    const blocs = new Map<string, string>();
+    this.game.diplomacy.coalitions.forEach((c, i) =>
+      c.members.forEach((id) => blocs.set(id, blocColors[i % blocColors.length])));
+    const relations = new Map<string, string>();
+    const opponents = new Set<string>();
+    const combatants = new Set<string>();
+    for (const p of this.game.players()) {
+      const relation = this.relationship(p);
+      relations.set(p.id(), relation === "hostile" ? "#c75b57" :
+        relation === "coalition" || relation === "alliance" ? "#5fbb8a" :
+        relation === "truce" || relation === "peace" || relation === "nonaggression"
+          ? "#8cbeae" : "#687782");
+      if (relation === "hostile") opponents.add(p.id());
+      if (p.incomingAttacks().some((attack) => !attack.retreating)) combatants.add(p.id());
+    }
+    const color = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const palette = new Map<string, number[]>();
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const tile = this.game.ref(
+        Math.min(this.game.width() - 1, Math.floor(x * this.game.width() / w)),
+        Math.min(this.game.height() - 1, Math.floor(y * this.game.height() / h)));
+      const i = (y * w + x) * 4;
+      let hex = "#102f42";
+      if (this.game.isLand(tile)) {
+        const id = this.game.owner(tile).id();
+        if (id === me) hex = "#b9dec2";
+        else if (this.mapLayer === "blocs") hex = blocs.get(id) ?? "#55636d";
+        else if (this.mapLayer === "relations") hex = relations.get(id) ?? "#55636d";
+        else if (this.mapLayer === "conflicts") hex = opponents.has(id) ? "#d45b57" :
+          combatants.has(id) ? "#d39b54" : "#55636d";
+        else hex = "#536872";
+      }
+      let rgb = palette.get(hex);
+      if (!rgb) { rgb = color(hex); palette.set(hex, rgb); }
+      data.data[i] = rgb[0]; data.data[i + 1] = rgb[1];
+      data.data[i + 2] = rgb[2]; data.data[i + 3] = 255;
+    }
+    ctx.putImageData(data, 0, 0);
+    if (this.mapLayer === "assets") {
+      for (const u of this.game.units()) {
+        if (!structures.has(u.type())) continue;
+        const isPort = u.type() === UnitType.Port;
+        if (!isPort && ![UnitType.City, UnitType.Factory, UnitType.MissileSilo,
+          UnitType.Mine, UnitType.OilWell, UnitType.GasPlant].includes(u.type())) continue;
+        ctx.fillStyle = isPort ? "#76e3ff" : "#f2cc72";
+        ctx.fillRect(Math.floor(this.game.x(u.tile()) * w / this.game.width()) - 1,
+          Math.floor(this.game.y(u.tile()) * h / this.game.height()) - 1, 3, 3);
+      }
+    }
+    this.politicalTick = this.game.ticks();
+    this.politicalLayer = this.mapLayer;
+  }
   private renderCountries() {
-    return html`${this.renderRecentEvents()}<label
+    return html`${this.renderPoliticalLayers()}${this.renderRecentEvents()}<label
         >${t("find_country")}<input
           type="search"
           .value=${this.search}
