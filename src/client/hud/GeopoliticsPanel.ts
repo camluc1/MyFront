@@ -741,7 +741,7 @@ export class GeopoliticsPanel extends LitElement {
           )}
       </div>
       ${a.buildings.some((id) => this.game.unit(id)?.type() === UnitType.Port)
-        ? html`<p class="notice">Puerto incluido: el acuerdo entrega su casilla y el puerto operativo al nuevo propietario. Permite proyectar tropas desde esta costa.</p>`
+        ? html`<p class="notice">${t("deal_port_effect")}</p>`
         : nothing}
       <p class="muted">
         ${t("territory_impact")}:
@@ -981,6 +981,7 @@ export class GeopoliticsPanel extends LitElement {
           ${this.renderRegionImpact(outgoing, outgoingOwner)}
         </div>
       </div>
+      <p class="muted" style="margin-top:8px">${t("deal_pct_explainer")}</p>
       ${(o?.kind ?? this.kind) === "peace" ? html`<div class="treaty-note">
         ${t("deal_peace_effect")}
         ${Math.round(duration / 600)} ${t("deal_peace_effect_end")}
