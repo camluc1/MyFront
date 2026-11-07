@@ -1059,13 +1059,13 @@ export class PlayerPanel extends LitElement implements Controller {
         }
         ${my !== other && this.g.config().gameConfig().geopolitics
           ? html`<section class="rounded-xl border border-teal-800/70 bg-slate-900/60 p-3" aria-label="Diplomacia geopolítica">
-            <p class="mb-2 text-sm font-semibold text-teal-200">Diplomacia · ${other.name()}</p>
+            <p class="mb-2 text-sm font-semibold text-teal-200">${translateText("geopolitics.title")} · ${other.name()}</p>
             <div class="grid grid-cols-2 gap-2">
               ${([
-                ["Negociar", "offer"],
-                ["Exigir territorio", "demand"],
-                ["Crear coalición", "coalition"],
-                ["Tratados e información", "info"],
+                [translateText("geopolitics.deal_context_negotiate"), "offer"],
+                [translateText("geopolitics.deal_context_demand"), "demand"],
+                [translateText("geopolitics.deal_context_coalition"), "coalition"],
+                [translateText("geopolitics.deal_context_info"), "info"],
               ] as const).map(([label, action]) => html`<button
                 class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm font-medium text-slate-100 hover:border-teal-400 hover:bg-slate-700"
                 @click=${(e: MouseEvent) => {
