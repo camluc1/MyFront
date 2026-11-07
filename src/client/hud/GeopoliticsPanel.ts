@@ -867,11 +867,11 @@ export class GeopoliticsPanel extends LitElement {
     const owned = owner.units();
     const selected = new Set(assets.buildings);
     const labels: [UnitType, string][] = [
-      [UnitType.Port, "Puertos"], [UnitType.City, "Ciudades"],
-      [UnitType.Mine, "Minas"], [UnitType.OilWell, "Petróleo"],
-      [UnitType.GasPlant, "Gas"], [UnitType.Factory, "Fábricas"],
-      [UnitType.Farm, "Granjas"], [UnitType.DefensePost, "Defensas"],
-      [UnitType.SAMLauncher, "Antiaéreas"], [UnitType.MissileSilo, "Silos"],
+      [UnitType.Port, t("deal_pct_ports")], [UnitType.City, t("deal_pct_cities")],
+      [UnitType.Mine, t("deal_pct_mines")], [UnitType.OilWell, t("deal_pct_oil")],
+      [UnitType.GasPlant, t("deal_pct_gas")], [UnitType.Factory, t("deal_pct_factories")],
+      [UnitType.Farm, t("deal_pct_farms")], [UnitType.DefensePost, t("deal_pct_defense")],
+      [UnitType.SAMLauncher, t("deal_pct_sam")], [UnitType.MissileSilo, t("deal_pct_silos")],
     ];
     const percent = (n: number, total: number) =>
       total > 0 ? Math.min(100, Math.round(n * 1000 / total) / 10) : 0;
@@ -884,14 +884,14 @@ export class GeopoliticsPanel extends LitElement {
     const deposits = this.game.resourceSitesInTiles(assets.tiles);
     return html`<div class="metric-grid" aria-label="Impacto comprobable sobre los activos del país">
       ${assets.tiles.length > 0 ? html`<span class="metric-chip">
-        Territorio: <strong>${percent(assets.tiles.length, owner.numTilesOwned())}%</strong>
-        · ${assets.tiles.length.toLocaleString()} casillas
+        ${t("deal_pct_territory")}: <strong>${percent(assets.tiles.length, owner.numTilesOwned())}%</strong>
+        · ${assets.tiles.length.toLocaleString()} ${t("deal_tiles")}
       </span>` : nothing}
       ${assets.gold > 0 ? html`<span class="metric-chip">
-        Oro: <strong>${percent(assets.gold, Number(owner.gold()))}%</strong>
+        ${t("deal_pct_gold")}: <strong>${percent(assets.gold, Number(owner.gold()))}%</strong>
       </span>` : nothing}
       ${assets.troops > 0 ? html`<span class="metric-chip">
-        Tropas: <strong>${percent(assets.troops, owner.troops())}%</strong>
+        ${t("deal_pct_troops")}: <strong>${percent(assets.troops, owner.troops())}%</strong>
       </span>` : nothing}
       ${impacts.map((item) => html`<span class="metric-chip">
         ${item.label}: <strong>${item.pct}%</strong> · ${item.count}
@@ -916,8 +916,8 @@ export class GeopoliticsPanel extends LitElement {
       : this.give;
     const incomingOwner = o ? (o.to === myID ? o.from : o.to) : to;
     const outgoingOwner = o ? (o.to === myID ? o.to : o.from) : from;
-    const incomingTitle = thirdParty ? this.name(o!.from) + " recibe" : "Recibís";
-    const outgoingTitle = thirdParty ? this.name(o!.to) + " recibe" : "Entregás";
+    const incomingTitle = thirdParty ? this.name(o!.from) + t("deal_receives") : t("deal_get");
+    const outgoingTitle = thirdParty ? this.name(o!.to) + t("deal_receives") : t("deal_give");
     const duration = (o?.kind ?? this.kind) === "peace"
       ? (o?.durationTicks ?? this.peaceDuration)
       : TREATY_TICKS[o?.kind ?? this.kind];
@@ -933,39 +933,39 @@ export class GeopoliticsPanel extends LitElement {
     return html`<section class="offer-summary" aria-label="Consejo diplomático: resumen claro del tratado">
       <div class="row wrap">
         <div>
-          <div class="deal-eyebrow">FRONTIER · Consejo diplomático</div>
-          <div class="deal-title">${o ? this.name(o.from) + " propone " : "Tu propuesta: "}${t(o?.kind ?? this.kind)}</div>
+          <div class="deal-eyebrow">FRONTIER · ${t("deal_desk")}</div>
+          <div class="deal-title">${o ? this.name(o.from) + t("deal_proposes") : t("deal_you_propose")}${t(o?.kind ?? this.kind)}</div>
           <div class="muted">${this.name(from)} ↔ ${this.name(to)}</div>
         </div>
-        <div class="deal-duration">${Math.round(duration / 600)} min de ${(o?.kind ?? this.kind) === "peace" ? "paz" : "tratado"}</div>
+        <div class="deal-duration">${Math.round(duration / 600)} ${t((o?.kind ?? this.kind) === "peace" ? "deal_peace_minutes" : "deal_treaty_minutes")}</div>
       </div>
       ${this.editing && this.kind === "peace" ? html`<label style="max-width:270px;margin-top:10px">
-        Duración de la paz
+        ${t("deal_peace_duration")}
         <select aria-label="Duración de la paz" .value=${String(this.peaceDuration)}
           @change=${(e: Event) => this.peaceDuration =
             Number((e.target as HTMLSelectElement).value) === 3000 ? 3000 : 1800}>
-          <option value="1800">3 minutos</option>
-          <option value="3000">5 minutos</option>
+          <option value="1800">${t("deal_three_minutes")}</option>
+          <option value="3000">${t("deal_five_minutes")}</option>
         </select>
       </label>` : nothing}
       ${o?.kind === "coalition" ? html`<div class="treaty-note">
-        Aprobaciones del bloque: ${o.approvals.length}/${o.required.length}.
+        ${t("deal_block_approvals")}: ${o.approvals.length}/${o.required.length}.
         ${o.required.map((id) => html`<span class="badge">
           ${o.approvals.includes(id) ? "✓" : "…" } ${this.name(id)}
         </span>`)}
-        ${thirdParty ? html`<p>Tu país vota el acuerdo; no transfiere ni recibe bienes.</p>` : nothing}
+        ${thirdParty ? html`<p>${t("deal_block_vote")}</p>` : nothing}
       </div>` : nothing}
       <div class="war-context">
-        <div class="row"><strong>Situación militar</strong><span class="muted">
-          ${activeOffensive ? "Ofensivas activas" : "Sin enfrentamientos activos"}
+        <div class="row"><strong>${t("deal_military")}</strong><span class="muted">
+          ${activeOffensive ? t("deal_active") : t("deal_inactive")}
         </span></div>
         <div class="war-track" role="img" aria-label="Proporción de tropas en reserva entre tu país y el otro país">
           <span class="ours" style="width:${share}%"></span>
           <span class="theirs"></span>
         </div>
         <div class="row muted">
-          <span>Tus tropas en reserva: ${Math.floor(ours).toLocaleString()}</span>
-          <span>Rival: ${Math.floor(theirs).toLocaleString()}</span>
+          <span>${t("deal_reserves_yours")}: ${Math.floor(ours).toLocaleString()}</span>
+          <span>${t("deal_reserves_rival")}: ${Math.floor(theirs).toLocaleString()}</span>
         </div>
       </div>
       <div class="columns">
@@ -981,48 +981,47 @@ export class GeopoliticsPanel extends LitElement {
         </div>
       </div>
       ${(o?.kind ?? this.kind) === "peace" ? html`<div class="treaty-note">
-        Al firmar, ambos países retiran sus ataques activos y respetan
-        ${Math.round(duration / 600)} minutos de paz.
-        Las casillas y edificios seleccionados se transfieren al aceptar.
+        ${t("deal_peace_effect")}
+        ${Math.round(duration / 600)} ${t("deal_peace_effect_end")}
       </div>` : nothing}
       ${o?.reason && o.status === "pending" ? html`<p class="muted" style="margin-top:10px">
-        Postura diplomática: ${t("reason_" + o.reason)}
+        ${t("deal_stance")}: ${t("reason_" + o.reason)}
       </p>` : nothing}
       ${o && entitled && o.status === "pending" ? html`<div class="decision-buttons">
         <button class="danger" @click=${() => this.send({
           action: "reject", target: o.from === myID ? o.to : o.from, offerID: o.id
-        })}>Rechazar</button>
-        ${o.to === myID ? html`<button @click=${() => this.counter()}>Contraofertar</button>` : nothing}
-        <button class="primary" @click=${() => (this.confirmAcceptId = o.id)}>Revisar y aceptar</button>
+        })}>${t("deal_reject")}</button>
+        ${o.to === myID ? html`<button @click=${() => this.counter()}>${t("deal_counter")}</button>` : nothing}
+        <button class="primary" @click=${() => (this.confirmAcceptId = o.id)}>${t("deal_review_accept")}</button>
       </div>` : nothing}
       ${o && o.from === myID && o.status === "pending" ? html`<div class="decision-buttons">
-        <button @click=${() => this.send({ action:"withdraw", target:o.to, offerID:o.id })}>Retirar propuesta</button>
+        <button @click=${() => this.send({ action:"withdraw", target:o.to, offerID:o.id })}>${t("deal_withdraw")}</button>
       </div>` : nothing}
       ${this.confirmAcceptId === o?.id && o?.status === "pending" ? html`<div class="notice review">
-        <strong>Confirmar acuerdo de ${t(o.kind)}</strong>
+        <strong>${t("deal_confirm_title")} ${t(o.kind)}</strong>
         ${this.criticalAssetWarnings(outgoing, outgoingOwner).map((warning) =>
           html`<p class="danger">${warning}</p>`)}
-        <div class="footer"><button @click=${() => this.confirmAcceptId = null}>Cancelar</button>
+        <div class="footer"><button @click=${() => this.confirmAcceptId = null}>${t("deal_cancel")}</button>
           <button class="primary" @click=${() => {
             this.send({ action:"accept", target:o.from === myID ? o.to : o.from, offerID:o.id });
             this.confirmAcceptId = null;
-          }}>Confirmar acuerdo</button>
+          }}>${t("deal_confirm")}</button>
         </div>
       </div>` : nothing}
       ${this.editing ? html`<div class="decision-buttons">
-        <button @click=${() => this.advancedOpen = !this.advancedOpen}>Editar recursos y edificios</button>
-        <button class="primary" @click=${() => this.confirmSend = true}>Revisar propuesta</button>
+        <button @click=${() => this.advancedOpen = !this.advancedOpen}>${t("deal_edit")}</button>
+        <button class="primary" @click=${() => this.confirmSend = true}>${t("deal_review")}</button>
       </div>` : nothing}
       ${this.confirmSend && this.editing ? html`<div class="notice review">
-        <strong>¿Enviar esta propuesta?</strong>
-        <p>El otro país recibirá: ${this.assetSummary(this.give)}</p>
-        <p>Solicitás recibir: ${this.assetSummary(this.receive)}</p>
+        <strong>${t("deal_send_question")}</strong>
+        <p>${t("deal_other_gets")} ${this.assetSummary(this.give)}</p>
+        <p>${t("deal_you_request")} ${this.assetSummary(this.receive)}</p>
         ${[...this.criticalAssetWarnings(this.give, myID),
           ...this.criticalAssetWarnings(this.receive, this.target)].map((warning) =>
           html`<p class="danger">${warning}</p>`)}
         <div class="footer">
-          <button @click=${() => this.confirmSend = false}>Volver</button>
-          <button class="primary" @click=${() => this.sendDraft()}>Confirmar y enviar</button>
+          <button @click=${() => this.confirmSend = false}>${t("deal_back")}</button>
+          <button class="primary" @click=${() => this.sendDraft()}>${t("deal_confirm_send")}</button>
         </div>
       </div>` : nothing}
     </section>`;
@@ -1039,27 +1038,26 @@ export class GeopoliticsPanel extends LitElement {
       ${this.renderDealOverview(o)}
       <section class="card" aria-label="Mapa de las cesiones territoriales">
         <div class="map-heading">
-          <h3>Territorio que cambia de dueño</h3>
-          <span class="badge">Cesión exacta</span>
+          <h3>${t("deal_territory_map")}</h3>
+          <span class="badge">${t("deal_exact_transfer")}</span>
         </div>
-        <p class="muted">Las áreas iluminadas son las casillas exactas del acuerdo.
-          Podés seleccionar un puerto aislado sin ceder toda su región.</p>
+        <p class="muted">${t("deal_map_help")}</p>
         ${this.editing ? html`<div class="row wrap" style="margin:12px 0">
-          <label style="min-width:160px">Seleccionar terreno de
+          <label style="min-width:160px">${t("deal_select_owner")}
             <select aria-label="País al que pertenece la zona seleccionada"
               .value=${this.side}
               @change=${(e: Event) => this.side =
                 (e.target as HTMLSelectElement).value as "give" | "receive"}>
-              <option value="receive">El otro país (solicitar)</option>
-              <option value="give">Mi país (ofrecer)</option>
+              <option value="receive">${t("deal_rival_land")}</option>
+              <option value="give">${t("deal_my_land")}</option>
             </select>
           </label>
           <label style="min-width:180px;flex:1">
-            Radio de selección: ${this.radius === 0 ? "1 casilla exacta" : this.radius + " casillas"}
+            ${t("deal_radius")}: ${this.radius === 0 ? t("deal_exact_tile") : this.radius + " " + t("deal_tiles")}
             <input type="range" min="0" max="40" .value=${String(this.radius)}
               @input=${(e: Event) => this.radius = Number((e.target as HTMLInputElement).value)}/>
           </label>
-          <button @click=${() => this.radius = 0}>Punto exacto</button>
+          <button @click=${() => this.radius = 0}>${t("deal_pin")}</button>
         </div>` : nothing}
         <canvas class="preview" width=${this.game.width()} height=${this.game.height()}
           aria-label="Mapa editable con el territorio que se entrega y se recibe"
@@ -1074,21 +1072,21 @@ export class GeopoliticsPanel extends LitElement {
             this.region(this.game.ref(x, y), this.side);
           }}></canvas>
         <div class="map-legend">
-          <span>🟩 ${o && o.from !== this.mine()?.id() && o.to !== this.mine()?.id() ? this.name(o.from) + " recibe" : "Territorio que recibirías"}</span>
-          <span>🟨 ${o && o.from !== this.mine()?.id() && o.to !== this.mine()?.id() ? this.name(o.to) + " recibe" : "Territorio que entregarías"}</span>
-          <span>Las casillas se transfieren al aceptar</span>
+          <span>🟩 ${o && o.from !== this.mine()?.id() && o.to !== this.mine()?.id() ? this.name(o.from) + " recibe" : t("deal_receive_map")}</span>
+          <span>🟨 ${o && o.from !== this.mine()?.id() && o.to !== this.mine()?.id() ? this.name(o.to) + " recibe" : t("deal_give_map")}</span>
+          <span>${t("deal_legend")}</span>
         </div>
         ${this.editing ? html`<div class="row wrap">
-          <button @click=${() => this.clear("receive")}>Limpiar lo solicitado</button>
-          <button @click=${() => this.clear("give")}>Limpiar lo ofrecido</button>
+          <button @click=${() => this.clear("receive")}>${t("deal_clear_request")}</button>
+          <button @click=${() => this.clear("give")}>${t("deal_clear_offer")}</button>
         </div>` : nothing}
       </section>
       <details class="advanced-editor" ?open=${this.advancedOpen}
         @toggle=${(e: Event) => this.advancedOpen =
           (e.currentTarget as HTMLDetailsElement).open}>
         <summary>${this.editing
-          ? "Edición avanzada · oro, tropas, edificios y acuerdos"
-          : "Desglose completo del tratado y sus bienes"}</summary>
+          ? t("deal_advanced")
+          : t("deal_full_details")}</summary>
         ${this.editing ? html`
           <label class="building"><input type="checkbox"
             .checked=${this.ultimatum}
@@ -1096,7 +1094,7 @@ export class GeopoliticsPanel extends LitElement {
               (e.target as HTMLInputElement).checked}/>
             ${t("ultimatum_help")}
           </label>
-          <label>Tipo de tratado
+          <label>${t("deal_type")}
             <select aria-label="Tipo de tratado" .value=${this.kind}
               @change=${(e: Event) => this.kind =
                 (e.target as HTMLSelectElement).value as TreatyKind}>
@@ -1133,12 +1131,12 @@ export class GeopoliticsPanel extends LitElement {
       ${this.notice ? html`<p role="status" class="notice">${this.notice}</p>` : nothing}
       <div class="footer">
         ${this.editing ? html`
-          <button @click=${() => { this.editing = false; this.tab = "countries"; }}>Cancelar</button>
+          <button @click=${() => { this.editing = false; this.tab = "countries"; }}>${t("deal_cancel")}</button>
           <button class="primary" @click=${() => {
             this.confirmSend = true;
             this.renderRoot.querySelector(".offer-summary")?.scrollIntoView({ behavior:"smooth", block:"start" });
-          }}>Revisar y enviar</button>
-        ` : html`<button @click=${() => this.tab = "countries"}>Volver a países</button>`}
+          }}>${t("deal_review_send")}</button>
+        ` : html`<button @click=${() => this.tab = "countries"}>${t("deal_back_countries")}</button>`}
       </div>
     `;
   }
@@ -1255,31 +1253,30 @@ export class GeopoliticsPanel extends LitElement {
       (o.from === p.id() || o.to === p.id()) &&
       (o.from === mine.id() || o.to === mine.id()));
     return html`<div class="country-dossier" aria-label="Tratados y situación de ${p.name()}">
-      <div class="deal-eyebrow">Relaciones y tratados</div>
+      <div class="deal-eyebrow">${t("deal_treaties")}</div>
       <div class="row">
-        <span>Relación actual</span><strong>${t("relation_" + this.relationship(p))}</strong>
+        <span>${t("deal_current_relation")}</span><strong>${t("relation_" + this.relationship(p))}</strong>
       </div>
       <div class="row">
-        <span>Tratado bilateral</span>
+        <span>${t("deal_bilateral")}</span>
         <strong>${pact ? t(pact.kind) + " · " +
-          Math.ceil((pact.until - now) / 10) + " segundos restantes" : "Sin tratado activo"}</strong>
+          Math.ceil((pact.until - now) / 10) + " segundos restantes" : t("deal_no_treaty")}</strong>
       </div>
       <div class="row">
-        <span>Bloque de poder</span>
+        <span>${t("deal_power_bloc")}</span>
         <strong>${coalition ? coalition.members.map((id) => this.name(id)).join(" · ") :
-          "Independiente"}</strong>
+          t("deal_independent")}</strong>
       </div>
       ${coalition ? html`<div class="muted">
-        Duración restante: ${Math.ceil((coalition.until - now) / 10)} s
-        ${coalition.threat ? " · Objetivo: " + this.name(coalition.threat) : ""}
+        ${t("deal_remaining")}: ${Math.ceil((coalition.until - now) / 10)} s
+        ${coalition.threat ?  " · " + t("deal_target") + ": "  + this.name(coalition.threat) : ""}
       </div>` : nothing}
       ${related.map((o) => html`<button
         @click=${() => this.inspect(o)}
         style="margin-top:8px">
-        Propuesta pendiente: ${t(o.kind)} · Ver condiciones
+        ${t("deal_pending_offer")}: ${t(o.kind)} · ${t("deal_view_terms")}
       </button>`)}
-      <p class="muted">Toda cesión de territorio o edificios debe aprobarse expresamente.
-        Una coalición comparte objetivos y victoria, pero no fusiona las naciones.</p>
+      <p class="muted">${t("deal_country_tip")}</p>
     </div>`;
   }
   private renderCountries() {
