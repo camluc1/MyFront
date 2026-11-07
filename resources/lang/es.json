@@ -2350,6 +2350,9 @@
     "youtube_tutorial": "¿Necesitas ayuda?"
   },
   "geopolitics": {
+    "deal_pct_sites": "sitios",
+    "deal_pct_explainer": "Los porcentajes indican qué proporción de los activos del país se incluye, no el valor de mercado.",
+    "deal_port_effect": "El puerto se entrega con su casilla y pasa a ser operativo para su nuevo dueño.",
     "deal_desk": "CONSEJO DIPLOMÁTICO",
     "deal_you_propose": "Tu propuesta: ",
     "deal_proposes": " propone ",
