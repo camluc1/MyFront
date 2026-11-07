@@ -12,7 +12,14 @@ import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
 import { css, html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { translateText } from "../../../client/Utils";
+import { buildActionForUnit } from "../../BuildKeybinds";
+import { Platform } from "../../Platform";
+import { formatKeyForDisplay, translateText } from "../../../client/Utils";
+import {
+  KEYBINDS_KEY,
+  USER_SETTINGS_CHANGED_EVENT,
+  UserSettings,
+} from "../../UserSettings";
 import { Controller } from "../../Controller";
 import {
   CloseViewEvent,
@@ -171,6 +178,29 @@ export class BuildMenu extends LitElement implements Controller {
   public playerBuildables: BuildableUnit[] | null = null;
   private filteredBuildTable: BuildItemDisplay[][] = buildTable;
   public transformHandler: TransformHandler;
+  private readonly shortcutSettings = new UserSettings();
+  @state() private buildShortcuts: Record<string, string> = {};
+
+  private readonly refreshBuildShortcuts = () => {
+    this.buildShortcuts = this.shortcutSettings.keybinds(Platform.isMac);
+  };
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.refreshBuildShortcuts();
+    globalThis.addEventListener(
+      `${USER_SETTINGS_CHANGED_EVENT}:${KEYBINDS_KEY}`,
+      this.refreshBuildShortcuts,
+    );
+  }
+
+  disconnectedCallback() {
+    globalThis.removeEventListener(
+      `${USER_SETTINGS_CHANGED_EVENT}:${KEYBINDS_KEY}`,
+      this.refreshBuildShortcuts,
+    );
+    super.disconnectedCallback();
+  }
 
   init() {
     this.eventBus.on(ShowBuildMenuEvent, (e) => {
@@ -272,6 +302,23 @@ export class BuildMenu extends LitElement implements Controller {
     .build-button:disabled .build-cost {
       color: #ff4444;
     }
+    .build-hotkey {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      padding: 2px 6px;
+      min-width: 22px;
+      max-width: calc(100% - 12px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      border: 1px solid #64707a;
+      border-radius: 5px;
+      background: #303740;
+      color: #d2d9e0;
+      font: 700 12px/1.3 system-ui;
+      text-align: center;
+      pointer-events: none;
+    }
     .build-icon {
       font-size: 40px;
       margin-bottom: 5px;
@@ -349,6 +396,12 @@ export class BuildMenu extends LitElement implements Controller {
       }
       .build-count-chip {
         padding: 1px 5px;
+      }
+      .build-hotkey {
+        top: 4px;
+        left: 4px;
+        padding: 1px 4px;
+        font-size: 10px;
       }
     }
 
@@ -476,6 +529,15 @@ export class BuildMenu extends LitElement implements Controller {
                         : ""
                     }
                   >
+                    ${(() => {
+                      const action = buildActionForUnit(item.unitType);
+                      const configured = action ? this.buildShortcuts[action] : undefined;
+                      return configured
+                        ? html`<span class="build-hotkey" translate="no"
+                            aria-label=${`Shortcut ${formatKeyForDisplay(configured)}`}
+                          >${formatKeyForDisplay(configured)}</span>`
+                        : "";
+                    })()}
                     <img
                       src=${item.icon}
                       alt="${item.unitType}"
