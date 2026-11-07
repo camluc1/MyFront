@@ -1022,208 +1022,120 @@ export class GeopoliticsPanel extends LitElement {
       </div>` : nothing}
     </section>`;
   }
+
   private renderNegotiation() {
     const o = this.selected
-      ? (this.game.diplomacy.offers.find((o) => o.id === this.selected!.id) ??
-        this.selected)
+      ? (this.game.diplomacy.offers.find((offer) => offer.id === this.selected!.id) ??
+         this.selected)
       : null;
     if (!this.editing && !o)
       return html`<p class="empty">${t("choose_country")}</p>`;
-    return html`<div class="row wrap">
-        <h3>${this.name(this.target)}</h3>
-        ${
-          o
-            ? html`<span class="badge"
-                >${t(o.status)} ·
-                ${Math.max(0, Math.ceil((o.expires - this.game.ticks()) / 10))}s</span
-              >`
-            : html`<select
-                aria-label=${t("treaty")}
-                style="width:auto"
-                .value=${this.kind}
-                @change=${(e: Event) => (this.kind = (e.target as HTMLSelectElement).value as TreatyKind)}
-              >
-                ${(["truce", "nonaggression", "alliance", "coalition", "peace"] as TreatyKind[]).map((k) => html`<option value=${k}>${t(k)}</option>`)}
-              </select>`
-        }
-      </div>
-      ${o ? html`<section class="offer-summary" aria-label="Resumen de propuesta">
-        <strong>${this.name(o.from)} propone ${t(o.kind)}</strong>
-        <div class="columns">
-          <div class="asset receive"><strong>Recibís</strong><div>${this.assetSummary(o.to === this.mine()?.id() ? o.give : o.receive)}</div></div>
-          <div class="asset give"><strong>Entregás</strong><div>${this.assetSummary(o.to === this.mine()?.id() ? o.receive : o.give)}</div></div>
+    return html`
+      ${this.renderDealOverview(o)}
+      <section class="card" aria-label="Mapa de las cesiones territoriales">
+        <div class="map-heading">
+          <h3>Territorio que cambia de dueño</h3>
+          <span class="badge">Cesión exacta</span>
         </div>
-        ${this.confirmAcceptId === o.id && o.status === "pending" ? html`<div class="notice review">
-          <strong>¿Confirmar este acuerdo?</strong>
-          ${this.criticalAssetWarnings(o.to === this.mine()?.id() ? o.receive : o.give,
-            this.mine()?.id() ?? "").map((warning) => html`<p class="danger">${warning}</p>`)}
-          <div class="footer">
-            <button @click=${() => (this.confirmAcceptId = null)}>Cancelar</button>
-            <button class="primary" @click=${() => {
-              this.send({ action: "accept", target: o.from, offerID: o.id });
-              this.confirmAcceptId = null;
-            }}>Confirmar acuerdo</button>
-          </div>
+        <p class="muted">Las áreas iluminadas son las casillas exactas del acuerdo.
+          Podés seleccionar un puerto aislado sin ceder toda su región.</p>
+        ${this.editing ? html`<div class="row wrap" style="margin:12px 0">
+          <label style="min-width:160px">Seleccionar terreno de
+            <select aria-label="País al que pertenece la zona seleccionada"
+              .value=${this.side}
+              @change=${(e: Event) => this.side =
+                (e.target as HTMLSelectElement).value as "give" | "receive"}>
+              <option value="receive">El otro país (solicitar)</option>
+              <option value="give">Mi país (ofrecer)</option>
+            </select>
+          </label>
+          <label style="min-width:180px;flex:1">
+            Radio de selección: ${this.radius === 0 ? "1 casilla exacta" : this.radius + " casillas"}
+            <input type="range" min="0" max="40" .value=${String(this.radius)}
+              @input=${(e: Event) => this.radius = Number((e.target as HTMLInputElement).value)}/>
+          </label>
+          <button @click=${() => this.radius = 0}>Punto exacto</button>
         </div>` : nothing}
-        ${o.status === "pending" && o.from !== this.mine()?.id()
-          ? html`<div class="footer">
-              <button class="danger" @click=${() => this.send({action:"reject",target:o.from,offerID:o.id})}>Rechazar</button>
-              ${o.to === this.mine()?.id() ? html`<button @click=${() => this.counter()}>Contraofertar</button>` : nothing}
-              <button class="primary" ?disabled=${o.approvals.includes(this.mine()?.id() ?? "")}
-                @click=${() => (this.confirmAcceptId = o.id)}>Revisar y aceptar</button>
-            </div>`
-          : nothing}
-      </section>` : nothing}
-      <p class="muted">
-        ${o?.ultimatum ? html`<strong class="gold">${t("ultimatum")} · </strong>` : nothing}${t(o?.kind ?? this.kind)}
-        · ${t("duration_" + (o?.kind ?? this.kind))}
-      </p>
-      ${this.editing ? html`<label class="building"><input type="checkbox" .checked=${this.ultimatum} @change=${(e: Event) => (this.ultimatum = (e.target as HTMLInputElement).checked)} />${t("ultimatum_help")}</label>` : nothing}
-      ${
-        this.editing && this.kind === "coalition"
-          ? html`<label
-              >${t("common_target")}<select
-                .value=${this.threat}
-                @change=${(e: Event) => (this.threat = (e.target as HTMLSelectElement).value)}
-              >
-                <option value="">${t("no_target")}</option>
-                ${this.game
-                  .players()
-                  .filter((p) => p.id() !== this.target && p !== this.mine())
-                  .map(
-                    (p) => html`<option value=${p.id()}>${p.name()}</option>`,
-                  )}
-              </select></label
-            >`
-          : nothing
-      }
-      ${this.editing && this.counterTo === undefined ? html`<div class="row wrap" aria-label=${t("approaches")}>${(["survival", "infrastructure", "aid", "pressure"] as const).map((kind) => html`<button @click=${() => this.approach(kind)}>${t("approach_" + kind)}</button>`)}</div>` : nothing}
-      <div class="columns">
-        ${this.renderAssets("give")}${this.renderAssets("receive")}
-      </div>
-      <p class="muted">${t("preview_help")}</p>
-      ${
-        this.editing
-          ? html`<div class="row wrap">
-              <select
-                style="width:auto"
-                aria-label=${t("region_side")}
-                .value=${this.side}
-                @change=${(e: Event) => (this.side = (e.target as HTMLSelectElement).value as "give" | "receive")}
-              >
-                <option value="give">${t("give")}</option>
-                <option value="receive">${t("receive")}</option></select
-              ><label
-                >${t("radius")} ${this.radius}<input
-                  type="range"
-                  min="1"
-                  max="40"
-                  .value=${String(this.radius)}
-                  @input=${(e: Event) => (this.radius = Number((e.target as HTMLInputElement).value))}
-              /></label>
-            </div>`
-          : nothing
-      }<canvas
-        class="preview"
-        width=${this.game.width()}
-        height=${this.game.height()}
-        aria-label=${t("exact_preview")}
-        @click=${(e: MouseEvent) => {
-          if (!this.editing) return;
-          const c = e.currentTarget as HTMLCanvasElement,
-            r = c.getBoundingClientRect();
-          const x = Math.min(
-              this.game.width() - 1,
-              Math.floor(((e.clientX - r.left) * this.game.width()) / r.width),
-            ),
-            y = Math.min(
-              this.game.height() - 1,
-              Math.floor(((e.clientY - r.top) * this.game.height()) / r.height),
-            );
-          this.region(this.game.ref(x, y), this.side);
-        }}
-      ></canvas>
-      <p class="muted">
-        🟨 ${t("give")} · 🟩 ${t("receive")} · ${t("enclaves")}
-      </p>
-      ${
-        o
-          ? html`<div class="notice">
-              ${t("reason_" + o.reason)}
-              ${
-                o.kind === "coalition"
-                  ? html`<br />${t("approvals")}:
-                      ${o.approvals.length}/${o.required.length}
-                      <div>
-                        ${o.required.map((id) => html`<span class="badge">${o.approvals.includes(id) ? "✓" : "…"} ${this.name(id)}</span>`)}
-                      </div>`
-                  : nothing
-              }
-            </div>`
-          : nothing
-      }${this.notice ? html`<div role="status" class="notice">${this.notice}</div>` : nothing}
-      <p class="notice">
-        ${t("effect_" + (o?.kind ?? this.kind))}<br />${t("decision_effect")}
-      </p>
-      ${this.confirmSend ? html`<div class="notice review">
-        <strong>${t("review_offer")}</strong>
-        <p>${t("you_offer")}: ${this.assetSummary(this.give)}</p>
-        <p>${t("they_would_give")}: ${this.assetSummary(this.receive)}</p>
-        ${[...this.criticalAssetWarnings(this.give, this.mine()?.id() ?? ""), ...this.criticalAssetWarnings(this.receive, this.target)].map((warning) => html`<p class="danger">${warning}</p>`)}
-        <div class="footer">
-          <button @click=${() => (this.confirmSend = false)}>${t("cancel")}</button>
-          <button class="primary" @click=${() => this.sendDraft()}>${t("confirm_send")}</button>
+        <canvas class="preview" width=${this.game.width()} height=${this.game.height()}
+          aria-label="Mapa editable con el territorio que se entrega y se recibe"
+          @click=${(e: MouseEvent) => {
+            if (!this.editing) return;
+            const c = e.currentTarget as HTMLCanvasElement;
+            const r = c.getBoundingClientRect();
+            const x = Math.min(this.game.width() - 1,
+              Math.max(0, Math.floor((e.clientX - r.left) * this.game.width() / r.width)));
+            const y = Math.min(this.game.height() - 1,
+              Math.max(0, Math.floor((e.clientY - r.top) * this.game.height() / r.height)));
+            this.region(this.game.ref(x, y), this.side);
+          }}></canvas>
+        <div class="map-legend">
+          <span>🟩 Territorio que recibirías</span>
+          <span>🟨 Territorio que entregarías</span>
+          <span>Las casillas se transfieren al aceptar</span>
         </div>
-      </div>` : nothing}
-      ${this.confirmAcceptId === o?.id && o?.status === "pending" ? html`<div class="notice review">
-        <strong>${t("confirm_accept_title")}</strong>
-        <p>${t("offer_from")}: ${this.name(o.from)}</p>
-        <p>${t("they_offer")}: ${this.assetSummary(o.give)}</p>
-        <p>${o.to === this.mine()?.id() ? t("you_would_give") : this.name(o.to) + " · " + t("would_give")}: ${this.assetSummary(o.receive)}</p>
-        ${this.criticalAssetWarnings(o.receive, o.to).map((warning) => html`<p class="danger">${warning}</p>`)}
-        <p>${t("accept_consequence")}</p>
-        <div class="footer">
-          <button @click=${() => (this.confirmAcceptId = null)}>${t("cancel")}</button>
-          <button class="primary" @click=${() => { this.send({ action: "accept", target: o.from, offerID: o.id }); this.confirmAcceptId = null; }}>${t("confirm_accept")}</button>
+        ${this.editing ? html`<div class="row wrap">
+          <button @click=${() => this.clear("receive")}>Limpiar lo solicitado</button>
+          <button @click=${() => this.clear("give")}>Limpiar lo ofrecido</button>
+        </div>` : nothing}
+      </section>
+      <details class="advanced-editor" ?open=${this.advancedOpen}
+        @toggle=${(e: Event) => this.advancedOpen =
+          (e.currentTarget as HTMLDetailsElement).open}>
+        <summary>${this.editing
+          ? "Edición avanzada · oro, tropas, edificios y acuerdos"
+          : "Desglose completo del tratado y sus bienes"}</summary>
+        ${this.editing ? html`
+          <label class="building"><input type="checkbox"
+            .checked=${this.ultimatum}
+            @change=${(e: Event) => this.ultimatum =
+              (e.target as HTMLInputElement).checked}/>
+            ${t("ultimatum_help")}
+          </label>
+          <label>Tipo de tratado
+            <select aria-label="Tipo de tratado" .value=${this.kind}
+              @change=${(e: Event) => this.kind =
+                (e.target as HTMLSelectElement).value as TreatyKind}>
+              ${(["truce","nonaggression","alliance","coalition","peace"] as TreatyKind[])
+                .map((k) => html`<option value=${k}>${t(k)}</option>`)}
+            </select>
+          </label>
+          ${this.kind === "coalition" ? html`<label>
+            ${t("common_target")}
+            <select .value=${this.threat}
+              @change=${(e: Event) => this.threat =
+                (e.target as HTMLSelectElement).value}>
+              <option value="">${t("no_target")}</option>
+              ${this.game.players().filter((p) =>
+                p !== this.mine() && p.id() !== this.target && p.numTilesOwned() > 0)
+                .map((p) => html`<option value=${p.id()}>${p.name()}</option>`)}
+            </select>
+          </label>` : nothing}
+          ${this.counterTo === undefined ? html`<div class="row wrap">
+            ${(["survival","infrastructure","aid","pressure"] as const).map(
+              (kind) => html`<button @click=${() => this.approach(kind)}>
+                ${t("approach_" + kind)}</button>`)}
+          </div>` : nothing}
+        ` : nothing}
+        <div class="columns">
+          ${this.renderAssets("give")}
+          ${this.renderAssets("receive")}
         </div>
-      </div>` : nothing}
+        <p class="muted">${t("preview_help")}</p>
+      </details>
+      ${o ? html`<p class="notice" role="status">
+        ${t("reason_" + o.reason)} · ${t("effect_" + o.kind)}
+      </p>` : nothing}
+      ${this.notice ? html`<p role="status" class="notice">${this.notice}</p>` : nothing}
       <div class="footer">
-        ${
-          this.editing
-            ? html`<button
-                  @click=${() => {
-                    this.editing = false;
-                    this.tab = "countries";
-                  }}
-                >
-                  ${t("cancel")}</button
-                ><button
-                  class="primary"
-                  @click=${() => (this.confirmSend = true)}
-                >
-                  ${t("review_offer")}
-                </button>`
-            : o?.status === "pending"
-              ? o.from === this.mine()?.id()
-                ? html`<button
-                    @click=${() => this.send({ action: "withdraw", target: o.to, offerID: o.id })}
-                  >
-                    ${t("withdraw")}
-                  </button>`
-                : html`<button
-                      @click=${() => this.send({ action: "reject", target: o.from, offerID: o.id })}
-                    >
-                      ${t("reject")}</button
-                    >${o.to === this.mine()?.id() ? html`<button @click=${() => this.counter()}>${t("counter")}</button>` : nothing}<button
-                      class="primary"
-                      ?disabled=${o.approvals.includes(this.mine()?.id() ?? "")}
-                      @click=${() => (this.confirmAcceptId = o.id)}
-                    >
-                      ${t("accept")}
-                    </button>`
-              : nothing
-        }
-      </div>`;
+        ${this.editing ? html`
+          <button @click=${() => { this.editing = false; this.tab = "countries"; }}>Cancelar</button>
+          <button class="primary" @click=${() => {
+            this.confirmSend = true;
+            this.renderRoot.querySelector(".offer-summary")?.scrollIntoView({ behavior:"smooth", block:"start" });
+          }}>Revisar y enviar</button>
+        ` : html`<button @click=${() => this.tab = "countries"}>Volver a países</button>`}
+      </div>
+    `;
   }
   private renderRecentEvents() {
     const recent = this.game.diplomacy.log.slice(-5).reverse();
