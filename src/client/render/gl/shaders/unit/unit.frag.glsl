@@ -156,6 +156,8 @@ vec4 vehicleSprite(vec2 q, float col) {
     bool engine = col < 9.5;
     vec2 halfBody = vec2(engine ? 0.45 : 0.34, 0.18);
     d = max(abs(q.x) - halfBody.x, abs(q.y) - halfBody.y);
+    // Narrow couplers visually join cars without oversized overlapping bodies.
+    d = min(d, max(abs(q.x) - 0.41, abs(q.y) - 0.025));
     if (abs(q.y) > 0.13 || abs(q.x) > halfBody.x - 0.04) gray = 0.275;
     if (engine && q.x > 0.14 && abs(q.y) < 0.12) gray = 0.51;
     if (engine && detail > 0.1) {

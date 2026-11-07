@@ -60,6 +60,7 @@ import {
   WARSHIP_EFFECT_BLOCK,
 } from "../utils/ColorUtils";
 import { createProgram, shaderSrc } from "../utils/GlUtils";
+import { RailMotion } from "../utils/RailMotion";
 import { VesselMotion } from "../utils/VesselMotion";
 
 const unitAtlasUrl = assetUrl("atlases/unit-atlas.png");
@@ -201,8 +202,8 @@ function createUnitVao(
 // ---------------------------------------------------------------------------
 
 export class UnitPass {
-  private motions = new Map<number, VesselMotion>();
-  private groundMotions: VesselMotion[] = [];
+  private motions = new Map<number, VesselMotion | RailMotion>();
+  private groundMotions: (VesselMotion | RailMotion)[] = [];
   private gl: WebGL2RenderingContext;
   private settings: RenderSettings;
   private program: WebGLProgram;
@@ -215,6 +216,7 @@ export class UnitPass {
   private uViewport: WebGLUniformLocation;
   private uFleetReadability: WebGLUniformLocation;
   private uFleetWarshipScale: WebGLUniformLocation;
+  private uTrainScale: WebGLUniformLocation;
   private uUnitSize: WebGLUniformLocation;
   private uFlickerSpeed: WebGLUniformLocation;
   private uAngryColor: WebGLUniformLocation;
@@ -321,6 +323,7 @@ export class UnitPass {
       this.program,
       "uFleetWarshipScale",
     )!;
+    this.uTrainScale = gl.getUniformLocation(this.program, "uTrainScale")!;
     this.uUnitSize = gl.getUniformLocation(this.program, "uUnitSize")!;
     this.uFlickerSpeed = gl.getUniformLocation(this.program, "uFlickerSpeed")!;
     this.uAngryColor = gl.getUniformLocation(this.program, "uAngryColor")!;
@@ -573,15 +576,18 @@ export class UnitPass {
         const ly = (unit.lastPos - lx) / this.mapW;
         let motion = this.motions.get(id);
         if (!motion) {
-          motion = new VesselMotion(
-            x,
-            y,
-            lx,
-            ly,
-            now,
-            this.tickIntervalMs,
-            this.settings.unit,
-          );
+          motion =
+            unit.unitType === UT_TRAIN
+              ? new RailMotion(x, y, lx, ly, now, this.tickIntervalMs)
+              : new VesselMotion(
+                  x,
+                  y,
+                  lx,
+                  ly,
+                  now,
+                  this.tickIntervalMs,
+                  this.settings.unit,
+                );
           this.motions.set(id, motion);
         } else {
           motion.update(x, y, now, this.tickIntervalMs);
@@ -653,6 +659,7 @@ export class UnitPass {
     gl.uniform1f(this.uTick, this.frameTick);
     gl.uniform1f(this.uTime, (performance.now() - this.startTime) / 1000);
     gl.uniform1f(this.uUnitSize, us.unitSize);
+    gl.uniform1f(this.uTrainScale, us.trainScale);
     gl.uniform2f(this.uViewport, this.viewportWidth, this.viewportHeight);
     gl.uniform4f(
       this.uFleetReadability,

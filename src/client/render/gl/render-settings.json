@@ -219,6 +219,7 @@
   },
   "unit": {
     "unitSize": 13,
+    "trainScale": 0.4,
     "transportMinPixels": 10,
     "merchantMinPixels": 8,
     "warshipMinPixels": 24,

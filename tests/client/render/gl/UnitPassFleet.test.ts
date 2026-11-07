@@ -73,4 +73,17 @@ describe("directional fleet batches", () => {
     expect(h.bufferSubData.mock.calls[0][4]).toBe(40000);
     expect(h.bytes.byteLength).toBe(160000);
   });
+  it("uses track motion and suppresses wakes for train carriages", () => {
+    const h = harness(1);
+    const carriage = {
+      ...ship(1002, 1000),
+      unitType: "Train",
+      trainType: 2,
+      loaded: true,
+    } as UnitState;
+    h.pass.updateUnits(new Map([[1, carriage]]), 1);
+    expect((h.pass as any).motions.get(1).constructor.name).toBe("RailMotion");
+    expect(h.bytes[12]).toBe(11);
+    expect(h.bytes[14]).toBe(0);
+  });
 });

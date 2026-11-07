@@ -10,6 +10,7 @@ layout(location = 2) in vec4 aInstFlags; // atlasIdx, flags, flickerHash (uint8â
 uniform mat3  uCamera;
 
 uniform float uUnitSize;
+uniform float uTrainScale;
 uniform vec2 uViewport;
 uniform vec4 uFleetReadability; // minimum hull pixels: transport, cargo, warship; maximum enlargement
 uniform float uFleetWarshipScale;
@@ -59,6 +60,10 @@ void main() {
     scale *= enlargement;
     vStrategic = smoothstep(0.45, 0.95, minimumPixels / (hullPixels * enlargement));
   }
+
+  // Carriages are spaced two track tiles apart in the simulation. Keep their
+  // physical length near that spacing instead of overlapping full-size icons.
+  if (train) scale = uTrainScale;
 
   // UNIT_SIZE is in world-space tiles â€” no zoom division needed.
   // Units scale with the map like territory tiles do.

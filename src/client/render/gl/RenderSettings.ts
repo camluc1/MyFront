@@ -260,6 +260,7 @@ export interface RenderSettings {
   };
   unit: {
     unitSize: number;
+    trainScale: number;
     transportMinPixels: number;
     merchantMinPixels: number;
     warshipMinPixels: number;
