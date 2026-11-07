@@ -221,6 +221,7 @@ export class Geopolitics {
           : [other.id()];
         if (coalition?.members.includes(other.id())) {
           coalition.members = coalition.members.filter((p) => p !== id);
+          this.state.coalitions = this.state.coalitions.filter((c) => c.members.length > 1);
           this.state.cooldowns[`coalition:join:${id}`] = this.game.ticks() + 1800;
           this.state.victory = null;
         }
