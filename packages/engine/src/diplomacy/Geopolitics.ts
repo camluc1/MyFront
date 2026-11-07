@@ -816,10 +816,32 @@ export class Geopolitics {
       give.gold = Math.min(Number(a.gold()), Math.max(0, Math.trunc(Number(a.gold()) / 12)));
       give.troops = Math.min(a.troops(), Math.trunc(a.troops() / 30));
     } else {
+      // Turn territorial military success into a playable peace settlement.
+      // A victorious nation may seek a functioning enemy port without
+      // conquering the entire coastline by force.
+      const pressured = a.outgoingAttacks()
+        .filter((attack) => attack.isActive() && !attack.retreating())
+        .map((attack) => attack.defender())
+        .filter((p) => p.isAlive() && p.type() !== PlayerType.Bot &&
+          !this.friendly(a.id(), p.id()) && power(a) >= power(p) * 2)
+        .sort((x, y) => power(x) - power(y) || x.smallID() - y.smallID());
+      const weaker = pressured.find((p) => p.units(UnitType.Port).some(
+        (u) => u.isActive() && this.game.owner(u.tile()) === p));
+      if (weaker) {
+        const port = weaker.units(UnitType.Port)
+          .filter((u) => u.isActive() && this.game.owner(u.tile()) === weaker)
+          .sort((x, y) => x.id() - y.id())[0];
+        if (port && weaker.numTilesOwned() > 1) {
+          target = weaker;
+          kind = "peace";
+          receive.tiles = [port.tile()];
+          receive.buildings = [port.id()];
+        }
+      }
       const commonThreat = neighbors
         .filter((p) => power(p) > power(a) * 1.3)
         .sort((x, y) => power(y) - power(x))[0];
-      if (commonThreat && this.state.coalitions.length < 3) {
+      if (!target && commonThreat && this.state.coalitions.length < 3) {
         const partners = eligible
           .filter((p) => p !== commonThreat && this.neighbors(p).includes(commonThreat))
           .sort((x, y) => power(y) - power(x));
