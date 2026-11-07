@@ -355,6 +355,7 @@ export class Geopolitics {
         reason: "proposal",
         ultimatum: action.ultimatum === true,
         enforced: false,
+        durationTicks: action.kind === "peace" ? (action.durationTicks ?? 1800) : undefined,
         approvals: [id],
         required,
         round: previous ? (previous.round ?? 0) + 1 : 0,
@@ -390,7 +391,7 @@ export class Geopolitics {
       this.accept(offer);
     this.emit();
   }
-  private addTreaty(a: string, b: string, kind: DiplomaticOffer["kind"]) {
+  private addTreaty(a: string, b: string, kind: DiplomaticOffer["kind"], durationTicks?: 1800 | 3000) {
     this.state.treaties = this.state.treaties.filter(
       (t) => !((t.a === a && t.b === b) || (t.a === b && t.b === a)),
     );
@@ -399,7 +400,8 @@ export class Geopolitics {
       a,
       b,
       kind,
-      until: this.game.ticks() + TREATY_TICKS[kind],
+      until: this.game.ticks() + (kind === "peace" && durationTicks
+        ? durationTicks : TREATY_TICKS[kind]),
     });
   }
   private accept(o: DiplomaticOffer) {
@@ -438,7 +440,7 @@ export class Geopolitics {
         }
       }
     }
-    this.addTreaty(o.from, o.to, o.kind);
+    this.addTreaty(o.from, o.to, o.kind, o.durationTicks);
     if (o.kind === "coalition") {
       this.state.coalitions = this.state.coalitions.filter(
         (c) => !c.members.some((id) => o.required.includes(id)),
@@ -850,6 +852,7 @@ export class Geopolitics {
                 receive,
                 counterTo: o.id,
                 threat: o.threat,
+                durationTicks: o.durationTicks,
               });
               if (this.state.offers.length > countBefore) {
                 if (keepsLand)
