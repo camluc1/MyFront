@@ -1175,7 +1175,10 @@ export class GeopoliticsPanel extends LitElement {
                           : t("stable")
                       }</span
                     ></span
-                  >${p !== id ? html`<button @click=${() => this.newOffer(this.game.player(p))}>${t("negotiate")}</button><button title=${t("donate_gold")} @click=${() => this.bus.emit(new SendDonateGoldIntentEvent(this.game.player(p), BigInt(Math.floor(Number(this.mine()!.gold()) / 10))))}>${t("gold")} 10%</button><button title=${t("donate_troops")} @click=${() => this.bus.emit(new SendDonateTroopsIntentEvent(this.game.player(p), Math.floor(this.mine()!.troops() / 10)))}>${t("troops")} 10%</button>` : nothing}
+                  >${p !== id ? html`<button @click=${() => this.newOffer(this.game.player(p))}>${t("negotiate")}</button><button class="danger" @click=${() => {
+                    this.target = p;
+                    this.tab = "betray";
+                  }}>Romper coalición</button><button title=${t("donate_gold")} @click=${() => this.bus.emit(new SendDonateGoldIntentEvent(this.game.player(p), BigInt(Math.floor(Number(this.mine()!.gold()) / 10))))}>${t("gold")} 10%</button><button title=${t("donate_troops")} @click=${() => this.bus.emit(new SendDonateTroopsIntentEvent(this.game.player(p), Math.floor(this.mine()!.troops() / 10)))}>${t("troops")} 10%</button>` : nothing}
                 </div>`,
             )
           : html`<p class="muted">${t("coalition_help")}</p>`
