@@ -328,3 +328,31 @@ it("lets a coalition voter review the deal without falsely showing bilateral ben
   expect(panel.shadowRoot!.textContent).toContain(text("deal_block_approvals"));
   expect(initial.required).toContain(to.id());
 });
+
+it("shows coalition votes from a third member's perspective without claiming payment", async () => {
+  const a = game.player("a"), b = game.player("b"), c = game.player("c");
+  game.diplomacy.act(a, {
+    action: "offer", target: c.id(), kind: "coalition",
+    give: emptyAssets(), receive: emptyAssets(),
+  });
+  game.diplomacy.act(c, {
+    action: "accept", target: a.id(), offerID: 1,
+  });
+  game.diplomacy.act(a, {
+    action: "offer", target: b.id(), kind: "coalition",
+    give: { ...emptyAssets(), gold: 5000 }, receive: emptyAssets(),
+  });
+  Object.assign(game, { myPlayer: () => c });
+  panel.requestUpdate();
+  await panel.updateComplete;
+  const alert = [...panel.shadowRoot!.querySelectorAll("aside button")].find(
+    (button) => button.textContent?.includes(text("coalition")),
+  ) as HTMLButtonElement;
+  expect(alert).toBeTruthy();
+  alert.click();
+  await panel.updateComplete;
+  const summary = panel.shadowRoot!.querySelector(".offer-summary")!;
+  expect(summary.textContent).toContain(text("deal_block_vote"));
+  expect(summary.textContent).not.toContain(text("deal_get"));
+  expect(summary.textContent).not.toContain(text("deal_give"));
+});
