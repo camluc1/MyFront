@@ -122,11 +122,12 @@ export class Geopolitics {
     offer.reason = "declined";
     const other = offer.from === actor ? offer.to : offer.from;
     this.log(actor, other, "rejected");
-    const history = this.state.log.filter((event) =>
-      event.actor === actor && event.target === other &&
-      event.event === "rejected" && this.game.ticks() - event.tick < 12000,
-    ).length;
-    const wait = Math.min(6000, 900 * 2 ** Math.min(3, history - 1));
+    const m = this.memory(actor, other);
+    m.rejections = this.game.ticks() - (m.lastRejection ?? -12001) < 12000
+      ? Math.min(8, (m.rejections ?? 0) + 1) : 1;
+    m.lastRejection = this.game.ticks();
+    m.tick = this.game.ticks();
+    const wait = Math.min(6000, 900 * 2 ** Math.min(3, m.rejections - 1));
     this.state.cooldowns[`ai:pair:${other}:${actor}`] = this.game.ticks() + wait;
   }
   private participants(a: string, b: string) {
@@ -428,13 +429,18 @@ export class Geopolitics {
       });
       this.state.victory = null;
     }
-    for (const [x, y] of [
-      [o.from, o.to],
-      [o.to, o.from],
-    ]) {
-      const m = this.memory(x, y);
+    for (const [receiver, giver, assets] of [
+      [o.to, o.from, o.give],
+      [o.from, o.to, o.receive],
+    ] as const) {
+      const m = this.memory(receiver, giver);
       m.trust = Math.min(100, m.trust + 8);
       m.aid += 1;
+      m.rejections = 0;
+      m.receivedTerritory = (m.receivedTerritory ?? 0) + assets.tiles.length;
+      m.receivedPorts = (m.receivedPorts ?? 0) + assets.buildings.filter((id) =>
+        this.game.unit(id)?.type() === UnitType.Port).length;
+      m.tick = this.game.ticks();
     }
     o.status = "accepted";
     o.reason = "agreement";
@@ -619,7 +625,10 @@ export class Geopolitics {
     let score =
       12 +
       Math.trunc(m.trust / 3) -
-      Math.min(35, m.betrayal * 12) +
+      Math.min(35, m.betrayal * 12) -
+      Math.min(16, (m.rejections ?? 0) * 4) +
+      Math.min(8, Math.trunc((m.receivedTerritory ?? 0) / 10) +
+        (m.receivedPorts ?? 0) * 2) +
       Math.min(30, fronts * 10) +
       Math.min(35, Math.trunc((theirs * 15) / mine)) -
       15 +
