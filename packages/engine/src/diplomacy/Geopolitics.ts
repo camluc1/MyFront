@@ -506,6 +506,26 @@ export class Geopolitics {
           60000,
     );
   }
+  /** A port far from its owner's heartland can be the enemy's essential beachhead.
+   * Scores are bounded to prevent coastal geography from overriding survival. */
+  private portLeverage(portTile: number, owner: Player, receiver: Player): number {
+    const ports = receiver.units(UnitType.Port).filter((u) => u.isActive());
+    const nearest = ports.length === 0 ? 400 : Math.min(
+      400, ...ports.map((p) => this.game.manhattanDist(p.tile(), portTile)),
+    );
+    const enemyFront = owner.borderTiles().has(portTile) ? 8 : 0;
+    // Remote naval access has value; the first port is especially important.
+    return Math.min(18000, 3500 + Math.trunc(nearest * 18) +
+      (ports.length === 0 ? 5500 : 0) + enemyFront * 200);
+  }
+  private militaryPressure(defender: Player, aggressor: Player): number {
+    const invasions = defender.incomingAttacks().filter((a) =>
+      a.isActive() && !a.retreating() && a.attacker() === aggressor);
+    const deployed = invasions.reduce((sum, a) => sum + a.troops(), 0);
+    const defending = Math.max(1, defender.troops());
+    return Math.min(40, Math.trunc(deployed * 25 / defending) +
+      (invasions.length > 0 ? 8 : 0));
+  }
   /** Deterministic evaluation of an offer from the recipient country's perspective. */
   evaluate(
     o: DiplomaticOffer,
@@ -544,7 +564,8 @@ export class Geopolitics {
       const level = Math.max(1, unit.level());
       switch (unit.type()) {
         case UnitType.City: return 8000 * level;
-        case UnitType.Port: return 5000 * level;
+        case UnitType.Port: return (5000 +
+          (recipient.id() === o.to ? this.portLeverage(unit.tile(), recipient, sender) : 0)) * level;
         case UnitType.Factory: return 6500 * level;
         case UnitType.Farm: return 2800 * level;
         case UnitType.Mine: return 4800 * level;
@@ -566,9 +587,9 @@ export class Geopolitics {
     const balance =
       recipient.id() === o.to ? value(o.give) - value(o.receive) : 0;
     const ceded = recipient.id() === o.to ? o.receive : emptyAssets();
-    const surrendered = ceded.buildings
-      .map((id) => this.game.unit(id))
-      .filter((u) => u !== undefined);
+    const outgoingPressure = this.militaryPressure(sender, recipient);
+    const incomingPressure = this.militaryPressure(recipient, sender);
+    const activeWar = incomingPressure > 0 || outgoingPressure > 0;
     const losesLast = (type: UnitType) => {
       const owned = recipient.units(type);
       return owned.length > 0 &&
@@ -603,6 +624,12 @@ export class Geopolitics {
       15 +
       concession;
     if (commonThreat) score += 35;
+    // A real ceasefire is far more valuable while being overrun than in peace.
+    if (o.kind === "peace" || o.kind === "truce")
+      score += incomingPressure - Math.trunc(outgoingPressure / 2);
+    // A country cannot casually surrender a strategic coastline in peacetime.
+    if (!activeWar && ceded.buildings.some((id) =>
+      this.game.unit(id)?.type() === UnitType.Port)) score -= 20;
     // Countries assess a credible hostile bloc, not only its strongest member.
     if (!this.friendly(recipient.id(), sender.id()) && blocTheirs > blocMine * 1.6)
       score += Math.min(15, Math.trunc((blocTheirs / Math.max(1, blocMine) - 1) * 6));
@@ -610,11 +637,22 @@ export class Geopolitics {
     if (losesLastCity) score -= 45;
     if (criticalLoss) score -= 25;
     if (o.ultimatum && theirs > mine * 2) score += 15;
-    if (
-      this.game.config().gameConfig().difficulty === Difficulty.Hard ||
-      this.game.config().gameConfig().difficulty === Difficulty.Impossible
-    )
-      score -= 5;
+    // Difficulty changes contextual judgment, not just a fixed rejection bonus.
+    // Easy is more accommodating; experts distinguish survival from extortion.
+    switch (this.game.config().gameConfig().difficulty) {
+      case Difficulty.Easy:
+        score += 12;
+        break;
+      case Difficulty.Medium:
+        break;
+      case Difficulty.Hard:
+        score += incomingPressure > 15 ? 6 : -6;
+        break;
+      case Difficulty.Impossible:
+        score += incomingPressure > 20 ? 10 : -11;
+        if (!activeWar && ceded.tiles.length > 0) score -= 10;
+        break;
+    }
     if (personality === 0) score -= 15;
     if (personality === 1 && balance > 0) score += 15;
     if (personality === 3 && o.kind === "coalition") score -= 12;
