@@ -1,3 +1,4 @@
+import { DiplomacyState } from "../Geopolitics";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import { TileRef } from "./GameMap";
 import {
@@ -124,9 +125,16 @@ export enum GameUpdateType {
   SpawnPhaseEnd,
   GamePaused,
   DonateEvent,
+  Diplomacy,
+}
+
+export interface DiplomacyUpdate {
+  type: GameUpdateType.Diplomacy;
+  state: DiplomacyState;
 }
 
 export type GameUpdate =
+  | DiplomacyUpdate
   | UnitUpdate
   | PlayerUpdate
   | AllianceRequestUpdate

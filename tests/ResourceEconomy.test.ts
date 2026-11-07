@@ -9,6 +9,7 @@ import { resourceProduction } from "@openfront/engine-lib/game/ResourceProductio
 import { NaturalResourceExecution } from "@openfront/engine/execution/NaturalResourceExecution";
 import { resourceRailMultiplier } from "@openfront/engine/game/ResourceEconomy";
 import { setup } from "./util/Setup";
+import { roundTrip, diffSnapshots } from "./util/Snapshot";
 
 async function economyGame() {
   const game = await setup(
@@ -110,4 +111,25 @@ describe("Resource economics from the simulation", () => {
     );
     expect(resourceRailMultiplier(game, mine)).toBe(1);
   });
+});
+
+test("natural resource execution survives a snapshot and continues identically", async () => {
+  const { game, owner, sites } = await economyGame();
+  const site = sites.find(
+    (s) =>
+      s.resource === "iron" || s.resource === "coal" || s.resource === "gold",
+  )!;
+  const unit = owner.buildUnit(UnitType.Mine, game.ref(site.x, site.y), {});
+  game.addExecution(new NaturalResourceExecution(unit));
+  game.executeNextTick();
+  const { bytes, again, restored } = await roundTrip(game, "big_plains");
+  expect(diffSnapshots(bytes, again)).toEqual([]);
+  for (let i = 0; i < 210; i++) {
+    game.executeNextTick();
+    restored.executeNextTick();
+  }
+  expect(restored.player(owner.id()).gold()).toBe(owner.gold());
+  expect(restored.resourceRemaining(site.id, site.capacity)).toBe(
+    game.resourceRemaining(site.id, site.capacity),
+  );
 });

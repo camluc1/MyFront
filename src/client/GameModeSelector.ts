@@ -658,6 +658,14 @@ export class GameModeSelector extends LitElement {
           )?.open({ map: event.detail.map }),
         );
       }}
+      @open-geopolitics=${() => {
+        if (!this.validateUsername()) return;
+        whenModalLoaded("single-player-modal", () =>
+          (
+            document.querySelector("single-player-modal") as SinglePlayerModal
+          )?.open({ geopolitics: true }),
+        );
+      }}
       @open-solo=${this.openSinglePlayerModal}
       @solo-tutorial=${this.startTutorial}
     ></solo-map-menu>`;

@@ -14,7 +14,7 @@ import { UserMeResponse } from "@openfront/shared/ApiSchemas";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { generateID } from "@openfront/shared/SharedUtil";
 import { PlayerCosmetics } from "@openfront/shared/WireSchemas";
-import { html, TemplateResult } from "lit";
+import { html, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { translateText } from "../client/Utils";
 import { responseHasLinkedIdentity } from "./AccountIdentity";
@@ -209,6 +209,7 @@ export class SinglePlayerModal extends BaseModal {
   @state() private instantBuild: boolean = DEFAULT_OPTIONS.instantBuild;
   @state() private randomSpawn: boolean = DEFAULT_OPTIONS.randomSpawn;
   @state() private useRandomMap: boolean = DEFAULT_OPTIONS.useRandomMap;
+  @state() private geopolitics = false;
   @state() private gameMode: GameMode = DEFAULT_OPTIONS.gameMode;
   @state() private teamCount: TeamCountConfig = DEFAULT_OPTIONS.teamCount;
   @state() private showAchievements: boolean = false;
@@ -359,7 +360,9 @@ export class SinglePlayerModal extends BaseModal {
 
   protected renderHeaderSlot() {
     return modalHeader({
-      title: translateText("main.solo") || "Solo",
+      title: translateText(
+        this.geopolitics ? "geopolitics.title" : "geopolitics.classic",
+      ),
       onBack: () => this.close(),
       ariaLabel: translateText("common.back"),
       rightContent: responseHasLinkedIdentity(this.userMeResponse)
@@ -453,6 +456,16 @@ export class SinglePlayerModal extends BaseModal {
         style="background: radial-gradient(ellipse at 12% 0%, rgba(34,211,238,.18), transparent 42%), radial-gradient(ellipse at 100% 100%, rgba(37,99,235,.16), transparent 48%);"
       ></div>
       <div class="relative grid gap-5 p-5 sm:p-6 ">
+        ${
+          this.geopolitics
+            ? html`<div
+                class="rounded-xl border border-amber-300/30 bg-amber-200/5 p-4 text-sm text-amber-100"
+              >
+                <strong>${translateText("geopolitics.title")}</strong>
+                <p>${translateText("geopolitics.rules")}</p>
+              </div>`
+            : nothing
+        }
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-2">
             <span
@@ -693,7 +706,8 @@ export class SinglePlayerModal extends BaseModal {
                     disabled: this.nations === 0,
                   },
                   gameMode: {
-                    selected: this.gameMode,
+                    selected: this.geopolitics ? GameMode.FFA : this.gameMode,
+                    geopolitics: this.geopolitics,
                   },
                   teamCount: {
                     selected: this.teamCount,
@@ -742,7 +756,9 @@ export class SinglePlayerModal extends BaseModal {
                         doomsdayClockSpeed: this.doomsdayClockSpeed,
                       },
                     ],
-                    inputCards,
+                    inputCards: this.geopolitics
+                      ? inputCards.filter((_, i) => i !== 0 && i !== 3)
+                      : inputCards,
                   },
                   unitTypes: {
                     titleKey: "game_settings.disable_units",
@@ -908,6 +924,7 @@ export class SinglePlayerModal extends BaseModal {
    * tutorial's "Play a solo game" leads).
    */
   public async startSoloWithGuide(): Promise<void> {
+    this.geopolitics = false;
     // The modal never opens on this path, so onOpen's prewarm never runs.
     // Overlap it with the manifest load below.
     void prewarmCosmetics();
@@ -955,6 +972,7 @@ export class SinglePlayerModal extends BaseModal {
   }
 
   protected onOpen(args?: Record<string, unknown>): void {
+    this.geopolitics = args?.geopolitics === true;
     const map = args?.map;
     if (listedMaps.some((entry) => entry.type === map)) {
       this.handleMapSelection(map as GameMapType);
@@ -1319,7 +1337,7 @@ export class SinglePlayerModal extends BaseModal {
     if (this.starting) return;
     // Validate and clamp maxTimer setting before starting
     let finalMaxTimerValue: number | undefined = undefined;
-    if (this.maxTimer) {
+    if (this.maxTimer && !this.geopolitics) {
       if (!this.maxTimerValue || this.maxTimerValue <= 0) {
         console.error("Max timer is enabled but no valid value is set");
         await showInGameAlert(
@@ -1362,15 +1380,16 @@ export class SinglePlayerModal extends BaseModal {
               ? GameMapSize.Compact
               : GameMapSize.Normal,
             gameType: GameType.Singleplayer,
-            gameMode: this.gameMode,
+            gameMode: this.geopolitics ? GameMode.FFA : this.gameMode,
+            geopolitics: this.geopolitics,
             playerTeams: this.teamCount,
             difficulty: this.selectedDifficulty,
             nationPeaceTimeMinutes: this.nationPeaceTimeMinutes,
             maxTimerValue: finalMaxTimerValue,
             bots: this.bots,
             infiniteGold: this.infiniteGold,
-            donateGold: this.gameMode === GameMode.Team,
-            donateTroops: this.gameMode === GameMode.Team,
+            donateGold: this.geopolitics || this.gameMode === GameMode.Team,
+            donateTroops: this.geopolitics || this.gameMode === GameMode.Team,
             infiniteTroops: this.infiniteTroops,
             instantBuild: this.instantBuild,
             randomSpawn: this.randomSpawn,
@@ -1389,7 +1408,7 @@ export class SinglePlayerModal extends BaseModal {
                   startingGold: Math.round(this.startingGoldValue * 1_000_000),
                 }
               : {}),
-            ...(this.customAlliances
+            ...(this.customAlliances && !this.geopolitics
               ? { customAllianceDuration: this.customAllianceMinutes ?? 0 }
               : {}),
             ...(this.waterNukes ? { waterNukes: true } : {}),

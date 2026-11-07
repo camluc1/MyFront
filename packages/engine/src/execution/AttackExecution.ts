@@ -88,6 +88,8 @@ export class AttackExecution implements Execution {
       this._targetID === this.mg.terraNullius().id()
         ? mg.terraNullius()
         : mg.player(this._targetID);
+    if (this.target.isPlayer() && !this._owner.isFriendly(this.target))
+      mg.diplomacy.hostility(this._owner.id(), this.target.id());
     this.ownerSmallID = this._owner.smallID();
     this.targetSmallID = this.target.smallID();
 

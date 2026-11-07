@@ -51,7 +51,7 @@ export class SoloMapMenu extends LitElement {
       <button
         class="group relative block w-full overflow-hidden rounded-2xl border border-white/10 bg-slate-950 text-left text-white hover:border-cyan-300/60 focus-visible:outline-2 focus-visible:outline-cyan-300"
         @click=${() => this.emit("solo-map-selected", { map: map.type })}
-        aria-label=${`${name} · ${translateText("main.solo")}`}
+        aria-label=${`${name} · ${translateText("geopolitics.classic")}`}
       >
         <img
           src=${terrainMapFileLoader.getMapData(map.type).webpPath}
@@ -92,7 +92,7 @@ export class SoloMapMenu extends LitElement {
           class="flex-1 rounded-xl bg-cyan-600 px-6 py-4 font-bold text-white hover:bg-cyan-500"
           @click=${() => this.emit("open-solo")}
         >
-          ${translateText("main.solo")}
+          ${translateText("geopolitics.classic")}
         </button>
         <button
           class="rounded-xl bg-slate-800 px-6 py-4 font-bold text-white hover:bg-slate-700"
@@ -101,6 +101,17 @@ export class SoloMapMenu extends LitElement {
           ${translateText("main.tutorial")}
         </button>
       </div>
+      <button
+        class="w-full rounded-xl border border-amber-300/40 bg-gradient-to-r from-slate-900 to-cyan-950 px-6 py-5 text-left text-white hover:border-amber-200"
+        @click=${() => this.emit("open-geopolitics")}
+      >
+        <strong class="block text-xl text-amber-200"
+          >${translateText("geopolitics.title")}</strong
+        >
+        <span class="text-sm text-slate-300"
+          >${translateText("geopolitics.subtitle")}</span
+        >
+      </button>
       ${
         favorites.length
           ? html`<h2

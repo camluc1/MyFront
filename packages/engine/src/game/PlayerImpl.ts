@@ -786,7 +786,12 @@ export class PlayerImpl implements Player {
   }
 
   allies(): Player[] {
-    return this.alliances().map((a) => a.other(this));
+    const allies = this.alliances().map((a) => a.other(this));
+    const coalition = this.mg.diplomacy.coalition(this.id());
+    for (const id of coalition?.members ?? [])
+      if (id !== this.id() && !allies.some((p) => p.id() === id))
+        allies.push(this.mg.player(id));
+    return allies;
   }
 
   isAlliedWith(other: Player): boolean {
@@ -832,6 +837,7 @@ export class PlayerImpl implements Player {
   }
 
   canSendAllianceRequest(other: Player): boolean {
+    if (this.mg.diplomacy.enabled()) return false;
     if (this.mg.config().disableAlliances()) {
       return false;
     }
@@ -1184,6 +1190,7 @@ export class PlayerImpl implements Player {
         recipient.militaryAid[this.id()] = { tick: this.mg.ticks(), impact };
     }
     recipient.addTroops(removed);
+    this.mg.diplomacy.aid(this.id(), recipient.id(), removed);
 
     this.sentDonations.push(new Donation(recipient, this.mg.ticks()));
     this.mg.addUpdate({
@@ -1207,6 +1214,7 @@ export class PlayerImpl implements Player {
     // the only chance to record how broke they were when the gold landed.
     const recipientGoldBefore = recipient.gold();
     recipient.addGold(removed);
+    this.mg.diplomacy.aid(this.id(), recipient.id(), Number(removed));
     this.mg
       .stats()
       .goldDonationReceived(recipient, removed, recipientGoldBefore);
@@ -1339,7 +1347,11 @@ export class PlayerImpl implements Player {
     if (other.isDisconnected() && !treatAFKFriendly) {
       return false;
     }
-    return this.isOnSameTeam(other) || this.isAlliedWith(other);
+    return (
+      this.mg.diplomacy.friendly(this.id(), other.id()) ||
+      this.isOnSameTeam(other) ||
+      this.isAlliedWith(other)
+    );
   }
 
   gold(): Gold {

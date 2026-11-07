@@ -551,14 +551,27 @@ export class NationAttackBehavior extends AiAttackBehavior {
     // A campaign target gets first consideration, but only after the existing
     // reserve/trigger gates and only if the original reachability checks pass.
     // A failed campaign attack falls through to the unmodified strategy pool.
-    const campaignTarget = this.strategicTarget;
+    const coalitionThreat = this.game.diplomacy.coalition(
+      this.player.id(),
+    )?.threat;
+    const coalitionTarget =
+      coalitionThreat && this.game.hasPlayer(coalitionThreat)
+        ? this.game.player(coalitionThreat)
+        : null;
+    const campaignTarget = coalitionTarget?.isAlive()
+      ? coalitionTarget
+      : this.strategicTarget;
     if (
       this.game.config().gameConfig().gameType === GameType.Singleplayer &&
       campaignTarget !== null &&
       campaignTarget.isAlive() &&
       !this.player.isFriendly(campaignTarget) &&
       this.canReach(campaignTarget) &&
-      this.sendAttack(campaignTarget, false, this.strategicTile)
+      this.sendAttack(
+        campaignTarget,
+        false,
+        coalitionTarget ? null : this.strategicTile,
+      )
     ) {
       this.campaignLandAttackSent =
         this.strategicTile !== null &&

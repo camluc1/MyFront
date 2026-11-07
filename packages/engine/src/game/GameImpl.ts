@@ -35,6 +35,10 @@ import {
   UnitPredicate,
 } from "@openfront/engine-api/game/ReadViews";
 import {
+  DiplomacyStateSchema,
+  emptyDiplomacy,
+} from "@openfront/engine-api/Geopolitics";
+import {
   AllPlayersStats,
   ClientID,
   Winner,
@@ -64,6 +68,7 @@ import {
 import { simpleHash } from "@openfront/engine-lib/Util";
 import { z } from "zod";
 import { EngineConfig } from "../configuration/EngineConfig";
+import { Geopolitics } from "../diplomacy/Geopolitics";
 import {
   SharedWaterCache,
   SharedWaterCacheSnapshot,
@@ -130,6 +135,7 @@ export function createGame(
 export type CellString = string;
 
 export class GameImpl implements Game {
+  diplomacy = new Geopolitics(this);
   private _ticks = 0;
   private startTick: number | null = null;
 
@@ -607,6 +613,7 @@ export class GameImpl implements Game {
     if (this.viewResyncQueued) {
       this.viewResyncQueued = false;
       this.addViewResync();
+      this.diplomacy.resync();
     }
     this.execs.forEach((e) => {
       if (
@@ -632,6 +639,7 @@ export class GameImpl implements Game {
     }
 
     this.removeInactiveExecutions();
+    this.diplomacy.tick();
 
     for (const player of this._playersBySmallID) {
       // Sampled before toUpdate so the reading is of the tick that just ran.
@@ -764,6 +772,7 @@ export class GameImpl implements Game {
     // Rails are not units, so without this a divergence in which rails got
     // built would only show up through the trains that later run on them.
     hash += this._railNetwork.hash();
+    if (this.diplomacy.enabled()) hash += this.diplomacy.hash();
     for (const [siteId, remaining] of this.resourceReserves) {
       hash += siteId * 17 + remaining * 13;
     }
@@ -1138,6 +1147,14 @@ export class GameImpl implements Game {
   }
 
   makeWinner(winner: string | Player): Winner | undefined {
+    if (typeof winner === "string" && winner.startsWith("coalition:")) {
+      const members = this.diplomacy.state.winner.map((id) => this.player(id));
+      return [
+        "team",
+        members.map((p) => p.name()).join(" · "),
+        ...members.flatMap((p) => (p.clientID() ? [p.clientID()!] : [])),
+      ];
+    }
     if (typeof winner === "string") {
       const threshold = this._config.teamLandShareWinThresholdTenths();
       return [
@@ -1573,6 +1590,7 @@ export class GameImpl implements Game {
     const execs = this.execs.map((e) => w.exec(e));
     const unInitExecs = this.unInitExecs.map((e) => w.exec(e));
     return {
+      ...(this.diplomacy.enabled() ? { diplomacy: this.diplomacy.state } : {}),
       ticks: this._ticks,
       startTick: this.startTick,
       humans: this._humans.map(playerInfoData),
@@ -1628,6 +1646,7 @@ export class GameImpl implements Game {
    */
   restoreState(s: GameState, r: SnapshotReader): void {
     this._ticks = s.ticks;
+    this.diplomacy.state = s.diplomacy ?? emptyDiplomacy();
     this.matchHistory = s.matchHistory;
     this.startTick = s.startTick;
     this.execs = s.execs.map((i) => r.exec(i));
@@ -1780,6 +1799,7 @@ export const GameSnapshot = snapshotType({
   name: "Game",
   version: 1,
   schema: z.object({
+    diplomacy: DiplomacyStateSchema.optional(),
     ticks: zInt(),
     startTick: zInt().nullable(),
     humans: z.array(PlayerInfoSchema),

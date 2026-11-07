@@ -29,10 +29,10 @@ import {
 import { ClientEnv } from "../client/ClientEnv";
 import { reloadForUpdate, translateText } from "../client/Utils";
 import { MapLayerController } from "./controllers/MapLayerController";
-import { canAutoBoatAttack } from "./NavalAttack";
 import { isDesktopShell } from "./DesktopShell";
 import { GameMetrics } from "./GameMetrics";
 import { createRenderer, GameRenderer } from "./hud/GameRenderer";
+import { mountGeopolitics } from "./hud/GeopoliticsPanel";
 import { goldRateTracker } from "./hud/layers/lib/GoldRateTracker";
 import { OnboardingOverlay } from "./hud/layers/OnboardingOverlay";
 import { UnitDisplay } from "./hud/layers/UnitDisplay";
@@ -52,6 +52,7 @@ import {
   ToggleRenderDebugGuiEvent,
 } from "./InputHandler";
 import { rememberLobbyRoster } from "./LobbyRosterLevels";
+import { canAutoBoatAttack } from "./NavalAttack";
 import { pagePin } from "./PagePin";
 import { groupTokenOf, loggableStartMessage } from "./PresenceGroup";
 import {
@@ -893,10 +894,16 @@ async function createClientGame(
     // a game (e.g. joining another without a page reload) leaks the WebGL
     // context, canvas and input overlay — a few games and mobile browsers hit
     // their WebGL context limit. Idempotent: stop() may be called more than once.
+    const disposeGeopolitics = mountGeopolitics(
+      gameView,
+      eventBus,
+      gameRenderer.transformHandler,
+    );
     let rendererDisposed = false;
     const disposeRenderer = (): void => {
       if (rendererDisposed) return;
       rendererDisposed = true;
+      disposeGeopolitics();
       gameRenderer.dispose();
       stopFrameLoop();
       view.dispose();

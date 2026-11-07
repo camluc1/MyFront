@@ -7,6 +7,7 @@ import {
   Tick,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
+import { DiplomacyAction } from "@openfront/engine-api/Geopolitics";
 import {
   AllPlayersStats,
   ClientID,
@@ -61,6 +62,10 @@ import { LocalServer } from "./LocalServer";
 import { describeSocketClose } from "./SocketClose";
 import { homeHref, translateText } from "./Utils";
 import { PlayerView } from "./view";
+
+export class SendDiplomacyIntentEvent implements GameEvent {
+  constructor(public diplomacy: DiplomacyAction) {}
+}
 
 export class PauseGameIntentEvent implements GameEvent {
   constructor(public readonly paused: boolean) {}
@@ -306,6 +311,9 @@ export class Transport {
       this.lobbyConfig.gameRecord !== undefined ||
       this.lobbyConfig.gameStartInfo?.config.gameType === GameType.Singleplayer;
 
+    this.subscribe(SendDiplomacyIntentEvent, (e) =>
+      this.sendIntent({ type: "diplomacy", diplomacy: e.diplomacy }),
+    );
     this.subscribe(SendAllianceRequestIntentEvent, (e) =>
       this.onSendAllianceRequest(e),
     );

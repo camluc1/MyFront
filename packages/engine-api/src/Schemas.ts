@@ -16,12 +16,14 @@ import {
   Trios,
   UnitType,
 } from "./game/GameTypes";
+import { DiplomacyActionSchema } from "./Geopolitics";
 import { PlayerStatsSchema } from "./StatsSchemas";
 
 export type GameID = string;
 export type ClientID = string;
 
 export type Intent =
+  | z.infer<typeof DiplomacyIntentSchema>
   | SpawnIntent
   | AttackIntent
   | CancelAttackIntent
@@ -344,6 +346,7 @@ export const GameConfigSchema = z.object({
   // Stripped from gameStartInfo and from the advertised lobby config: sibling
   // ids are private lobby ids, which are join secrets.
   pool: PoolConfigSchema.optional(),
+  geopolitics: z.boolean().optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby
@@ -569,6 +572,11 @@ export const ToggleGameStartTimerIntentSchema = z.object({
   type: z.literal("toggle_game_start_timer"),
 });
 
+export const DiplomacyIntentSchema = z.object({
+  type: z.literal("diplomacy"),
+  diplomacy: DiplomacyActionSchema,
+});
+
 export const IntentSchema = z.discriminatedUnion("type", [
   AttackIntentSchema,
   CancelAttackIntentSchema,
@@ -595,6 +603,7 @@ export const IntentSchema = z.discriminatedUnion("type", [
   TogglePauseIntentSchema,
   UpdateGameConfigIntentSchema,
   ToggleGameStartTimerIntentSchema,
+  DiplomacyIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)

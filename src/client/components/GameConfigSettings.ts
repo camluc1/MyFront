@@ -204,6 +204,7 @@ export interface GameConfigSettingsData {
   };
   gameMode: {
     selected: GameMode;
+    geopolitics?: boolean;
   };
   teamCount: {
     selected: TeamCountConfig;
@@ -511,7 +512,10 @@ export class GameConfigSettings extends LitElement {
           "host_modal.mode",
           html`
             <div class="grid grid-cols-2 gap-4">
-              ${[GameMode.FFA, GameMode.Team].map((mode) => {
+              ${(settings.gameMode.geopolitics
+                ? [GameMode.FFA]
+                : [GameMode.FFA, GameMode.Team]
+              ).map((mode) => {
                 const isSelected = settings.gameMode.selected === mode;
                 return html`
                   <button
@@ -523,7 +527,11 @@ export class GameConfigSettings extends LitElement {
                     >
                       ${
                         mode === GameMode.FFA
-                          ? translateText("game_mode.ffa")
+                          ? translateText(
+                              settings.gameMode.geopolitics
+                                ? "geopolitics.title"
+                                : "game_mode.ffa",
+                            )
                           : translateText("game_mode.teams")
                       }
                     </span>

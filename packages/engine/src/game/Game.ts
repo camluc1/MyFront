@@ -42,6 +42,7 @@ import {
 import { AllPlayersStats, ClientID } from "@openfront/engine-api/Schemas";
 import { MotionPlanRecord } from "@openfront/engine-lib/game/MotionPlans";
 import type { EngineConfig } from "../configuration/EngineConfig";
+import type { Geopolitics } from "../diplomacy/Geopolitics";
 import { AbstractGraph } from "../pathfinding/algorithms/AbstractGraph";
 import { PathFinder } from "../pathfinding/types";
 import type { ExecRecord, SnapshotWriter } from "../snapshot/SnapshotContext";
@@ -508,6 +509,7 @@ export interface Player extends PlayerLike {
 }
 
 export interface Game extends GameLike {
+  diplomacy: Geopolitics;
   // Map & Dimensions
   isOnMap(cell: Cell): boolean;
   width(): number;

@@ -1,4 +1,9 @@
-import { GameMapType, UnitType } from "@openfront/engine-api/game/GameTypes";
+import {
+  GameMapType,
+  GameMode,
+  GameType,
+  UnitType,
+} from "@openfront/engine-api/game/GameTypes";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/client/Cosmetics", () => ({
@@ -61,5 +66,32 @@ describe("SinglePlayerModal map shortcuts", () => {
     expect(modal.useRandomMap).toBe(false);
     modal.onOpen({ map: "missing-map" });
     expect(modal.selectedMap).toBe(GameMapType.Europe);
+  });
+});
+
+describe("Geopolitics launch", () => {
+  it("launches the offline ruleset and ignores incompatible Classic settings", async () => {
+    const modal = createModal();
+    const events: any[] = [];
+    modal.addEventListener("join-lobby", (e: Event) =>
+      events.push((e as CustomEvent).detail),
+    );
+    modal.gameMode = GameMode.Team;
+    modal.customAlliances = true;
+    modal.customAllianceMinutes = 0;
+    modal.maxTimer = true;
+    modal.maxTimerValue = undefined;
+    modal.onOpen({ geopolitics: true });
+    await modal.startGame();
+    expect(events).toHaveLength(1);
+    const c = events[0].gameStartInfo.config;
+    expect(c.geopolitics).toBe(true);
+    expect(c.gameType).toBe(GameType.Singleplayer);
+    expect(c.gameMode).toBe(GameMode.FFA);
+    expect(c.customAllianceDuration).toBeUndefined();
+    expect(c.maxTimerValue).toBeUndefined();
+    expect(c.donateGold).toBe(true);
+    modal.onOpen({});
+    expect(modal.geopolitics).toBe(false);
   });
 });

@@ -23,6 +23,7 @@ import {
   ReadonlyTileSet,
   UnitPredicate,
 } from "@openfront/engine-api/game/ReadViews";
+import { emptyDiplomacy } from "@openfront/engine-api/Geopolitics";
 import { ClientID, GameID } from "@openfront/engine-api/Schemas";
 import { Config } from "@openfront/engine-lib/configuration/Config";
 import { unpackMotionPlans } from "@openfront/engine-lib/game/MotionPlans";
@@ -68,6 +69,8 @@ function readCosmeticVisibility(): CosmeticVisibility {
 }
 
 export class GameView implements GameLike {
+  diplomacy = emptyDiplomacy();
+  private diplomaticRelationsKey = "";
   private lastUpdate: GameUpdateViewData | null;
   private startTick: Tick | null = null;
   private smallIDToID = new Map<number, PlayerID>();
@@ -242,6 +245,19 @@ export class GameView implements GameLike {
   }
 
   public update(gu: GameUpdateViewData) {
+    const diplomacyUpdates = gu.updates[GameUpdateType.Diplomacy];
+    const diplomacy = diplomacyUpdates?.[diplomacyUpdates.length - 1];
+    if (diplomacy) {
+      this.diplomacy = diplomacy.state;
+      const key = JSON.stringify([
+        this.diplomacy.treaties,
+        this.diplomacy.coalitions,
+      ]);
+      if (key !== this.diplomaticRelationsKey) {
+        this.diplomaticRelationsKey = key;
+        this._relationsDirty = true;
+      }
+    }
     // Unit set/ownership changes below; rebuild the owner index on demand.
     this._unitsByOwnerStale = true;
 
@@ -558,6 +574,19 @@ export class GameView implements GameLike {
     if (this._relationsDirty) {
       this._relationsDirty = false;
       const rel = buildRelationMatrix(this._playerStates, this._teams);
+      const friendly = (a: string, b: string) => {
+        const pa = this._players.get(a),
+          pb = this._players.get(b);
+        if (!pa || !pb) return;
+        const ab = pa.smallID() * rel.size + pb.smallID(),
+          ba = pb.smallID() * rel.size + pa.smallID();
+        if (rel.matrix[ab] === 0) rel.matrix[ab] = 1;
+        if (rel.matrix[ba] === 0) rel.matrix[ba] = 1;
+      };
+      for (const t of this.diplomacy.treaties) friendly(t.a, t.b);
+      for (const c of this.diplomacy.coalitions)
+        for (const a of c.members)
+          for (const b of c.members) if (a !== b) friendly(a, b);
       f.relationMatrix = rel.matrix;
       f.relationSize = rel.size;
       f.relationsDirty = true;

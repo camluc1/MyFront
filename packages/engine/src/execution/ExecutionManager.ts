@@ -15,6 +15,7 @@ import { AttackExecution } from "./AttackExecution";
 import { BoatRetreatExecution } from "./BoatRetreatExecution";
 import { ConstructionExecution } from "./ConstructionExecution";
 import { DeleteUnitExecution } from "./DeleteUnitExecution";
+import { DiplomacyExecution } from "./DiplomacyExecution";
 import { DonateGoldExecution } from "./DonateGoldExecution";
 import { DonateTroopsExecution } from "./DonateTroopExecution";
 import { EmbargoAllExecution } from "./EmbargoAllExecution";
@@ -74,6 +75,8 @@ export class Executor {
           null,
         );
       }
+      case "diplomacy":
+        return new DiplomacyExecution(player.id(), intent.diplomacy);
       case "cancel_attack":
         return new RetreatExecution(player, intent.attackID);
       case "cancel_boat":

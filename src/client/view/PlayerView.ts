@@ -504,7 +504,18 @@ export class PlayerView implements PlayerLike {
   }
 
   isFriendly(other: PlayerView): boolean {
-    return this.isAlliedWith(other) || this.isOnSameTeam(other);
+    const d = this.game.diplomacy;
+    const friendly =
+      d.coalitions.some(
+        (c) => c.members.includes(this.id()) && c.members.includes(other.id()),
+      ) ||
+      d.treaties.some(
+        (t) =>
+          t.until > this.game.ticks() &&
+          ((t.a === this.id() && t.b === other.id()) ||
+            (t.b === this.id() && t.a === other.id())),
+      );
+    return friendly || this.isAlliedWith(other) || this.isOnSameTeam(other);
   }
 
   isRequestingAllianceWith(other: PlayerView) {

@@ -33,6 +33,8 @@ export class WinCheckExecution implements Execution {
     }
     if (this.mg === null) throw new Error("Not initialized");
 
+    if (this.mg.diplomacy.enabled()) return;
+
     if (this.checkRankedTeamCancelled()) {
       return;
     }

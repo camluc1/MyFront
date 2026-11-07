@@ -189,6 +189,11 @@ export class NukeExecution implements Execution {
         continue;
       }
 
+      if (this.mg.diplomacy.friendly(this.player.id(), attackedPlayer.id()))
+        this.mg.diplomacy.act(this.player, {
+          action: "break",
+          target: attackedPlayer.id(),
+        });
       const alliance = this.player.allianceWith(attackedPlayer);
       if (alliance !== null) {
         this.player.breakAlliance(alliance);
@@ -200,6 +205,16 @@ export class NukeExecution implements Execution {
   }
 
   tick(ticks: number): void {
+    const targetOwner = this.mg.owner(this.dst);
+    if (
+      this.nuke !== null &&
+      targetOwner.isPlayer() &&
+      this.mg.diplomacy.friendly(this.player.id(), targetOwner.id())
+    ) {
+      this.nuke.delete(false);
+      this.active = false;
+      return;
+    }
     if (this.nuke === null) {
       const spawn = this.player.canBuild(this.nukeType, this.dst);
       if (spawn === false) {
