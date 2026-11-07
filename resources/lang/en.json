@@ -3005,6 +3005,9 @@
     "contain_detail": "Seek partners against a threatening neighbor; attack only when relative strength permits."
   },
   "geopolitics": {
+    "deal_pct_sites": "sites",
+    "deal_pct_explainer": "Percentages show the share of the nation's assets included, not a market value.",
+    "deal_port_effect": "The port is transferred with its tile and becomes operational for its new owner.",
     "deal_desk": "DIPLOMATIC COUNCIL",
     "deal_you_propose": "Your proposal: ",
     "deal_proposes": " proposes ",
