@@ -1484,6 +1484,46 @@ export class UserSettingModal extends BaseModal {
         @change=${this.handleKeybindChange}
       ></setting-keybind>
 
+      <setting-keybind
+        action="buildFarm"
+        label=${translateText("user_setting.build_farm")}
+        description=${translateText("user_setting.build_farm_desc")}
+        defaultKey=${this.defaultKeybinds.buildFarm}
+        .value=${this.getKeyValue("buildFarm")}
+        .display=${this.getKeyChar("buildFarm")}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
+      <setting-keybind
+        action="buildMine"
+        label=${translateText("user_setting.build_mine")}
+        description=${translateText("user_setting.build_mine_desc")}
+        defaultKey=${this.defaultKeybinds.buildMine}
+        .value=${this.getKeyValue("buildMine")}
+        .display=${this.getKeyChar("buildMine")}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
+      <setting-keybind
+        action="buildOilWell"
+        label=${translateText("user_setting.build_oil_well")}
+        description=${translateText("user_setting.build_oil_well_desc")}
+        defaultKey=${this.defaultKeybinds.buildOilWell}
+        .value=${this.getKeyValue("buildOilWell")}
+        .display=${this.getKeyChar("buildOilWell")}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
+      <setting-keybind
+        action="buildGasPlant"
+        label=${translateText("user_setting.build_gas_plant")}
+        description=${translateText("user_setting.build_gas_plant_desc")}
+        defaultKey=${this.defaultKeybinds.buildGasPlant}
+        .value=${this.getKeyValue("buildGasPlant")}
+        .display=${this.getKeyChar("buildGasPlant")}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
       <h2
         class="text-blue-200 text-xl font-bold mt-8 mb-3 border-b border-white/10 pb-2"
       >
