@@ -1,4 +1,4 @@
-import { BuildableUnit, UnitType } from "@openfront/engine-api/game/GameTypes";
+import { BuildableUnit, BuildMenus, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { BUILD_KEYBIND_ACTIONS, buildActionForUnit } from "../../src/client/BuildKeybinds";
@@ -38,6 +38,10 @@ describe("DLC keyboard build controls", () => {
       expect(actions.filter((name) => name === action)).toHaveLength(1);
     }
     expect(new Set(added.map(([, , code]) => code)).size).toBe(added.length);
+    // Every item displayed in BuildMenu must be reachable from a shortcut.
+    for (const type of BuildMenus.types) expect(buildActionForUnit(type)).toBeDefined();
+    expect(new Set(BUILD_KEYBIND_ACTIONS.map(({ type }) => type)).size)
+      .toBe(BuildMenus.types.length);
   });
 
   it("shows a muted key label on every available structure and follows rebinds", async () => {
