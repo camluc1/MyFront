@@ -896,9 +896,10 @@ export class GeopoliticsPanel extends LitElement {
       ${impacts.map((item) => html`<span class="metric-chip">
         ${item.label}: <strong>${item.pct}%</strong> · ${item.count}
       </span>`)}
-      ${deposits.map((site) => html`<span class="metric-chip">
+      ${deposits.slice(0, 4).map((site) => html`<span class="metric-chip">
         ${t("resource_" + site.resource)} · Q${site.quality}
       </span>`)}
+      ${deposits.length > 4 ? html`<span class="metric-chip">+${deposits.length - 4} ${t("deal_pct_sites")}</span>` : nothing}
     </div>`;
   }
 
@@ -1072,8 +1073,8 @@ export class GeopoliticsPanel extends LitElement {
             this.region(this.game.ref(x, y), this.side);
           }}></canvas>
         <div class="map-legend">
-          <span>🟩 ${o && o.from !== this.mine()?.id() && o.to !== this.mine()?.id() ? this.name(o.from) + " recibe" : t("deal_receive_map")}</span>
-          <span>🟨 ${o && o.from !== this.mine()?.id() && o.to !== this.mine()?.id() ? this.name(o.to) + " recibe" : t("deal_give_map")}</span>
+          <span>🟩 ${o && o.from !== this.mine()?.id() && o.to !== this.mine()?.id() ? this.name(o.from) + t("deal_receives") : t("deal_receive_map")}</span>
+          <span>🟨 ${o && o.from !== this.mine()?.id() && o.to !== this.mine()?.id() ? this.name(o.to) + t("deal_receives") : t("deal_give_map")}</span>
           <span>${t("deal_legend")}</span>
         </div>
         ${this.editing ? html`<div class="row wrap">
