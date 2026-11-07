@@ -1074,8 +1074,8 @@ export class GeopoliticsPanel extends LitElement {
             this.region(this.game.ref(x, y), this.side);
           }}></canvas>
         <div class="map-legend">
-          <span>🟩 Territorio que recibirías</span>
-          <span>🟨 Territorio que entregarías</span>
+          <span>🟩 ${o && o.from !== this.mine()?.id() && o.to !== this.mine()?.id() ? this.name(o.from) + " recibe" : "Territorio que recibirías"}</span>
+          <span>🟨 ${o && o.from !== this.mine()?.id() && o.to !== this.mine()?.id() ? this.name(o.to) + " recibe" : "Territorio que entregarías"}</span>
           <span>Las casillas se transfieren al aceptar</span>
         </div>
         ${this.editing ? html`<div class="row wrap">
@@ -1602,8 +1602,9 @@ export class GeopoliticsPanel extends LitElement {
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(this.previewBase, 0, 0, canvas.width, canvas.height);
     const a = this.assets();
+    const flipped = !this.editing && this.selected?.to === this.mine()?.id();
     for (const side of ["give", "receive"] as const) {
-      ctx.fillStyle = side === "give" ? "#ffd17e" : "#69f0c9";
+      ctx.fillStyle = (side === "give") !== flipped ? "#ffd17e" : "#69f0c9";
       for (const ref of a[side].tiles)
         ctx.fillRect(this.game.x(ref), this.game.y(ref), 1, 1);
     }
@@ -1620,8 +1621,9 @@ export class GeopoliticsPanel extends LitElement {
     ctx.clearRect(0, 0, c.width, c.height);
     if (!this.opened || this.tab !== "negotiate") return;
     const a = this.assets();
+    const flipped = !this.editing && this.selected?.to === this.mine()?.id();
     for (const side of ["give", "receive"] as const) {
-      ctx.fillStyle = side === "give" ? "#ffd17e99" : "#69f0c999";
+      ctx.fillStyle = (side === "give") !== flipped ? "#ffd17e99" : "#69f0c999";
       for (const run of this.runs(a[side].tiles)) {
         const x = run.x,
           y = run.y,
