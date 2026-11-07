@@ -175,6 +175,10 @@ export class GeopoliticsPanel extends LitElement {
     .relation-coalition, .relation-alliance { color:#9be5ad; border-color:#477e60; background:#1b473566; }
     .relation-neutral { color:#c2cbd1; border-color:#526575; }
     .review { margin-top:12px; border:1px solid #b38b54; border-radius:10px; }
+    .offer-summary { position:sticky; top:0; z-index:2; padding:12px; border:1px solid #638b89; border-radius:12px; background:#122a35; box-shadow:0 4px 20px #0008; }
+    .offer-summary .columns { gap:8px; }
+    .offer-summary .asset { padding:8px; overflow-wrap:anywhere; }
+    .offer-summary .footer { padding-top:8px; }
     .review .danger { color:#ff9d91; }
     .event-feed { margin-bottom:14px; padding:12px; border:1px solid #3c5965; border-radius:12px; background:#122631; }
     .event-feed .event { padding:5px 0; border-bottom:1px solid #293f4b; }
@@ -475,6 +479,19 @@ export class GeopoliticsPanel extends LitElement {
     this.notice = "";
     this.confirmSend = false;
     this.confirmAcceptId = null;
+  }
+  private proposeCoalition(p: PlayerView) {
+    this.newOffer(p);
+    this.kind = "coalition";
+    this.notice = t("coalition_help");
+  }
+  private demandPort(p: PlayerView) {
+    this.newOffer(p);
+    this.kind = "peace";
+    const port = p.units().filter((u) => u.type() === UnitType.Port)
+      .sort((a, b) => a.id() - b.id())[0];
+    if (port) this.toggleExactPort("receive", port.id(), port.tile());
+    this.notice = "Exigencia de paz: seleccioná un puerto o territorio que quieras recibir y revisá la propuesta antes de enviarla.";
   }
   private inspect(o: DiplomaticOffer) {
     this.previewBase = null;
@@ -805,6 +822,21 @@ export class GeopoliticsPanel extends LitElement {
               </select>`
         }
       </div>
+      ${o ? html`<section class="offer-summary" aria-label="Resumen de propuesta">
+        <strong>${this.name(o.from)} propone ${t(o.kind)}</strong>
+        <div class="columns">
+          <div class="asset receive"><strong>Recibís</strong><div>${this.assetSummary(o.to === this.mine()?.id() ? o.give : o.receive)}</div></div>
+          <div class="asset give"><strong>Entregás</strong><div>${this.assetSummary(o.to === this.mine()?.id() ? o.receive : o.give)}</div></div>
+        </div>
+        ${o.status === "pending" && o.from !== this.mine()?.id()
+          ? html`<div class="footer">
+              <button class="danger" @click=${() => this.send({action:"reject",target:o.from,offerID:o.id})}>Rechazar</button>
+              ${o.to === this.mine()?.id() ? html`<button @click=${() => this.counter()}>Contraofertar</button>` : nothing}
+              <button class="primary" ?disabled=${o.approvals.includes(this.mine()?.id() ?? "")}
+                @click=${() => (this.confirmAcceptId = o.id)}>Revisar y aceptar</button>
+            </div>`
+          : nothing}
+      </section>` : nothing}
       <p class="muted">
         ${o?.ultimatum ? html`<strong class="gold">${t("ultimatum")} · </strong>` : nothing}${t(o?.kind ?? this.kind)}
         · ${t("duration_" + (o?.kind ?? this.kind))}
@@ -1093,9 +1125,11 @@ export class GeopoliticsPanel extends LitElement {
                     ${t("betrayals")}: ${trust?.betrayal ?? 0}
                   </div>
                 </div>
-                <button @click=${() => this.newOffer(p)}>
-                  ${t("negotiate")}
-                </button>
+                <div class="stack">
+                  <button @click=${() => this.newOffer(p)}>${t("negotiate")}</button>
+                  <button @click=${() => this.proposeCoalition(p)}>Proponer coalición</button>
+                  <button @click=${() => this.demandPort(p)}>Exigir territorio / puerto</button>
+                </div>
               </div>
             </article>`;
           })}
@@ -1110,6 +1144,8 @@ export class GeopoliticsPanel extends LitElement {
       (t) => (t.a === id || t.b === id) && t.kind !== "coalition",
     );
     return html`<h3>${t("coalition")} · ${c?.members.length ?? 0}/4</h3>
+      <p class="muted">Podés crear un bloque desde Países → Proponer coalición. Las alianzas se acuerdan entre naciones, no se crean automáticamente.</p>
+      <div class="footer"><button @click=${() => (this.tab = "countries")}>Buscar aliados y proponer coalición</button></div>
       ${c?.threat ? html`<p class="muted">${t("common_target")}: ${this.name(c.threat)}</p>` : nothing}
       ${
         c
@@ -1153,7 +1189,10 @@ export class GeopoliticsPanel extends LitElement {
         c
           ? html`<div class="footer">
                 <button
-                  @click=${() => this.send({ action: "leave", target: "" })}
+                  @click=${() => {
+                    if (window.confirm("¿Abandonar la coalición? Perderás confianza y habrá un período de enfriamiento."))
+                      this.send({ action: "leave", target: "" });
+                  }}
                 >
                   ${t("leave")}
                 </button>
