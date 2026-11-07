@@ -26,6 +26,8 @@ export const DiplomacyActionSchema = z.object({
   threat: z.string().max(100).optional(),
   counterTo: zb.uint().optional(),
   ultimatum: z.boolean().optional(),
+  /** Peace agreement duration in simulation ticks (3 or 5 minutes). */
+  durationTicks: z.union([z.literal(1800), z.literal(3000)]).optional(),
 });
 export type DiplomacyAction = z.infer<typeof DiplomacyActionSchema>;
 export const DiplomaticOfferSchema = z.object({
@@ -50,6 +52,8 @@ export const DiplomaticOfferSchema = z.object({
   reason: z.string(),
   ultimatum: z.boolean().optional(),
   enforced: z.boolean().optional(),
+  /** Optional for old saves: pre-existing peace agreements remain 3 minutes. */
+  durationTicks: z.union([z.literal(1800), z.literal(3000)]).optional(),
   approvals: z.array(z.string()),
   required: z.array(z.string()),
   round: zb.uint({ max: 3 }).optional(),
