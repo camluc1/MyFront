@@ -26,8 +26,15 @@ let game: Game, panel: GeopoliticsPanel, dispose: () => void;
 let sent: DiplomacyAction[];
 const text = (name: string) => `geopolitics.${name}`;
 const click = async (name: string) => {
+  const labels: Record<string, string> = {
+    review_offer: "Revisar propuesta",
+    confirm_send: "Confirmar y enviar",
+    accept: "Revisar y aceptar",
+    confirm_accept: "Confirmar acuerdo",
+    counter: "Contraofertar",
+  };
   const b = [...panel.shadowRoot!.querySelectorAll("button")].find((b) =>
-    b.textContent?.includes(text(name)),
+    b.textContent?.includes(labels[name] ?? text(name)),
   );
   expect(b, `button ${name}`).toBeTruthy();
   b!.click();
@@ -174,7 +181,7 @@ it("offers a bilateral alliance separately from a coalition", async () => {
   await click("title");
   await click("negotiate");
   const treaty = panel.shadowRoot!.querySelector<HTMLSelectElement>(
-    'select[aria-label="geopolitics.treaty"]',
+    'select[aria-label="Tipo de tratado"]',
   );
   expect([...treaty!.options].map((option) => option.value)).toContain("alliance");
   expect([...treaty!.options].map((option) => option.value)).toContain("coalition");
@@ -253,4 +260,71 @@ it("prepares a port purchase without choosing territory on the player's behalf",
       ".receive .buildings input",
     )!.checked,
   ).toBe(false);
+});
+
+it("opens contextual diplomacy from the right-click player panel and shows a country dossier", async () => {
+  window.dispatchEvent(new CustomEvent("geopolitics:open-diplomacy", {
+    detail: { target: "b", action: "info" },
+  }));
+  await panel.updateComplete;
+  expect(panel.shadowRoot!.textContent).toContain("Relaciones y tratados");
+  expect(panel.shadowRoot!.textContent).toContain("Sin tratado activo");
+  window.dispatchEvent(new CustomEvent("geopolitics:open-diplomacy", {
+    detail: { target: "b", action: "demand" },
+  }));
+  await panel.updateComplete;
+  expect(panel.shadowRoot!.textContent).toContain("Territorio que cambia de dueño");
+});
+
+it("offers exactly five minutes of peace and shows impact of strategic infrastructure", async () => {
+  const b = game.player("b");
+  b.buildUnit(UnitType.Port, game.ref(8, 1), {});
+  await click("title");
+  await click("negotiate");
+  const duration = panel.shadowRoot!.querySelector<HTMLSelectElement>(
+    'select[aria-label="Duración de la paz"]');
+  // The treaty dropdown is in the detailed editor; switch to peace first.
+  const kind = panel.shadowRoot!.querySelector<HTMLSelectElement>(
+    'select[aria-label="Tipo de tratado"]')!;
+  kind.value = "peace";
+  kind.dispatchEvent(new Event("change"));
+  await panel.updateComplete;
+  const peaceDuration = panel.shadowRoot!.querySelector<HTMLSelectElement>(
+    'select[aria-label="Duración de la paz"]')!;
+  expect(duration).toBeNull();
+  peaceDuration.value = "3000";
+  peaceDuration.dispatchEvent(new Event("change"));
+  await panel.updateComplete;
+  const port = panel.shadowRoot!.querySelector<HTMLInputElement>(
+    ".receive .buildings input")!;
+  port.click();
+  await panel.updateComplete;
+  expect(panel.shadowRoot!.textContent).toContain("Puertos:");
+  expect(panel.shadowRoot!.textContent).toContain("100%");
+  await click("review_offer");
+  await click("confirm_send");
+  expect(sent[0].durationTicks).toBe(3000);
+  expect(sent[0].receive?.buildings).toHaveLength(1);
+});
+
+it("lets a coalition voter review the deal without falsely showing bilateral benefits", async () => {
+  const from = game.player("b"), to = game.player("a");
+  const offer = {
+    action: "offer" as const, target: to.id(), kind: "coalition" as const,
+    give: { ...emptyAssets(), gold: 5000 },
+    receive: emptyAssets(),
+  };
+  game.diplomacy.act(from, offer);
+  const initial = game.diplomacy.state.offers[0];
+  // This user is the addressee: the card must be framed from their perspective.
+  panel.requestUpdate();
+  await panel.updateComplete;
+  const button = [...panel.shadowRoot!.querySelectorAll("aside button")].find((b) =>
+    b.textContent?.includes("geopolitics.coalition")) as HTMLButtonElement;
+  button.click();
+  await panel.updateComplete;
+  expect(panel.shadowRoot!.textContent).toContain("Recibís");
+  expect(panel.shadowRoot!.textContent).toContain("5.000");
+  expect(panel.shadowRoot!.textContent).toContain("Aprobaciones del bloque");
+  expect(initial.required).toContain(to.id());
 });
