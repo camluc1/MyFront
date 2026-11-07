@@ -4,6 +4,7 @@ const RELATION_SIZE = 1024;
 const RELATION_NEUTRAL = 0;
 const RELATION_FRIENDLY = 1;
 const RELATION_EMBARGO = 2;
+const RELATION_HOSTILE = 3;
 
 /** Reusable matrix buffer — one allocation, rewritten each frame. */
 const matrix = new Uint8Array(RELATION_SIZE * RELATION_SIZE);
@@ -15,14 +16,15 @@ export interface RelationMatrixResult {
 
 /**
  * Build a relationship matrix from player alliance, embargo, and team data.
- * Indexed by `[ownerA * size + ownerB]` → 0=neutral, 1=friendly, 2=embargo.
- * Embargo overrides friendly (matching game priority).
+ * Indexed by `[ownerA * size + ownerB]` → 0=neutral, 1=friendly, 2=embargo, 3=active hostilities.
+ * Embargo and active hostilities override friendly; hostilities are enabled only in Geopolitics.
  *
  * @param teams  Optional smallID→team map. Same-team players are marked friendly.
  */
 export function buildRelationMatrix(
   players: ReadonlyMap<number, PlayerState>,
   teams?: ReadonlyMap<number, string>,
+  geopolitics = false,
 ): RelationMatrixResult {
   matrix.fill(RELATION_NEUTRAL);
 
@@ -72,6 +74,21 @@ export function buildRelationMatrix(
           matrix[sid * RELATION_SIZE + eID] = RELATION_EMBARGO;
           matrix[eID * RELATION_SIZE + sid] = RELATION_EMBARGO;
         }
+      }
+    }
+  }
+
+  if (geopolitics) {
+    // Mark both sides of every active front. This runs only in Geopolitics;
+    // Classic retains its original alliance/embargo border treatment.
+    for (const ps of players.values()) {
+      const defender = ps.smallID;
+      if (defender <= 0 || defender >= RELATION_SIZE) continue;
+      for (const attack of ps.incomingAttacks ?? []) {
+        const attacker = attack.attackerID;
+        if (attack.retreating || attacker <= 0 || attacker >= RELATION_SIZE) continue;
+        matrix[defender * RELATION_SIZE + attacker] = RELATION_HOSTILE;
+        matrix[attacker * RELATION_SIZE + defender] = RELATION_HOSTILE;
       }
     }
   }

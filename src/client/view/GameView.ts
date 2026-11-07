@@ -27,6 +27,7 @@ import { emptyDiplomacy } from "@openfront/engine-api/Geopolitics";
 import { ClientID, GameID } from "@openfront/engine-api/Schemas";
 import { Config } from "@openfront/engine-lib/configuration/Config";
 import { unpackMotionPlans } from "@openfront/engine-lib/game/MotionPlans";
+import { resourceDeposits } from "@openfront/engine-lib/game/NaturalResources";
 import {
   PackedUnitUpdateDecoder,
   UNIT_UPDATE_STRIDE,
@@ -72,6 +73,7 @@ function readCosmeticVisibility(): CosmeticVisibility {
 export class GameView implements GameLike {
   diplomacy = emptyDiplomacy();
   private diplomaticRelationsKey = "";
+  private hostilityRelationsKey = "";
   private lastUpdate: GameUpdateViewData | null;
   private startTick: Tick | null = null;
   private smallIDToID = new Map<number, PlayerID>();
@@ -413,6 +415,20 @@ export class GameView implements GameLike {
     const stateOf = (smallID: number) => this._playerStates.get(smallID);
     applyPackedPlayerStats(gu.packedPlayerUpdates, stateOf);
     applyPackedAttackTroops(gu.packedAttackUpdates, stateOf);
+    if (this._config.gameConfig().geopolitics === true) {
+      const hostilityKey = [...this._playerStates.values()]
+        .flatMap((player) =>
+          player.incomingAttacks
+            .filter((attack) => !attack.retreating)
+            .map((attack) => `${attack.attackerID}:${player.smallID}`),
+        )
+        .sort()
+        .join(",");
+      if (hostilityKey !== this.hostilityRelationsKey) {
+        this.hostilityRelationsKey = hostilityKey;
+        this._relationsDirty = true;
+      }
+    }
 
     if (this._myClientID) {
       this._myPlayer ??= this.playerByClientID(this._myClientID);
@@ -593,7 +609,11 @@ export class GameView implements GameLike {
     // triggers) on unchanged ticks.
     if (this._relationsDirty) {
       this._relationsDirty = false;
-      const rel = buildRelationMatrix(this._playerStates, this._teams);
+      const rel = buildRelationMatrix(
+        this._playerStates,
+        this._teams,
+        this._config.gameConfig().geopolitics === true,
+      );
       const friendly = (a: string, b: string) => {
         const pa = this._players.get(a),
           pb = this._players.get(b);
@@ -1055,6 +1075,27 @@ export class GameView implements GameLike {
   }
   isLand(ref: TileRef): boolean {
     return this._map.isLand(ref);
+  }
+  /** Static natural-resource deposits intersecting an exact territory selection. */
+  resourceSitesInTiles(tiles: readonly TileRef[]) {
+    if (tiles.length === 0) return [];
+    const selected = new Set(tiles);
+    return resourceDeposits(this._map, this._config.gameConfig().gameMap).filter((site) => {
+      const radius = Math.ceil(site.radius);
+      const minX = Math.max(0, Math.floor(site.x - radius));
+      const maxX = Math.min(this._map.width() - 1, Math.ceil(site.x + radius));
+      const minY = Math.max(0, Math.floor(site.y - radius));
+      const maxY = Math.min(this._map.height() - 1, Math.ceil(site.y + radius));
+      for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
+          const dx = x - site.x, dy = y - site.y;
+          if (dx * dx + dy * dy > site.radius * site.radius) continue;
+          const ref = this._map.ref(x, y);
+          if (this._map.isLand(ref) && selected.has(ref)) return true;
+        }
+      }
+      return false;
+    });
   }
   isImpassable(ref: TileRef): boolean {
     return this._map.isImpassable(ref);

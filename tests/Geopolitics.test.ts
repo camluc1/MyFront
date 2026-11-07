@@ -52,6 +52,14 @@ beforeEach(async () => {
     p.addTroops(10000);
   }
 });
+it("creates a bilateral alliance without creating a shared-victory coalition", () => {
+  const o = offer(a, b, "alliance");
+  accept(b, o.id);
+  expect(o.status).toBe("accepted");
+  expect(game.diplomacy.friendly(a.id(), b.id())).toBe(true);
+  expect(game.diplomacy.state.coalitions.some((c) => c.members.includes(a.id()) && c.members.includes(b.id()))).toBe(false);
+  expect(game.diplomacy.state.treaties.some((t) => t.kind === "alliance" && t.a === a.id() && t.b === b.id())).toBe(true);
+});
 it("transfers exact isolated tiles and building levels, once, with both resource legs", () => {
   const tile = game.ref(0, 1);
   const city = b.buildUnit(UnitType.City, tile, {});

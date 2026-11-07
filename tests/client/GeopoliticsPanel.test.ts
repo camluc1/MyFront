@@ -56,6 +56,7 @@ beforeEach(async () => {
   const view = new Proxy(facade, {
     get(target, key) {
       if (key === "diplomacy") return game.diplomacy.state;
+      if (key === "resourceSitesInTiles") return () => [];
       const value = Reflect.get(target, key);
       return typeof value === "function" ? value.bind(target) : value;
     },
@@ -93,7 +94,9 @@ it("opens negotiations, selects actual building tiles and emits the exact previe
   gold.value = "120";
   gold.dispatchEvent(new Event("change"));
   await panel.updateComplete;
-  await click("send");
+  await click("review_offer");
+  expect(sent).toHaveLength(0);
+  await click("confirm_send");
   expect(sent).toHaveLength(1);
   const action = sent[0];
   expect(action.action).toBe("offer");
@@ -119,6 +122,8 @@ it("shows an incoming offer, then accepts it without changing its terms", async 
   alert.click();
   await panel.updateComplete;
   await click("accept");
+  expect(sent).toHaveLength(0);
+  await click("confirm_accept");
   expect(sent[0]).toEqual({ action: "accept", target: "b", offerID: 1 });
 });
 it("makes a counteroffer by swapping the two sides", async () => {
@@ -138,10 +143,20 @@ it("makes a counteroffer by swapping the two sides", async () => {
   ).click();
   await panel.updateComplete;
   await click("counter");
-  await click("send");
+  await click("review_offer");
+  await click("confirm_send");
   expect(sent[0].counterTo).toBe(1);
   expect(sent[0].give?.gold).toBe(20);
   expect(sent[0].receive?.troops).toBe(50);
+});
+it("offers a bilateral alliance separately from a coalition", async () => {
+  await click("title");
+  await click("negotiate");
+  const treaty = panel.shadowRoot!.querySelector<HTMLSelectElement>(
+    'select[aria-label="geopolitics.treaty"]',
+  );
+  expect([...treaty!.options].map((option) => option.value)).toContain("alliance");
+  expect([...treaty!.options].map((option) => option.value)).toContain("coalition");
 });
 it("shows a victory countdown and releases its overlay on disposal", async () => {
   game.diplomacy.state.victory = {

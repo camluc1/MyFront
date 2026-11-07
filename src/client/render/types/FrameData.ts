@@ -68,7 +68,7 @@ export interface FrameData {
   readonly relationMatrix: Uint8Array;
   readonly relationSize: number;
   /**
-   * True when relationMatrix was rebuilt this tick (alliance/embargo change).
+   * True when relationMatrix was rebuilt this tick (alliance, embargo, coalition or Geopolitics active-front change).
    * Consumers skip the GPU upload — and the full-map border recompute it
    * triggers — when false.
    */

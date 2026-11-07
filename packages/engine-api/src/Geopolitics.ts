@@ -4,6 +4,7 @@ import { z } from "zod";
 export const TreatyKindSchema = z.enum([
   "truce",
   "nonaggression",
+  "alliance",
   "coalition",
   "peace",
 ]);
@@ -129,6 +130,7 @@ export const TREATY_TICKS: Record<TreatyKind, number> = {
   truce: 600,
   nonaggression: 1800,
   peace: 1800,
+  alliance: 3000,
   coalition: 3000,
 };
 

@@ -30,7 +30,7 @@ void main() {
   vec4 borderData = texelFetch(uBorderTex, tc, 0);
   float borderType = borderData.r;      // 0=interior, ~0.5=normal, ~1.0=highlight
   bool defense = texelFetch(uDefenseCoverageTex, tc, 0).r > 0.5; // same-owner defense post nearby
-  float relation = borderData.a;        // 0.0=neutral, ~0.5=friendly, ~1.0=embargo
+  float relation = borderData.a;        // 0.0=neutral, 0.5=friendly, 1.0=embargo or active hostility
 
   bool isBorder = borderType > 0.25;
   bool isHighlightBorder = borderType > 0.75;
