@@ -103,6 +103,35 @@ describe("DLC keyboard build controls", () => {
     }
   });
 
+  it("honors live remapping and does not steal a key reserved by the player", () => {
+    const gameView = {
+      inSpawnPhase: () => false,
+      myPlayer: () => ({ isAlive: () => true }),
+    } as unknown as GameView;
+    const ui = { ghostStructure: null as UnitType | null,
+      upgradeMultiplier: 1, attackRatio: 20, rocketDirectionUp: true };
+    const handler = new InputHandler(
+      gameView, ui as any, document.createElement("canvas"), new EventBus(),
+    );
+    handler.initialize();
+    const press = (code: string) => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { code }));
+      window.dispatchEvent(new KeyboardEvent("keyup", { code }));
+    };
+    try {
+      new UserSettings().setKeybinds({
+        buildFarm: { value: "KeyI", key: "I" },
+      });
+      press("KeyI");
+      expect(ui.ghostStructure).toBe(UnitType.Farm);
+      ui.ghostStructure = null;
+      press("KeyJ");
+      expect(ui.ghostStructure).toBeNull();
+    } finally {
+      handler.destroy();
+    }
+  });
+
   it("does not activate a build shortcut while typing in a text field", () => {
     const gameView = {
       inSpawnPhase: () => false,
