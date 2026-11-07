@@ -324,7 +324,7 @@ it("lets a coalition voter review the deal without falsely showing bilateral ben
   button.click();
   await panel.updateComplete;
   expect(panel.shadowRoot!.textContent).toContain(text("deal_get"));
-  expect(panel.shadowRoot!.textContent).toContain("5.000");
+  expect(panel.shadowRoot!.textContent).toContain((5000).toLocaleString());
   expect(panel.shadowRoot!.textContent).toContain(text("deal_block_approvals"));
   expect(initial.required).toContain(to.id());
 });
