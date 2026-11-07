@@ -558,14 +558,14 @@ export class Geopolitics {
       .sort((a, b) => power(b) - power(a))[0];
     const commonThreat =
       !!threat && power(threat) > mine && senderNeighbors.includes(threat);
-    const buildingValue = (id: number) => {
+    const buildingValue = (id: number, owner: Player, receiver: Player) => {
       const unit = this.game.unit(id);
       if (!unit) return 0;
       const level = Math.max(1, unit.level());
       switch (unit.type()) {
         case UnitType.City: return 8000 * level;
         case UnitType.Port: return (5000 +
-          (recipient.id() === o.to ? this.portLeverage(unit.tile(), recipient, sender) : 0)) * level;
+          this.portLeverage(unit.tile(), owner, receiver)) * level;
         case UnitType.Factory: return 6500 * level;
         case UnitType.Farm: return 2800 * level;
         case UnitType.Mine: return 4800 * level;
@@ -577,15 +577,16 @@ export class Geopolitics {
         default: return 1500 * level;
       }
     };
-    const value = (assets: DiplomaticAssets) =>
+    const value = (assets: DiplomaticAssets, owner: Player, receiver: Player) =>
       assets.gold +
       assets.troops * 3 +
       assets.tiles.length * 500 +
       this.depositValue(assets.tiles) +
-      assets.buildings.reduce((n, id) => n + buildingValue(id), 0);
+      assets.buildings.reduce((n, id) => n + buildingValue(id, owner, receiver), 0);
     // An existing coalition member does not receive the bilateral payment.
-    const balance =
-      recipient.id() === o.to ? value(o.give) - value(o.receive) : 0;
+    const balance = recipient.id() === o.to
+      ? value(o.give, sender, recipient) - value(o.receive, recipient, sender)
+      : 0;
     const ceded = recipient.id() === o.to ? o.receive : emptyAssets();
     const outgoingPressure = this.militaryPressure(sender, recipient);
     const incomingPressure = this.militaryPressure(recipient, sender);
