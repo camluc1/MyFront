@@ -594,7 +594,7 @@ export class InputHandler {
 
     let buildKeybinds: string[] = BUILD_KEYBIND_ACTIONS.map(
       ({ action }) => this.keybinds[action],
-    );
+    ).filter((value): value is string => Boolean(value));
     buildKeybinds.push(
       ...[
         "Numpad0",
