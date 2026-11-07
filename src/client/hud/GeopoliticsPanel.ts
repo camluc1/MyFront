@@ -234,7 +234,7 @@ export class GeopoliticsPanel extends LitElement {
       pointer-events: auto;
       margin-top: 10px;
       width: min(840px, calc(100vw - 36px));
-      max-height: calc(100dvh - 160px);
+      max-height: calc(100dvh - 190px);
       overflow: auto;
       background: #101d2bf5;
       border: 1px solid #526a77;
@@ -392,7 +392,7 @@ export class GeopoliticsPanel extends LitElement {
       .offer-summary { padding:12px; }
       .deal-title { font-size:19px; }
       .decision-buttons button { min-width:120px; }
-      .panel { max-height:calc(100dvh - 120px); }
+      .panel { max-height:calc(100dvh - 155px); }
       .body {
         padding: 12px;
       }
