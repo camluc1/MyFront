@@ -84,6 +84,11 @@ export const DiplomacyStateSchema = z.object({
       aid: z.number(),
       kept: z.number(),
       tick: z.number(),
+      // Optional for compatibility with existing campaigns and snapshots.
+      rejections: z.number().optional(),
+      lastRejection: z.number().optional(),
+      receivedTerritory: z.number().optional(),
+      receivedPorts: z.number().optional(),
     }),
   ),
   cooldowns: z.record(z.string(), z.number()),
