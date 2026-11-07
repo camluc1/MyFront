@@ -49,12 +49,11 @@ describe("directional fleet batches", () => {
     const h = harness(1);
     const units = new Map([[1, ship(2000, 1000)]]);
     h.pass.updateUnits(units, 1);
-    expect(h.bytes[14]).toBe(255);
+    expect(h.bytes[14]).toBe(0);
     expect(h.bytes[15]).toBe(64); // south: quarter turn
     units.set(1, ship(2000, 2000));
     h.pass.updateUnits(units, 2);
-    // Wake decays instead of popping off at a stopped snapshot.
-    expect(h.bytes[14]).toBe(255);
+    // Heading is retained while the visual trajectory finishes settling.
     expect(h.bytes[15]).toBe(64); // retain heading
     units.clear();
     h.pass.updateUnits(units, 3);

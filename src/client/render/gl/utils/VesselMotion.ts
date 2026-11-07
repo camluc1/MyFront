@@ -9,8 +9,10 @@ export class VesselMotion {
   private targetY: number;
   private vx = 0;
   private vy = 0;
-  private targetAngle: number;
-  private directions: number[];
+  private history: number[];
+  private lastInputX: number;
+  private lastInputY: number;
+  private updatedAt: number;
   private changedAt: number;
   private sampledAt: number;
   private duration: number;
@@ -28,36 +30,30 @@ export class VesselMotion {
     this.y = lastY;
     this.targetX = x;
     this.targetY = y;
-    this.directions = [x - lastX, y - lastY];
-    this.angle = this.targetAngle = Math.atan2(y - lastY, x - lastX);
+    this.history = [x, y, x, y, x, y, x, y];
+    this.lastInputX = x;
+    this.lastInputY = y;
+    this.updatedAt = now;
+    this.angle = Math.atan2(y - lastY, x - lastX);
     this.changedAt = this.sampledAt = now;
     this.duration = duration;
   }
 
   update(x: number, y: number, now: number, duration: number): void {
-    if (x === this.targetX && y === this.targetY) return;
+    if (now === this.updatedAt) return;
     this.sample(now);
-    this.directions.push(x - this.targetX, y - this.targetY);
-    if (this.directions.length > 12) this.directions.splice(0, 2);
-    let dx = 0,
-      dy = 0;
-    for (let i = 0; i < this.directions.length; i += 2) {
-      dx += this.directions[i];
-      dy += this.directions[i + 1];
+    this.updatedAt = now;
+    if (x !== this.lastInputX || y !== this.lastInputY) this.changedAt = now;
+    this.lastInputX = x;
+    this.lastInputY = y;
+    this.history.splice(0, 2);
+    this.history.push(x, y);
+    this.targetX = 0;
+    this.targetY = 0;
+    for (let i = 0; i < this.history.length; i += 2) {
+      this.targetX += this.history[i] / 4;
+      this.targetY += this.history[i + 1] / 4;
     }
-    if (dx !== 0 || dy !== 0) {
-      const desired = Math.atan2(dy, dx);
-      const delta = Math.atan2(
-        Math.sin(desired - this.targetAngle),
-        Math.cos(desired - this.targetAngle),
-      );
-      // Hysteresis prevents tiny alternating course corrections from rocking the hull.
-      if (Math.abs(delta) > this.tuning.courseDeadbandRadians)
-        this.targetAngle += delta;
-    }
-    this.targetX = x;
-    this.targetY = y;
-    this.changedAt = now;
     this.duration = duration;
   }
 
@@ -75,21 +71,21 @@ export class VesselMotion {
     this.y = this.targetY + (oy + cy * dt) * decay;
     this.vx = (this.vx - omega * cx * dt) * decay;
     this.vy = (this.vy - omega * cy * dt) * decay;
-    const delta = Math.atan2(
-      Math.sin(this.targetAngle - this.angle),
-      Math.cos(this.targetAngle - this.angle),
-    );
-    this.angle +=
-      delta * (1 - Math.exp((-dt * 1000) / this.tuning.turnDurationMs));
+    // The hull and wake follow the actual rendered velocity. Never rotate an
+    // independently filtered body while it is travelling sideways.
+    if (Math.hypot(this.vx, this.vy) > 0.001)
+      this.angle = Math.atan2(this.vy, this.vx);
   }
 
   wake(now: number): number {
-    if (this.directions.every((v) => v === 0)) return 0;
-    return Math.max(
-      0,
-      1 -
-        Math.max(0, now - this.changedAt - this.duration) /
-          this.tuning.wakeFadeMs,
+    return (
+      Math.min(1, (Math.hypot(this.vx, this.vy) * this.duration) / 1000) *
+      Math.max(
+        0,
+        1 -
+          Math.max(0, now - this.changedAt - this.duration) /
+            this.tuning.wakeFadeMs,
+      )
     );
   }
 

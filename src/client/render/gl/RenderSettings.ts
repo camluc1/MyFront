@@ -266,9 +266,7 @@ export interface RenderSettings {
     warshipMinPixels: number;
     fleetMaxEnlargement: number;
     warshipScale: number;
-    courseDeadbandRadians: number;
     motionResponse: number;
-    turnDurationMs: number;
     wakeFadeMs: number;
     flickerSpeed: number;
     angryR: number;

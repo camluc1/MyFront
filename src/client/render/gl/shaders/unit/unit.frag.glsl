@@ -103,54 +103,38 @@ vec4 vehicleSprite(vec2 q, float col) {
   float gray = 0.706;
   float d;
   if (col < 2.5) {
-    if (col < 0.5) {
-      // Landing craft: broad square ramp at the BOW, recessed open troop well,
-      // twin side sponsons and a small stern cockpit. No pointed cargo hull.
-      d = max(abs(q.x) - 0.30, abs(q.y) - 0.19);
-      gray = 0.706;
-      if (abs(q.y) > 0.145 || q.x < -0.255) gray = 0.275;
-      if (q.x > 0.19) gray = 0.92;
-      if (detail > 0.1) {
-        if (q.x > -0.17 && q.x < 0.16 && abs(q.y) < 0.12) gray = 0.275;
-        // Two rows of seats/troops, visibly an open transport rather than cargo.
-        if (q.x > -0.14 && q.x < 0.13 && abs(abs(q.y)-0.07) < 0.027)
-          gray = mod(floor((q.x+0.14)*30.0), 2.0) < 1.0 ? 0.92 : 0.51;
-        if (q.x < -0.18 && q.x > -0.25 && abs(q.y) < 0.10) gray = 0.92;
-        if (q.x > 0.22 && abs(q.y) < 0.14) gray = 0.51;
-      }
-    } else if (col < 1.5) {
-      // Merchant: short, rounded, full-bellied hull; stacked container blocks
-      // and an aft white wheelhouse. Its width is unlike either combat vessel.
-      vec2 h = vec2(q.x / 0.43, q.y / 0.29);
-      d = (length(h) - 1.0) * 0.29;
-      gray = d > -0.035 ? 0.275 : 0.706;
-      if (detail > 0.1) {
-        if (q.x > -0.13 && q.x < 0.26 && abs(q.y) < 0.20) {
-          vec2 cells = fract(vec2((q.x+0.13)*8.0,(q.y+0.20)*7.5));
-          gray = (cells.x < 0.12 || cells.y < 0.14) ? 0.275 : 0.80;
-          if (cells.y > 0.82) gray = 0.92;
-        }
-        if (q.x > -0.31 && q.x < -0.16 && abs(q.y) < 0.19) gray = 0.92;
-        if (q.x > -0.20 && q.x < -0.16 && abs(q.y) < 0.14) gray = 0.275;
-        if (q.x > -0.32 && q.x < -0.27 && abs(q.y) < 0.07) gray = 0.51;
+    bool cargo=col>0.5 && col<1.5;
+    bool warship=col>1.5;
+    float stern=warship ? -0.62 : (cargo ? -0.37 : -0.29);
+    float bow=warship ? 0.72 : (cargo ? 0.45 : 0.34);
+    float beam=warship ? 0.17 : (cargo ? 0.23 : 0.18);
+    // A proper tapered waterline, with a rounded stern and a distinct bow.
+    float width=beam*min(clamp((bow-q.x)/(warship ? 0.32 : 0.20),0.0,1.0),clamp((q.x-stern)/0.08,0.0,1.0));
+    if(col<0.5) width=beam*clamp((q.x-stern)/0.07,0.0,1.0);
+    d=max(abs(q.y)-width,max(stern-q.x,q.x-bow));
+    gray=abs(q.y)>width-0.025 ? 0.275 : 0.706;
+    // Large clear deck areas, rather than dozens of subpixel grid lines.
+    if(cargo) {
+      if(q.x> -0.12 && q.x<0.28 && abs(q.y)<0.16) gray=0.80;
+      if(detail>0.1 && abs(q.x-0.075)<0.018 && abs(q.y)<0.16)gray=0.275;
+      if(q.x> -0.29 && q.x< -0.16 && abs(q.y)<0.16)gray=0.92;
+      if(detail>0.1 && q.x> -0.18 && q.x< -0.15 && abs(q.y)<0.12)gray=0.275;
+    } else if(warship) {
+      if(q.x> -0.32 && q.x<0.30 && abs(q.y)<0.115)gray=0.51;
+      if(q.x> -0.15 && q.x<0.12 && abs(q.y)<0.08)gray=0.92;
+      if(detail>0.1) {
+        if(q.x> -0.10 && q.x< -0.03 && abs(q.y)<0.045)gray=0.275;
+        float turret=min(length((q-vec2(0.36,0.0))/vec2(1.25,1.0)),length((q+vec2(0.42,0.0))/vec2(1.25,1.0)));
+        if(turret<0.065)gray=0.92;
+        if(q.x>0.36 && q.x<0.55 && abs(q.y)<0.014)gray=0.275;
+        if(q.x< -0.42 && q.x> -0.58 && abs(q.y)<0.014)gray=0.275;
       }
     } else {
-      // Destroyer: long knife bow, tapered stern, stepped central bridge,
-      // two round gun mounts and barrels. Recognizable even without detail.
-      float width = 0.185 * min(clamp((0.73-q.x)/0.36,0.0,1.0), clamp((q.x+0.66)/0.16,0.0,1.0));
-      d = max(abs(q.y)-width, max(-0.64-q.x,q.x-0.73));
-      gray = abs(q.y) > width-0.026 ? 0.275 : 0.706;
-      if (detail > 0.1) {
-        if (q.x > -0.27 && q.x < 0.13 && abs(q.y) < 0.115) gray = 0.51;
-        if (q.x > -0.11 && q.x < 0.08 && abs(q.y) < 0.085) gray = 0.92;
-        if (q.x > 0.04 && q.x < 0.08 && abs(q.y) < 0.07) gray = 0.275;
-        if (q.x > -0.25 && q.x < -0.15 && abs(q.y) < 0.055) gray = 0.275;
-        float turret = min(length(q-vec2(0.31,0.0)),length(q-vec2(-0.43,0.0)));
-        if (turret < 0.084) gray = 0.275;
-        if (turret < 0.060) gray = 0.92;
-        if ((q.x > 0.31 && q.x < 0.55 || q.x < -0.43 && q.x > -0.62) && abs(q.y) < 0.021) gray = 0.51;
-        if (q.x > -0.30 && q.x < 0.18 && abs(abs(q.y)-0.145) < 0.012) gray = 0.92;
-      }
+      // Open troop well and full-width forward landing ramp.
+      if(q.x> -0.15 && q.x<0.19 && abs(q.y)<0.12)gray=0.275;
+      if(q.x>0.21 && abs(q.y)<0.15)gray=0.92;
+      if(q.x< -0.18 && q.x> -0.25 && abs(q.y)<0.12)gray=0.51;
+      if(detail>0.1 && q.x> -0.10 && q.x<0.13 && abs(abs(q.y)-0.075)<0.025)gray=0.92;
     }
   } else {
     bool engine = col < 9.5;
@@ -168,8 +152,10 @@ vec4 vehicleSprite(vec2 q, float col) {
       if (q.x > 0.30 && q.x < 0.36 && abs(q.y) < 0.11) gray = 0.275;
       if (q.x > 0.39 && abs(q.y) < 0.09) gray = 0.92;
     }
-    if (!engine && col > 10.5 && abs(q.x) < 0.26 && abs(q.y) < 0.11)
-      gray = mod(floor(q.x * 18.0), 2.0) < 1.0 ? 0.51 : 0.706;
+    // Roof from above: longitudinal owner stripe and two broad roof hatches.
+    if (!engine && abs(q.x)<0.28 && abs(q.y)<0.105) gray=0.51;
+    if (!engine && abs(q.x)<0.26 && abs(q.y)<0.045) gray=0.706;
+    if (!engine && detail>0.1 && abs(abs(q.x)-0.14)<0.075 && abs(q.y)<0.08) gray=0.92;
     if (detail > 0.1 && abs(q.y) > 0.16 && abs(abs(q.x) - 0.22) < 0.06) {
       d = min(d, max(abs(abs(q.x) - 0.22) - 0.06, abs(q.y) - 0.23));
       gray = 0.275;
@@ -218,10 +204,6 @@ void main() {
   // Outside the sprite: render the steady soft glow under the hydrogen bomb,
   // otherwise discard. Glow is suppressed in alt (affiliation) view.
   if (texel.a < 0.01) {
-    if (vAtlasCol > 1.5 && vAtlasCol < 2.5 && abs(vFlags-FLAG_ANGRY) < 0.1 && uAltView == 0) {
-      float halo = (1.0-smoothstep(0.15,0.90,length(q/vec2(1.0,0.65)))) * 0.18;
-      if (halo > 0.001) { fragColor = vec4(uAngryColor,halo); return; }
-    }
     if (vGlow > 0.5 && uAltView == 0) {
       float d = length(vQuadPos - 0.5) * 2.0; // 0 at center → ~1 at quad edge
       float g = (1.0 - smoothstep(uHBombGlowInner, 1.0, d)) * uHBombGlowStrength;
@@ -317,7 +299,8 @@ void main() {
   if ((vessel || train) && gray > 0.45) {
     // Baked-style bevel, not dynamic lighting or a shadow pass.
     if (vAtlasCol > 0.5 && vAtlasCol < 1.5 && gray > 0.77 && gray < 0.83) color = vec3(1.0, 0.85, 0.32);
-    if (gray > 0.85) color = mix(territoryColor, vec3(0.86, 0.91, 0.89), 0.65);
+    if (vessel && gray > 0.45 && gray < 0.6) color = mix(vec3(0.40,0.46,0.48),territoryColor,0.22);
+    if (gray > 0.85) color = mix(vec3(0.86,0.89,0.86),territoryColor,0.20);
     float edgeLight = (1.0 - smoothstep(-0.16, 0.10, q.y)) * 0.18;
     color = mix(color, vec3(0.87, 0.93, 0.95), edgeLight);
   }
