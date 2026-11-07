@@ -125,6 +125,15 @@ export class Geopolitics {
       ]),
     ].sort();
   }
+  /** A coalition's military and industrial strength influences diplomatic choices. */
+  private blocPower(player: Player): number {
+    const members = this.coalition(player.id())?.members ?? [player.id()];
+    return members.reduce(
+      (sum, id) => sum + (this.game.hasPlayer(id) && this.game.player(id).isAlive()
+        ? this.strategicPower(this.game.player(id)) : 0),
+      0,
+    );
+  }
   private validAssets(owner: Player, assets: DiplomaticAssets) {
     if (owner.gold() < BigInt(assets.gold) || owner.troops() < assets.troops)
       return false;
@@ -174,6 +183,12 @@ export class Geopolitics {
       if (c) {
         for (const other of c.members)
           if (other !== id) this.addTreaty(id, other, "truce");
+        for (const other of c.members) if (other !== id) {
+          const memory = this.memory(other, id);
+          memory.trust = Math.max(-100, memory.trust - 25);
+          memory.tick = this.game.ticks();
+        }
+        this.state.cooldowns[`coalition:join:${id}`] = this.game.ticks() + 1800;
         c.members = c.members.filter((p) => p !== id);
         this.state.coalitions = this.state.coalitions.filter(
           (c) => c.members.length > 1,
@@ -194,6 +209,7 @@ export class Geopolitics {
           : [other.id()];
         if (coalition?.members.includes(other.id())) {
           coalition.members = coalition.members.filter((p) => p !== id);
+          this.state.cooldowns[`coalition:join:${id}`] = this.game.ticks() + 1800;
           this.state.victory = null;
         }
         this.state.treaties = this.state.treaties.filter(
@@ -267,6 +283,13 @@ export class Geopolitics {
         action.kind === "coalition"
           ? this.participants(id, other.id())
           : [id, other.id()];
+      if (action.kind === "coalition" && (
+        required.some((member) =>
+          (this.state.cooldowns[`coalition:join:${member}`] ?? 0) > this.game.ticks(),
+        ) ||
+        (required.every((member) => !this.coalition(member)) &&
+          this.state.coalitions.length >= 3)
+      )) return this.feedback(actor, "coalition");
       if (
         required.length > 4 ||
         (action.kind === "coalition" &&
@@ -471,6 +494,8 @@ export class Geopolitics {
     const power = (p: Player) => this.strategicPower(p);
     const mine = power(recipient),
       theirs = power(sender);
+    const blocMine = this.blocPower(recipient);
+    const blocTheirs = this.blocPower(sender);
     const fronts = new Set(
       recipient
         .incomingAttacks()
@@ -556,6 +581,9 @@ export class Geopolitics {
       15 +
       concession;
     if (commonThreat) score += 35;
+    // Countries assess a credible hostile bloc, not only its strongest member.
+    if (!this.friendly(recipient.id(), sender.id()) && blocTheirs > blocMine * 1.6)
+      score += Math.min(15, Math.trunc((blocTheirs / Math.max(1, blocMine) - 1) * 6));
     if (losesLastPort) score -= 30;
     if (losesLastCity) score -= 45;
     if (criticalLoss) score -= 25;
@@ -574,7 +602,12 @@ export class Geopolitics {
       if (personality === 3) score += 8;
       if (personality === 0 && !commonThreat) score -= 8;
     }
-    if (o.kind === "coalition" && !commonThreat) score -= 15;
+    if (o.kind === "coalition") {
+      // Rare, consequential alliances: no automatic mega-blocs in quiet times.
+      if (!commonThreat) score -= 30;
+      if (this.coalition(recipient.id()) &&
+          !this.coalition(recipient.id())?.members.includes(sender.id())) score -= 30;
+    }
     if (ceded.tiles.length * 3 > recipient.numTilesOwned()) score -= 30;
     return {
       score,
@@ -786,7 +819,7 @@ export class Geopolitics {
       const commonThreat = neighbors
         .filter((p) => power(p) > power(a) * 1.3)
         .sort((x, y) => power(y) - power(x))[0];
-      if (commonThreat) {
+      if (commonThreat && this.state.coalitions.length < 3) {
         const partners = eligible
           .filter((p) => p !== commonThreat && this.neighbors(p).includes(commonThreat))
           .sort((x, y) => power(y) - power(x));
@@ -808,6 +841,17 @@ export class Geopolitics {
           ultimatum = true;
           receive.gold = Math.min(Number(target.gold()), Math.max(1000, Math.trunc(Number(target.gold()) / 12)));
           receive.troops = Math.min(target.troops(), Math.trunc(target.troops() / 20));
+          // A winning aggressor can demand a remote port in exchange for peace.
+          // Include its land tile: transferring only the building is not enough.
+          const port = target.units(UnitType.Port)
+            .filter((unit) => unit.isActive() &&
+              this.game.owner(unit.tile()) === target)
+            .sort((x, y) => x.id() - y.id())[0];
+          if (port && target.numTilesOwned() > 1 &&
+              power(a) > power(target) * 2.5) {
+            receive.tiles = [port.tile()];
+            receive.buildings = [port.id()];
+          }
         }
       }
 
