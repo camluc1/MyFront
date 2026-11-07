@@ -6,6 +6,7 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { EventBus, GameEvent } from "@openfront/shared/EventBus";
+import { BUILD_KEYBIND_ACTIONS } from "./BuildKeybinds";
 import { favoriteSlotForKey } from "./EmojiKeys";
 import { Platform } from "./Platform";
 import { UIState } from "./UIState";
@@ -591,21 +592,9 @@ export class InputHandler {
       { ignoreShift },
     );
 
-    let buildKeybinds: string[] = [
-      "buildCity",
-      "buildFactory",
-      "buildPort",
-      "buildDefensePost",
-      "buildMissileSilo",
-      "buildSamLauncher",
-      "buildAtomBomb",
-      "buildHydrogenBomb",
-      "buildWarship",
-      "buildMIRV",
-    ];
-    buildKeybinds = buildKeybinds.map((i: string): string => {
-      return this.keybinds[i];
-    });
+    let buildKeybinds: string[] = BUILD_KEYBIND_ACTIONS.map(
+      ({ action }) => this.keybinds[action],
+    );
     buildKeybinds.push(
       ...[
         "Numpad0",
@@ -1826,27 +1815,12 @@ export class InputHandler {
     code: string,
     shiftKey: boolean,
   ): PlayerBuildableUnitType | null {
-    const buildKeybinds: ReadonlyArray<{
-      key: string;
-      type: PlayerBuildableUnitType;
-    }> = [
-      { key: "buildCity", type: UnitType.City },
-      { key: "buildFactory", type: UnitType.Factory },
-      { key: "buildPort", type: UnitType.Port },
-      { key: "buildDefensePost", type: UnitType.DefensePost },
-      { key: "buildMissileSilo", type: UnitType.MissileSilo },
-      { key: "buildSamLauncher", type: UnitType.SAMLauncher },
-      { key: "buildAtomBomb", type: UnitType.AtomBomb },
-      { key: "buildHydrogenBomb", type: UnitType.HydrogenBomb },
-      { key: "buildWarship", type: UnitType.Warship },
-      { key: "buildMIRV", type: UnitType.MIRV },
-    ];
-    for (const { key, type } of buildKeybinds) {
-      if (this.keybindMatchesEvent({ code, shiftKey }, this.keybinds[key]))
+    for (const { action, type } of BUILD_KEYBIND_ACTIONS) {
+      if (this.keybindMatchesEvent({ code, shiftKey }, this.keybinds[action]))
         return type;
     }
-    for (const { key, type } of buildKeybinds) {
-      if (this.buildKeybindMatchesDigit(code, shiftKey, this.keybinds[key]))
+    for (const { action, type } of BUILD_KEYBIND_ACTIONS) {
+      if (this.buildKeybindMatchesDigit(code, shiftKey, this.keybinds[action]))
         return type;
     }
     return null;
