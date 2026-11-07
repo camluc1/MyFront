@@ -58,6 +58,8 @@ export class GeopoliticsPanel extends LitElement {
   @state() private receive = emptyAssets();
   @state() private selected: DiplomaticOffer | null = null;
   @state() private tab = "countries";
+  @state() private peaceDuration: 1800 | 3000 = 1800;
+  @state() private advancedOpen = false;
   @state() private mapLayer: "relations" | "blocs" | "conflicts" | "assets" = "relations";
   private politicalTick = -1;
   private politicalLayer = "";
@@ -374,8 +376,27 @@ export class GeopoliticsPanel extends LitElement {
       }
     }
   `;
+  private onContextDiplomacy = (event: Event) => {
+    if (!this.game?.config().gameConfig().geopolitics || !this.mine()) return;
+    const detail = (event as CustomEvent<{ target: string; action?: string }>).detail;
+    if (!detail?.target) return;
+    const target = this.game.players().find((p) => p.id() === detail.target);
+    if (!target || target === this.mine() || target.numTilesOwned() <= 0) return;
+    this.opened = true;
+    if (detail.action === "info") {
+      this.search = target.name();
+      this.tab = "countries";
+    } else if (detail.action === "coalition") {
+      this.proposeCoalition(target);
+    } else if (detail.action === "demand") {
+      this.demandPort(target);
+    } else {
+      this.newOffer(target);
+    }
+  };
   connectedCallback() {
     super.connectedCallback();
+    window.addEventListener("geopolitics:open-diplomacy", this.onContextDiplomacy);
     this.overlay.style.cssText =
       "position:fixed;inset:0;pointer-events:none;z-index:1099;width:100vw;height:100vh";
     this.overlay.setAttribute("aria-hidden", "true");
@@ -432,6 +453,7 @@ export class GeopoliticsPanel extends LitElement {
   }
   disconnectedCallback() {
     super.disconnectedCallback();
+    window.removeEventListener("geopolitics:open-diplomacy", this.onContextDiplomacy);
     clearInterval(this.timer);
     cancelAnimationFrame(this.frame);
     this.overlay.remove();
@@ -479,6 +501,8 @@ export class GeopoliticsPanel extends LitElement {
     this.notice = "";
     this.confirmSend = false;
     this.confirmAcceptId = null;
+    this.peaceDuration = 1800;
+    this.advancedOpen = false;
   }
   private proposeCoalition(p: PlayerView) {
     this.newOffer(p);
@@ -496,6 +520,8 @@ export class GeopoliticsPanel extends LitElement {
   private inspect(o: DiplomaticOffer) {
     this.previewBase = null;
     this.selected = o;
+    this.peaceDuration = o.durationTicks ?? 1800;
+    this.advancedOpen = false;
     this.target = o.from === this.mine()?.id() ? o.to : o.from;
     this.editing = false;
     this.tab = "negotiate";
@@ -516,6 +542,8 @@ export class GeopoliticsPanel extends LitElement {
       buildings: [...this.selected.give.buildings],
     };
     this.kind = this.selected.kind;
+    this.peaceDuration = this.selected.durationTicks ?? 1800;
+    this.advancedOpen = true;
     this.threat = this.selected.threat;
     this.ultimatum = false;
     this.counterTo = this.selected.id;
@@ -791,6 +819,7 @@ export class GeopoliticsPanel extends LitElement {
       counterTo: this.counterTo,
       ultimatum: this.ultimatum,
       threat: this.threat,
+      durationTicks: this.kind === "peace" ? this.peaceDuration : undefined,
     });
     this.confirmSend = false;
     this.notice = t("sent");
