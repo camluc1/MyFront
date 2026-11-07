@@ -27,11 +27,11 @@ let sent: DiplomacyAction[];
 const text = (name: string) => `geopolitics.${name}`;
 const click = async (name: string) => {
   const labels: Record<string, string> = {
-    review_offer: "Revisar propuesta",
-    confirm_send: "Confirmar y enviar",
-    accept: "Revisar y aceptar",
-    confirm_accept: "Confirmar acuerdo",
-    counter: "Contraofertar",
+    review_offer: text("deal_review"),
+    confirm_send: text("deal_confirm_send"),
+    accept: text("deal_review_accept"),
+    confirm_accept: text("deal_confirm"),
+    counter: text("deal_counter"),
   };
   const b = [...panel.shadowRoot!.querySelectorAll("button")].find((b) =>
     b.textContent?.includes(labels[name] ?? text(name)),
@@ -267,13 +267,13 @@ it("opens contextual diplomacy from the right-click player panel and shows a cou
     detail: { target: "b", action: "info" },
   }));
   await panel.updateComplete;
-  expect(panel.shadowRoot!.textContent).toContain("Relaciones y tratados");
-  expect(panel.shadowRoot!.textContent).toContain("Sin tratado activo");
+  expect(panel.shadowRoot!.textContent).toContain(text("deal_treaties"));
+  expect(panel.shadowRoot!.textContent).toContain(text("deal_no_treaty"));
   window.dispatchEvent(new CustomEvent("geopolitics:open-diplomacy", {
     detail: { target: "b", action: "demand" },
   }));
   await panel.updateComplete;
-  expect(panel.shadowRoot!.textContent).toContain("Territorio que cambia de dueño");
+  expect(panel.shadowRoot!.textContent).toContain(text("deal_territory_map"));
 });
 
 it("offers exactly five minutes of peace and shows impact of strategic infrastructure", async () => {
@@ -299,7 +299,7 @@ it("offers exactly five minutes of peace and shows impact of strategic infrastru
     ".receive .buildings input")!;
   port.click();
   await panel.updateComplete;
-  expect(panel.shadowRoot!.textContent).toContain("Puertos:");
+  expect(panel.shadowRoot!.textContent).toContain(text("deal_pct_ports"));
   expect(panel.shadowRoot!.textContent).toContain("100%");
   await click("review_offer");
   await click("confirm_send");
@@ -323,8 +323,8 @@ it("lets a coalition voter review the deal without falsely showing bilateral ben
     b.textContent?.includes("geopolitics.coalition")) as HTMLButtonElement;
   button.click();
   await panel.updateComplete;
-  expect(panel.shadowRoot!.textContent).toContain("Recibís");
+  expect(panel.shadowRoot!.textContent).toContain(text("deal_get"));
   expect(panel.shadowRoot!.textContent).toContain("5.000");
-  expect(panel.shadowRoot!.textContent).toContain("Aprobaciones del bloque");
+  expect(panel.shadowRoot!.textContent).toContain(text("deal_block_approvals"));
   expect(initial.required).toContain(to.id());
 });
