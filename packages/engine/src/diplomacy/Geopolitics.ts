@@ -819,10 +819,11 @@ export class Geopolitics {
       // Turn territorial military success into a playable peace settlement.
       // A victorious nation may seek a functioning enemy port without
       // conquering the entire coastline by force.
-      const pressured = a.outgoingAttacks()
-        .filter((attack) => attack.isActive() && !attack.retreating())
-        .map((attack) => attack.defender())
-        .filter((p) => p.isAlive() && p.type() !== PlayerType.Bot &&
+      const outgoing = a.outgoingAttacks()
+        .filter((attack) => attack.isActive() && !attack.retreating());
+      const pressured = this.game.players()
+        .filter((p) => outgoing.some((attack) => attack.target() === p) &&
+          p.isAlive() && p.type() !== PlayerType.Bot &&
           !this.friendly(a.id(), p.id()) && power(a) >= power(p) * 2)
         .sort((x, y) => power(x) - power(y) || x.smallID() - y.smallID());
       const weaker = pressured.find((p) => p.units(UnitType.Port).some(
