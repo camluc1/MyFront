@@ -117,6 +117,18 @@ export class Geopolitics {
     this.state.log.push({ tick: this.game.ticks(), actor, target, event });
     if (this.state.log.length > 120) this.state.log.shift();
   }
+  private recordRejection(offer: DiplomaticOffer, actor: string) {
+    offer.status = "rejected";
+    offer.reason = "declined";
+    const other = offer.from === actor ? offer.to : offer.from;
+    this.log(actor, other, "rejected");
+    const history = this.state.log.filter((event) =>
+      event.actor === actor && event.target === other &&
+      event.event === "rejected" && this.game.ticks() - event.tick < 12000,
+    ).length;
+    const wait = Math.min(6000, 900 * 2 ** Math.min(3, history - 1));
+    this.state.cooldowns[`ai:pair:${other}:${actor}`] = this.game.ticks() + wait;
+  }
   private participants(a: string, b: string) {
     return [
       ...new Set([
@@ -344,19 +356,7 @@ export class Geopolitics {
       return;
     }
     if (action.action === "reject" && offer.from !== id) {
-      offer.status = "rejected";
-      offer.reason = "declined";
-      this.log(id, other.id(), "rejected");
-      // Consecutive rejected AI approaches become progressively less frequent.
-      // This is pair-specific, so another country or a fresh military crisis
-      // can still trigger meaningful diplomacy.
-      const history = this.state.log.filter((event) =>
-        event.actor === id && event.target === other.id() &&
-        event.event === "rejected" && this.game.ticks() - event.tick < 12000,
-      ).length;
-      const wait = Math.min(6000, 900 * 2 ** Math.min(3, history - 1));
-      this.state.cooldowns[`ai:pair:${other.id()}:${id}`] =
-        this.game.ticks() + wait;
+      this.recordRejection(offer, id);
       this.emit();
       return;
     }
@@ -765,10 +765,10 @@ export class Geopolitics {
                     "retain_land";
                 this.log(id, o.from, "counter");
               } else {
-                o.status = "rejected";
+                this.recordRejection(o, id);
               }
             } else {
-              o.status = "rejected";
+              this.recordRejection(o, id);
             }
           }
         }
