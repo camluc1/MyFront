@@ -4,6 +4,7 @@ import {
   DiplomacyAction,
   DiplomaticOffer,
   emptyAssets,
+  TREATY_TICKS,
   TreatyKind,
 } from "@openfront/engine-api/Geopolitics";
 import { EventBus } from "@openfront/shared/EventBus";
