@@ -444,3 +444,23 @@ it("preserves deterministic diplomacy behavior across snapshot restore", async (
   expect(diffSnapshots(bytes, again)).toEqual([]);
   expect(restored.diplomacy.state.cooldowns).toEqual(game.diplomacy.state.cooldowns);
 });
+
+it("honors an explicitly negotiated five-minute peace while old offers remain three minutes", () => {
+  const longer = offer(a, b, "peace", { durationTicks: 3000 });
+  accept(b, longer.id);
+  expect(longer.status).toBe("accepted");
+  const treaty = game.diplomacy.state.treaties.find((t) => t.a === a.id() && t.b === b.id())!;
+  expect(treaty.until - game.ticks()).toBe(3000);
+  for (let i = 0; i < 1801; i++) game.executeNextTick();
+  expect(game.diplomacy.friendly(a.id(), b.id())).toBe(true);
+  for (let i = 0; i < 1200; i++) game.executeNextTick();
+  expect(game.diplomacy.friendly(a.id(), b.id())).toBe(false);
+});
+
+it("keeps the selected peace duration across a save/restore", async () => {
+  const proposal = offer(a, b, "peace", { durationTicks: 3000 });
+  expect(proposal.durationTicks).toBe(3000);
+  const { bytes, again, restored } = await roundTrip(game, "plains");
+  expect(diffSnapshots(bytes, again)).toEqual([]);
+  expect(restored.diplomacy.state.offers[0].durationTicks).toBe(3000);
+});
