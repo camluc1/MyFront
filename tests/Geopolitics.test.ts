@@ -420,6 +420,9 @@ it("transfers a negotiated port and its exact coastal tile, without surrounding 
   expect(game.owner(game.ref(1, 1))).toBe(b);
   expect(port.owner()).toBe(a);
   expect(a.units(UnitType.Port).some((unit) => unit.id() === port.id())).toBe(true);
+  const memory = game.diplomacy.state.memory.find((m) => m.a === a.id() && m.b === b.id());
+  expect(memory?.receivedPorts).toBe(1);
+  expect(memory?.receivedTerritory).toBe(1);
 });
 
 it("makes rejected diplomatic proposals progressively less frequent for the same pair", () => {
@@ -428,6 +431,7 @@ it("makes rejected diplomatic proposals progressively less frequent for the same
   expect(proposal.status).toBe("rejected");
   const key = `ai:pair:${a.id()}:${b.id()}`;
   expect(game.diplomacy.state.cooldowns[key]).toBe(game.ticks() + 900);
+  expect(game.diplomacy.state.memory.find((m) => m.a === b.id() && m.b === a.id())?.rejections).toBe(1);
   // Diplomacy with a different country is still possible.
   const other = offer(a, c);
   expect(other.status).toBe("pending");
