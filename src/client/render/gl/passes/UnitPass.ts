@@ -210,6 +210,7 @@ export class UnitPass {
 
   private uCamera: WebGLUniformLocation;
   private uTick: WebGLUniformLocation;
+  private uNavalPulse: WebGLUniformLocation;
   private uTime: WebGLUniformLocation;
   private viewportWidth = 1;
   private viewportHeight = 1;
@@ -313,6 +314,7 @@ export class UnitPass {
     );
     this.uCamera = gl.getUniformLocation(this.program, "uCamera")!;
     this.uTick = gl.getUniformLocation(this.program, "uTick")!;
+    this.uNavalPulse = gl.getUniformLocation(this.program, "uNavalPulse")!;
     this.uTime = gl.getUniformLocation(this.program, "uTime")!;
     this.uViewport = gl.getUniformLocation(this.program, "uViewport")!;
     this.uFleetReadability = gl.getUniformLocation(
@@ -659,6 +661,13 @@ export class UnitPass {
     gl.uniform1f(this.uTick, this.frameTick);
     gl.uniform1f(this.uTime, (performance.now() - this.startTime) / 1000);
     gl.uniform1f(this.uUnitSize, us.unitSize);
+    gl.uniform4f(
+      this.uNavalPulse,
+      us.warshipPulseOpacity,
+      us.transportPulseOpacity,
+      us.navalPulsePeriod,
+      us.navalPulseRadius,
+    );
     gl.uniform1f(this.uTrainScale, us.trainScale);
     gl.uniform2f(this.uViewport, this.viewportWidth, this.viewportHeight);
     gl.uniform4f(

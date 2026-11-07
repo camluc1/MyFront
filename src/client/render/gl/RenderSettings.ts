@@ -260,6 +260,10 @@ export interface RenderSettings {
   };
   unit: {
     unitSize: number;
+    warshipPulseOpacity: number;
+    transportPulseOpacity: number;
+    navalPulsePeriod: number;
+    navalPulseRadius: number;
     trainScale: number;
     transportMinPixels: number;
     merchantMinPixels: number;

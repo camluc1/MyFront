@@ -12,6 +12,7 @@ uniform sampler2D uEffect;        // RGBA32F — shared effect palette, keyed by
                                   //   color r's rgb; row 0.a = count,
                                   //   1.a = styleId, 2.a = scalar0,
                                   //   3.a = scalar1)
+uniform vec4 uNavalPulse; // warship opacity, transport opacity, period, radius
 uniform float uTime;              // seconds, for animated effect styles
 uniform float uTick;
 uniform float uFlickerSpeed;
@@ -174,6 +175,7 @@ void main() {
   // The sprite lives in the central cell-space region [0,1]; for the enlarged
   // hydrogen-bomb quad, anything outside that range is glow-only margin.
   vec4 texel = vec4(0.0);
+  vec4 waterEffect = vec4(0.0);
   bool inSprite = vCellUV.x >= 0.0 && vCellUV.x <= 1.0 &&
                   vCellUV.y >= 0.0 && vCellUV.y <= 1.0;
   bool vessel = vAtlasCol < 2.5;
@@ -181,6 +183,23 @@ void main() {
   vec2 q = (vCellUV - 0.5) * 2.0;
   if (vessel || train) {
     texel = vehicleSprite(q, vAtlasCol);
+    // Unit-local pulse, composed behind the hull in this same instance.
+    // No terrain modification, accumulated stain, particles or extra draw call.
+    bool warship = vAtlasCol > 1.5 && vAtlasCol < 2.5;
+    bool transport = vAtlasCol < 0.5;
+    if ((warship || transport) && uAltView == 0) {
+      float phase = fract(uTime / max(uNavalPulse.z, 0.1) + fract(vOwnerID * 0.173));
+      float radius = uNavalPulse.w * (warship ? 1.0 : 0.68);
+      float r = length(q) / radius;
+      float expansion = mix(0.42, 0.94, phase);
+      float aa = max(fwidth(r), 0.01);
+      float ring = (1.0-smoothstep(0.025, 0.055+aa, abs(r-expansion))) * sin(phase*3.14159265);
+      float breath = 0.5+0.5*sin(phase*6.2831853);
+      float glow = exp(-r*r*5.0) * (0.22+0.25*breath);
+      float edgeFade = 1.0-smoothstep(0.86,1.0,r);
+      float strength = warship ? uNavalPulse.x : uNavalPulse.y;
+      waterEffect = vec4(1.0, 0.12, 0.08, (ring+glow)*edgeFade*strength);
+    }
     // A short, tapered V wake fades out at distant zoom. No particles or history buffers.
     if (vessel && vHash > 0.01 && texel.a < 0.05 && uAltView == 0) {
       float stern = vAtlasCol > 1.5 ? -0.64 : (vAtlasCol > 0.5 ? -0.40 : -0.30);
@@ -194,7 +213,10 @@ void main() {
       float ripple = 0.80 + 0.20 * sin(behind * 35.0 - uTime * 3.0);
       float churn = exp(-q.y*q.y / (0.004 + behind*0.04)) * 0.32;
       float wake = (foam + churn) * fade * lod * ripple * 0.45 * vHash;
-      if (wake > 0.005) { fragColor = vec4(0.78, 0.90, 0.94, wake); return; }
+      if (wake > 0.005) {
+        float combined = wake + waterEffect.a*(1.0-wake);
+        waterEffect = vec4((vec3(0.78,0.90,0.94)*wake + waterEffect.rgb*waterEffect.a*(1.0-wake))/combined,combined);
+      }
     }
   } else if (inSprite) {
     vec2 atlasUV = vec2((vAtlasCol + vCellUV.x) / float(ATLAS_COLS), vCellUV.y);
@@ -204,6 +226,7 @@ void main() {
   // Outside the sprite: render the steady soft glow under the hydrogen bomb,
   // otherwise discard. Glow is suppressed in alt (affiliation) view.
   if (texel.a < 0.01) {
+    if (waterEffect.a > 0.001) { fragColor = waterEffect; return; }
     if (vGlow > 0.5 && uAltView == 0) {
       float d = length(vQuadPos - 0.5) * 2.0; // 0 at center → ~1 at quad edge
       float g = (1.0 - smoothstep(uHBombGlowInner, 1.0, d)) * uHBombGlowStrength;

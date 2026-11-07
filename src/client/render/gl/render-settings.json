@@ -219,6 +219,10 @@
   },
   "unit": {
     "unitSize": 13,
+    "warshipPulseOpacity": 0.55,
+    "transportPulseOpacity": 0.18,
+    "navalPulsePeriod": 1.8,
+    "navalPulseRadius": 0.94,
     "trainScale": 0.4,
     "transportMinPixels": 10,
     "merchantMinPixels": 8,
