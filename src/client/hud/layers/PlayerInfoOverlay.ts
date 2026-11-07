@@ -793,7 +793,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     if (player !== myPlayer && this.game.config().gameConfig().geopolitics) {
       buttons.push(this.renderShortcutButton(
         requestAllianceIcon,
-        "Negociación geopolítica: paz, territorios y puertos",
+        translateText("geopolitics.deal_context_shortcut"),
         undefined,
         () => window.dispatchEvent(new CustomEvent("geopolitics:open-diplomacy",
           { detail: { target: player.id(), action: "offer" } })),
