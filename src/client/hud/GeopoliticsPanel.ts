@@ -828,6 +828,18 @@ export class GeopoliticsPanel extends LitElement {
           <div class="asset receive"><strong>Recibís</strong><div>${this.assetSummary(o.to === this.mine()?.id() ? o.give : o.receive)}</div></div>
           <div class="asset give"><strong>Entregás</strong><div>${this.assetSummary(o.to === this.mine()?.id() ? o.receive : o.give)}</div></div>
         </div>
+        ${this.confirmAcceptId === o.id && o.status === "pending" ? html`<div class="notice review">
+          <strong>¿Confirmar este acuerdo?</strong>
+          ${this.criticalAssetWarnings(o.to === this.mine()?.id() ? o.receive : o.give,
+            this.mine()?.id() ?? "").map((warning) => html`<p class="danger">${warning}</p>`)}
+          <div class="footer">
+            <button @click=${() => (this.confirmAcceptId = null)}>Cancelar</button>
+            <button class="primary" @click=${() => {
+              this.send({ action: "accept", target: o.from, offerID: o.id });
+              this.confirmAcceptId = null;
+            }}>Confirmar acuerdo</button>
+          </div>
+        </div>` : nothing}
         ${o.status === "pending" && o.from !== this.mine()?.id()
           ? html`<div class="footer">
               <button class="danger" @click=${() => this.send({action:"reject",target:o.from,offerID:o.id})}>Rechazar</button>
