@@ -884,7 +884,7 @@ export class GeopoliticsPanel extends LitElement {
         <p>${t("offer_from")}: ${this.name(o.from)}</p>
         <p>${t("they_offer")}: ${this.assetSummary(o.give)}</p>
         <p>${o.to === this.mine()?.id() ? t("you_would_give") : this.name(o.to) + " · " + t("would_give")}: ${this.assetSummary(o.receive)}</p>
-        ${o.to === this.mine()?.id() ? this.criticalAssetWarnings(o.receive, o.to).map((warning) => html`<p class="danger">${warning}</p>`) : nothing}
+        ${this.criticalAssetWarnings(o.receive, o.to).map((warning) => html`<p class="danger">${warning}</p>`)}
         <p>${t("accept_consequence")}</p>
         <div class="footer">
           <button @click=${() => (this.confirmAcceptId = null)}>${t("cancel")}</button>

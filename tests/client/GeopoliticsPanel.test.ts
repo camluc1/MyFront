@@ -126,6 +126,27 @@ it("shows an incoming offer, then accepts it without changing its terms", async 
   await click("confirm_accept");
   expect(sent[0]).toEqual({ action: "accept", target: "b", offerID: 1 });
 });
+it("warns before accepting a proposal that transfers the last port", async () => {
+  const port = game.player("a").buildUnit(UnitType.Port, game.ref(2, 0), {});
+  game.diplomacy.act(game.player("b"), {
+    action: "offer",
+    target: "a",
+    kind: "peace",
+    give: emptyAssets(),
+    receive: { ...emptyAssets(), tiles: [port.tile()], buildings: [port.id()] },
+  });
+  panel.requestUpdate();
+  await panel.updateComplete;
+  const alert = [...panel.shadowRoot!.querySelectorAll("aside button")].find(
+    (b) => b.textContent?.includes("geopolitics.peace"),
+  ) as HTMLButtonElement;
+  alert.click();
+  await panel.updateComplete;
+  await click("accept");
+  expect(panel.shadowRoot!.textContent).toContain("geopolitics.risk_last_port");
+  await click("confirm_accept");
+  expect(sent[0]).toEqual({ action: "accept", target: "b", offerID: 1 });
+});
 it("makes a counteroffer by swapping the two sides", async () => {
   game.diplomacy.act(game.player("b"), {
     action: "offer",
