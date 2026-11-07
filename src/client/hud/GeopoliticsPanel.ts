@@ -204,6 +204,10 @@ export class GeopoliticsPanel extends LitElement {
     .metric-grid { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
     .metric-chip { font-size:12px; padding:5px 9px; border-radius:8px; background:#283f4a; border:1px solid #3e626b; }
     .metric-chip strong { color:#eac98e; }
+    .country-dossier { margin-top:12px; padding:12px; border-radius:10px; background:#203746; border:1px solid #3a5661; }
+    .country-dossier .row { gap:12px; align-items:baseline; padding:5px 0; }
+    .country-dossier strong { color:#d9e9e9; }
+    .country-dossier .muted { font-size:13px; }
     .decision-buttons { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
     .decision-buttons button { flex:1; min-width:140px; padding:11px; font-weight:750; }
     .review .danger { color:#ff9d91; }
@@ -1235,6 +1239,49 @@ export class GeopoliticsPanel extends LitElement {
     this.politicalTick = this.game.ticks();
     this.politicalLayer = this.mapLayer;
   }
+
+  /** Country dossier: right-click opens this focused, readable treaty record. */
+  private renderCountryTreaties(p: PlayerView) {
+    const mine = this.mine();
+    if (!mine) return nothing;
+    const now = this.game.ticks();
+    const pact = this.game.diplomacy.treaties.find((tr) =>
+      tr.until > now && ((tr.a === p.id() && tr.b === mine.id()) ||
+        (tr.b === p.id() && tr.a === mine.id())));
+    const coalition = this.game.diplomacy.coalitions.find((c) =>
+      c.members.includes(p.id()));
+    const related = this.game.diplomacy.offers.filter((o) =>
+      o.status === "pending" &&
+      (o.from === p.id() || o.to === p.id()) &&
+      (o.from === mine.id() || o.to === mine.id()));
+    return html`<div class="country-dossier" aria-label="Tratados y situación de ${p.name()}">
+      <div class="deal-eyebrow">Relaciones y tratados</div>
+      <div class="row">
+        <span>Relación actual</span><strong>${t("relation_" + this.relationship(p))}</strong>
+      </div>
+      <div class="row">
+        <span>Tratado bilateral</span>
+        <strong>${pact ? t(pact.kind) + " · " +
+          Math.ceil((pact.until - now) / 10) + " segundos restantes" : "Sin tratado activo"}</strong>
+      </div>
+      <div class="row">
+        <span>Bloque de poder</span>
+        <strong>${coalition ? coalition.members.map((id) => this.name(id)).join(" · ") :
+          "Independiente"}</strong>
+      </div>
+      ${coalition ? html`<div class="muted">
+        Duración restante: ${Math.ceil((coalition.until - now) / 10)} s
+        ${coalition.threat ? " · Objetivo: " + this.name(coalition.threat) : ""}
+      </div>` : nothing}
+      ${related.map((o) => html`<button
+        @click=${() => this.inspect(o)}
+        style="margin-top:8px">
+        Propuesta pendiente: ${t(o.kind)} · Ver condiciones
+      </button>`)}
+      <p class="muted">Toda cesión de territorio o edificios debe aprobarse expresamente.
+        Una coalición comparte objetivos y victoria, pero no fusiona las naciones.</p>
+    </div>`;
+  }
   private renderCountries() {
     return html`${this.renderPoliticalLayers()}${this.renderRecentEvents()}<label
         >${t("find_country")}<input
@@ -1281,6 +1328,7 @@ export class GeopoliticsPanel extends LitElement {
                   <button @click=${() => this.demandPort(p)}>Exigir territorio / puerto</button>
                 </div>
               </div>
+              ${this.renderCountryTreaties(p)}
             </article>`;
           })}
       </div>`;
