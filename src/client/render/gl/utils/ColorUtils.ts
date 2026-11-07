@@ -147,7 +147,7 @@ export function encodeTerrainTile(
     if (magnitude < 10) {
       low = terrainColors.plains;
       high = terrainColors.highland;
-      t = Math.max(0, (magnitude - 5) / 5);
+      t = Math.max(0, (magnitude - 4) / 6);
     } else if (magnitude < 20) {
       low = terrainColors.highland;
       high = terrainColors.mountain;

@@ -62,6 +62,12 @@ void main() {
       float textureGrain=grain(world*0.30)-0.5;
       float broad=grain(world*0.055)-0.5;
       float rock=height>=16 ? 1.3 : 0.7;
+      // Broad vegetation patches use the existing grain sample. Subtle tint
+      // changes read as grass from above without blades, geometry or flicker.
+      if (height<10 && (terrain&64)==0) {
+        float vegetation=(broad+0.5)*uSurface.w*detail;
+        color*=vec3(1.0-vegetation,1.0+vegetation*0.2,1.0-vegetation*1.4);
+      }
       color*=1.0+(relief*uSurface.z+(textureGrain*rock+broad)*uSurface.w)*detail;
     }
     fragColor = vec4(color, 1.0);
