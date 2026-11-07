@@ -102,7 +102,7 @@ export class GeopoliticsPanel extends LitElement {
       top: 100px;
       z-index: 1100;
       color: #edf6f8;
-      font: 13px/1.5 system-ui;
+      font: 15px/1.5 system-ui;
       pointer-events: none;
       max-width: calc(100vw - 24px);
     }
@@ -177,10 +177,34 @@ export class GeopoliticsPanel extends LitElement {
     .relation-coalition, .relation-alliance { color:#9be5ad; border-color:#477e60; background:#1b473566; }
     .relation-neutral { color:#c2cbd1; border-color:#526575; }
     .review { margin-top:12px; border:1px solid #b38b54; border-radius:10px; }
-    .offer-summary { position:sticky; top:0; z-index:2; padding:12px; border:1px solid #638b89; border-radius:12px; background:#122a35; box-shadow:0 4px 20px #0008; }
-    .offer-summary .columns { gap:8px; }
-    .offer-summary .asset { padding:8px; overflow-wrap:anywhere; }
-    .offer-summary .footer { padding-top:8px; }
+    .offer-summary { padding:20px; border:1px solid #486b77; border-radius:18px; background:linear-gradient(140deg,#19313d,#0f202e); box-shadow:0 14px 35px #0005; margin-bottom:16px; }
+    .offer-summary .columns { gap:12px; }
+    .offer-summary .asset { padding:16px; overflow-wrap:anywhere; min-height:100px; }
+    .offer-summary .asset.receive { background:#163b36; border-color:#427664; }
+    .offer-summary .asset.give { background:#3a302b; border-color:#816553; }
+    .deal-title { font-size:21px; font-weight:800; letter-spacing:.01em; margin:2px 0 4px; }
+    .deal-eyebrow { text-transform:uppercase; letter-spacing:.12em; font-size:11px; color:#92bbca; font-weight:800; }
+    .deal-duration { font-size:14px; padding:8px 12px; border-radius:10px; color:#f3d9a1; background:#3e382c; }
+    .deal-side-label { font-size:14px; font-weight:800; margin-bottom:6px; }
+    .deal-summary { color:#e0eff1; line-height:1.55; }
+    .deal-impact { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+    .deal-impact span { font-size:12px; border:1px solid #5b787b; border-radius:7px; padding:5px 8px; background:#122c32; }
+    .deal-impact strong { color:#f6d79a; }
+    .war-context { margin:12px 0; padding:12px 14px; background:#203745; border-radius:12px; }
+    .war-track { height:9px; display:flex; border-radius:20px; overflow:hidden; background:#384858; margin:8px 0; }
+    .war-track .ours { background:#74ba9b; }
+    .war-track .theirs { background:#c87770; flex:1; }
+    .treaty-note { padding:10px 12px; background:#193e39; color:#d1ebdf; border-radius:9px; font-size:13px; margin-top:10px; }
+    .advanced-editor { margin:12px 0; border:1px solid #435767; border-radius:13px; background:#152939; padding:12px; }
+    .advanced-editor summary { cursor:pointer; font-weight:750; font-size:15px; padding:6px 3px; }
+    .advanced-editor[open] summary { margin-bottom:14px; }
+    .map-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:14px 0 8px; }
+    .map-heading h3 { font-size:16px; margin:0; }
+    .metric-grid { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
+    .metric-chip { font-size:12px; padding:5px 9px; border-radius:8px; background:#283f4a; border:1px solid #3e626b; }
+    .metric-chip strong { color:#eac98e; }
+    .decision-buttons { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+    .decision-buttons button { flex:1; min-width:140px; padding:11px; font-weight:750; }
     .review .danger { color:#ff9d91; }
     .event-feed { margin-bottom:14px; padding:12px; border:1px solid #3c5965; border-radius:12px; background:#122631; }
     .event-feed .event { padding:5px 0; border-bottom:1px solid #293f4b; }
@@ -204,8 +228,8 @@ export class GeopoliticsPanel extends LitElement {
     .panel {
       pointer-events: auto;
       margin-top: 10px;
-      width: min(780px, calc(100vw - 36px));
-      max-height: calc(100dvh - 190px);
+      width: min(840px, calc(100vw - 36px));
+      max-height: calc(100dvh - 160px);
       overflow: auto;
       background: #101d2bf5;
       border: 1px solid #526a77;
@@ -225,7 +249,7 @@ export class GeopoliticsPanel extends LitElement {
     }
     h3 {
       margin: 0 0 8px;
-      font-size: 14px;
+      font-size: 16px;
     }
     nav {
       display: flex;
@@ -360,6 +384,10 @@ export class GeopoliticsPanel extends LitElement {
       .columns {
         grid-template-columns: 1fr;
       }
+      .offer-summary { padding:12px; }
+      .deal-title { font-size:19px; }
+      .decision-buttons button { min-width:120px; }
+      .panel { max-height:calc(100dvh - 120px); }
       .body {
         padding: 12px;
       }
