@@ -765,18 +765,39 @@ export class Geopolitics {
                 )
             ) {
               const keepsLand = o.receive.tiles.length > 0;
-              const give = keepsLand
-                ? {
-                    ...o.receive,
-                    tiles: [],
-                    buildings: [],
-                    gold: Math.min(
-                      Number(p.gold()),
-                      o.receive.gold +
-                        Math.max(1000, Math.trunc(Number(p.gold()) / 8)),
-                    ),
-                  }
-                : { ...o.receive };
+              const difficulty = this.game.config().gameConfig().difficulty;
+              const warPressure = this.militaryPressure(p, this.game.player(o.from));
+              // A losing country may surrender a less valuable port rather
+              // than an essential harbor. Otherwise it offers compensation.
+              const requestedPorts = o.receive.buildings.filter((unitID) =>
+                this.game.unit(unitID)?.type() === UnitType.Port);
+              const alternatives = p.units(UnitType.Port)
+                .filter((u) => u.isActive() &&
+                  !requestedPorts.includes(u.id()) &&
+                  this.game.owner(u.tile()) === p &&
+                  !o.receive.tiles.includes(u.tile()))
+                .sort((x, y) =>
+                  this.portLeverage(x.tile(), p, this.game.player(o.from)) -
+                  this.portLeverage(y.tile(), p, this.game.player(o.from)) ||
+                  x.id() - y.id());
+              const alternate = keepsLand && requestedPorts.length > 0 &&
+                alternatives.length > 0 && warPressure > 10
+                  ? alternatives[0] : undefined;
+              const cashRate = difficulty === Difficulty.Easy ? 5 :
+                difficulty === Difficulty.Medium ? 7 :
+                difficulty === Difficulty.Hard ? 9 : 12;
+              const replacementGold = Math.min(Number(p.gold()),
+                o.receive.gold + Math.max(1000,
+                  Math.trunc(Number(p.gold()) / cashRate)));
+              const give = alternate
+                ? { ...o.receive, tiles: [alternate.tile()],
+                    buildings: this.game.units().filter((u) =>
+                      u.isActive() && STRUCTURES.has(u.type()) &&
+                      u.tile() === alternate.tile()).map((u) => u.id()),
+                    gold: o.receive.gold }
+                : keepsLand
+                  ? { ...o.receive, tiles: [], buildings: [], gold: replacementGold }
+                  : { ...o.receive };
               const receive = keepsLand
                 ? { ...o.give }
                 : {
