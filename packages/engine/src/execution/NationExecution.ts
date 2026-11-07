@@ -674,6 +674,12 @@ export class NationExecution implements Execution {
     const ownCapacity = this.mg.config().maxTroops(player);
     const ownStrength = Math.max(1, player.troops() + ownCapacity * 0.15);
     const runawayLeader = findRunawayLeader(this.mg);
+    // In Geopolitics, coalition commitments matter in real campaign planning.
+    // Preserve the normal aggression and feasibility gates in other modes.
+    const ownBloc = config.geopolitics ? this.mg.diplomacy.coalition(player.id()) : undefined;
+    const alliedNations = ownBloc?.members
+      .filter((id) => id !== player.id() && this.mg.hasPlayer(id))
+      .map((id) => this.mg.player(id)).filter((p) => p.isAlive()) ?? [];
     const candidates = player
       .nearby()
       .filter(
@@ -711,13 +717,31 @@ export class NationExecution implements Execution {
       const hostileBonus =
         player.relation(candidate) <= Relation.Hostile ? 5 : 0;
       const leaderBonus = candidate === runawayLeader ? 10 : 0;
+      const commonTargetBonus = ownBloc?.threat === candidate.id() ? 13 : 0;
+      const allyUnderAttack = alliedNations.some((ally) =>
+        ally.incomingAttacks().some((attack) =>
+          attack.isActive() && !attack.retreating() && attack.attacker() === candidate));
+      const allyCampaign = alliedNations.some((ally) =>
+        ally.outgoingAttacks().some((attack) =>
+          attack.isActive() && !attack.retreating() && attack.target() === candidate));
+      const coalitionSupport = allyUnderAttack ? 15 : allyCampaign ? 8 : 0;
+      // An enemy bloc has reserves beyond the visible frontline country.
+      const enemyBloc = config.geopolitics ? this.mg.diplomacy.coalition(candidate.id()) : undefined;
+      const enemyReinforcements = enemyBloc?.members
+        .filter((id) => id !== candidate.id() && this.mg.hasPlayer(id))
+        .reduce((total, id) => total + this.mg.player(id).troops(), 0) ?? 0;
+      const counterweight = Math.min(17, Math.trunc(
+        12 * enemyReinforcements / Math.max(1, ownStrength + enemyReinforcements)));
       const score =
         Math.min(3, relativeStrength) * 20 +
         territoryValue * 7 +
         exposedRatio * 9 +
         borderBonus +
         hostileBonus +
-        leaderBonus;
+        leaderBonus +
+        commonTargetBonus +
+        coalitionSupport -
+        counterweight;
 
       if (
         score > bestScore ||
