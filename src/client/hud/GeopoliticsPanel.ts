@@ -548,6 +548,22 @@ export class GeopoliticsPanel extends LitElement {
       buildings,
     };
   }
+  /** Select an operational port and its tile, without accidentally ceding a large region. */
+  private toggleExactPort(side: "give" | "receive", unitID: number, tile: number) {
+    const current = this[side];
+    const selected = current.buildings.includes(unitID);
+    const tiles = new Set(current.tiles);
+    if (selected) tiles.delete(tile);
+    else tiles.add(tile);
+    const buildings = this.game.units()
+      .filter((u) => structures.has(u.type()) && tiles.has(u.tile()))
+      .map((u) => u.id());
+    this[side] = {
+      ...current,
+      tiles: [...tiles].sort((a, b) => a - b),
+      buildings,
+    };
+  }
   private clear(side: "give" | "receive") {
     this[side] = { ...this[side], tiles: [], buildings: [] };
   }
@@ -626,7 +642,9 @@ export class GeopoliticsPanel extends LitElement {
                     .checked=${a.buildings.includes(u.id())}
                     ?disabled=${!this.editing}
                     @change=${() => {
-                      this.region(u.tile(), side, a.buildings.includes(u.id()));
+                      if (u.type() === UnitType.Port)
+                        this.toggleExactPort(side, u.id(), u.tile());
+                      else this.region(u.tile(), side, a.buildings.includes(u.id()));
                     }}
                   /><span
                     >${translateText(`unit_type.${u.type().toLowerCase().replace(/ /g, "_")}`)}
@@ -644,6 +662,9 @@ export class GeopoliticsPanel extends LitElement {
               </div>`,
           )}
       </div>
+      ${a.buildings.some((id) => this.game.unit(id)?.type() === UnitType.Port)
+        ? html`<p class="notice">Puerto incluido: el acuerdo entrega su casilla y el puerto operativo al nuevo propietario. Permite proyectar tropas desde esta costa.</p>`
+        : nothing}
       <p class="muted">
         ${t("territory_impact")}:
         ${p ? Math.round((a.tiles.length / Math.max(1, p.numTilesOwned())) * 1000) / 10 : 0}%
