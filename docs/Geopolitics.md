@@ -70,3 +70,19 @@ The earlier heading filter left the vessel position chasing independent grid ste
 The merchant has a rounded stern, tapered forecastle, aft bridge with windows/funnel, recessed working deck and separated cargo bays in honey, muted teal and terracotta. The country-colored hull and the compact fleet scales remain. No assets or per-ship draw calls were added.
 
 Validation includes zero lateral motion/yaw on both one-cell and two-cell diagonal staircases, coherent curve tangents at real turns, no land-obstacle shortcuts, original plan timing, the actual fleet instance buffer receiving the new route, unplanned-warship stability and the existing 10,000-unit batch test. A controlled before/after animation uses the actual GPU shaders; it is not a recording of a full browser match.
+
+
+## Diplomatic council V2 (November 2026)
+
+This iteration makes diplomacy **decision-first** while preserving the simulation ruleset and Classic game:
+- Incoming offers open with the proposer, treaty type, real term duration, the current player's actual gains/losses, a reserve-troop comparison and exact territory highlights. The older full editor is collapsed by default.
+- The summary accounts for **coalition third-party approvers**, who vote but do not personally pay or receive the bilateral deal's assets. Coalition members, approvals, shared target and duration are shown.
+- Geographic selection remains exact, with zero-radius single-tile selection, larger brush selection, clearing either side, and transferred-port tile/building ownership.
+- Quantified asset-share indicators state the percentage of the **owner's** ports, cities, mines, oil wells, gas plants, farms, factories, defense posts, SAMs, silos, gold, troops and land included in the proposed deal. Resource sites and quality display when affected. These are factual asset shares, **not simulated market prices**.
+- PlayerPanel (opened by right click) provides Negotiate, Demand Territory, Form Coalition, and Treaties & Info. PlayerInfoOverlay has a negotiation shortcut. A treaty dossier shows current relationship, bilateral treaty and time remaining, bloc membership, objective and pending deals.
+- Peace proposals may specify 1800 or 3000 simulation ticks (3 or 5 minutes); the selected duration is persisted with the offer, transmitted as an optional action field, preserved by counteroffers and applied on acceptance. Older offers retain the three-minute default.
+- New strings for the council are localized in Spanish and English. Other supported languages can fall back to English where translations are unavailable.
+- Negotiation previews and the overlay use colors from the **viewing player's** perspective. Previous sender-viewpoint colors could misstate received and ceded land.
+
+### QA before release
+Focused tests added for duration, snapshot, contextual opening, exact asset impact, sender/recipient perspective and third-party coalition voting. As of authoring, those test files are **committed but not executed** in this environment. Run typecheck, Vite build, Geopolitics engine tests, panel interaction tests, save/restore, and manual checks in the browser at various resolutions, particularly right-click menus and territory editing. This release must not be called fully validated until they pass.
