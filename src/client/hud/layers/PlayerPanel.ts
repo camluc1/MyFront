@@ -1057,6 +1057,26 @@ export class PlayerPanel extends LitElement implements Controller {
               </div>`
             : ""
         }
+        ${my !== other && this.g.config().gameConfig().geopolitics
+          ? html`<section class="rounded-xl border border-teal-800/70 bg-slate-900/60 p-3" aria-label="Diplomacia geopolítica">
+            <p class="mb-2 text-sm font-semibold text-teal-200">Diplomacia · ${other.name()}</p>
+            <div class="grid grid-cols-2 gap-2">
+              ${([
+                ["Negociar", "offer"],
+                ["Exigir territorio", "demand"],
+                ["Crear coalición", "coalition"],
+                ["Tratados e información", "info"],
+              ] as const).map(([label, action]) => html`<button
+                class="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm font-medium text-slate-100 hover:border-teal-400 hover:bg-slate-700"
+                @click=${(e: MouseEvent) => {
+                  e.stopPropagation();
+                  window.dispatchEvent(new CustomEvent("geopolitics:open-diplomacy",
+                    { detail: { target: other.id(), action } }));
+                  this.hide();
+                }}>${label}</button>`)}
+            </div>
+          </section>`
+          : ""}
         ${this.renderModeration(my, other, this.isAdminRole)}
       </div>
     `;
