@@ -6,6 +6,7 @@ import {
 } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import {
+  diplomaticPersonality,
   DiplomacyAction,
   DiplomacyState,
   DiplomaticAssets,
@@ -52,6 +53,18 @@ export class Geopolitics {
           ((t.a === a && t.b === b) || (t.b === a && t.a === b)),
       )
     );
+  }
+  personality(player: Player) {
+    return diplomaticPersonality(
+      this.game.config().gameConfig().geopoliticsSeed,
+      player.smallID(),
+    );
+  }
+  private feedback(player: Player, reason: string) {
+    if (player.type() !== PlayerType.Human) return;
+    this.state.feedback ??= {};
+    this.state.feedback[player.id()] = { tick: this.game.ticks(), reason };
+    this.emit();
   }
   private neighbors(player: Player): Player[] {
     const ids = new Set<string>();
@@ -202,29 +215,21 @@ export class Geopolitics {
     }
     if (action.action === "offer") {
       if (!other.isAlive() || !action.kind || !action.give || !action.receive)
-        return;
+        return this.feedback(actor, "invalid");
       if (
         action.ultimatum &&
         (this.friendly(id, other.id()) ||
           actor.troops() < other.troops() * 2 ||
           !this.neighbors(actor).includes(other))
       )
-        return;
-      if (
-        this.state.offers.filter(
-          (o) => o.status === "pending" && (o.from === id || o.to === id),
-        ).length >= 6
-      )
-        return;
-      if (this.state.offers.filter((o) => o.status === "pending").length >= 32)
-        return;
+        return this.feedback(actor, "ultimatum");
       if (
         action.threat &&
         (!this.game.hasPlayer(action.threat) ||
           !this.game.player(action.threat).isAlive() ||
           this.participants(id, other.id()).includes(action.threat))
       )
-        return;
+        return this.feedback(actor, "threat");
       const previous =
         action.counterTo === undefined
           ? undefined
@@ -235,15 +240,28 @@ export class Geopolitics {
                 o.to === id &&
                 o.from === other.id(),
             );
-      if (action.counterTo !== undefined && !previous) return;
+      if (action.counterTo !== undefined && !previous)
+        return this.feedback(actor, "expired");
+      if (previous && (previous.round ?? 0) >= 3)
+        return this.feedback(actor, "rounds");
+      const pending = this.state.offers.filter(
+        (o) => o.status === "pending" && o !== previous,
+      );
+      if (
+        pending.length >= 32 ||
+        pending.filter((o) => o.from === id || o.to === id).length >= 6 ||
+        pending.filter((o) => o.from === other.id() || o.to === other.id())
+          .length >= 6
+      )
+        return this.feedback(actor, "inbox_full");
       const key = `${id}:${other.id()}`;
       if (!previous && (this.state.cooldowns[key] ?? 0) > this.game.ticks())
-        return;
+        return this.feedback(actor, "cooldown");
       if (
         !this.validAssets(actor, action.give) ||
         !this.validAssets(other, action.receive)
       )
-        return;
+        return this.feedback(actor, "assets");
       const required =
         action.kind === "coalition"
           ? this.participants(id, other.id())
@@ -253,7 +271,15 @@ export class Geopolitics {
         (action.kind === "coalition" &&
           this.coalition(id)?.members.includes(other.id()))
       )
-        return;
+        return this.feedback(actor, "coalition");
+      if (
+        required.some(
+          (member) =>
+            pending.filter((o) => o.required.includes(member)).length >= 6,
+        )
+      )
+        return this.feedback(actor, "inbox_full");
+      if (this.state.feedback) delete this.state.feedback[id];
       if (previous) previous.status = "countered";
       this.state.offers.push({
         id: this.state.nextID++,
@@ -271,6 +297,7 @@ export class Geopolitics {
         enforced: false,
         approvals: [id],
         required,
+        round: previous ? (previous.round ?? 0) + 1 : 0,
       });
       this.state.cooldowns[key] = this.game.ticks() + 300;
       this.log(id, other.id(), "offer");
@@ -288,12 +315,14 @@ export class Geopolitics {
       return;
     if (action.action === "withdraw" && offer.from === id) {
       offer.status = "withdrawn";
+      this.log(id, other.id(), "withdrawn");
       this.emit();
       return;
     }
     if (action.action === "reject" && offer.from !== id) {
       offer.status = "rejected";
       offer.reason = "declined";
+      this.log(id, other.id(), "rejected");
       this.emit();
       return;
     }
@@ -378,11 +407,24 @@ export class Geopolitics {
         p.troops() +
           p.numTilesOwned() * 3 +
           p.units(UnitType.DefensePost).length * 8000 +
-          p.units(UnitType.Warship).length * 10000,
+          p.units(UnitType.Warship).length * 10000 +
+          p
+            .units(UnitType.MissileSilo)
+            .reduce((n, u) => n + u.level() * 20000, 0) +
+          p.units([UnitType.AtomBomb, UnitType.HydrogenBomb, UnitType.MIRV])
+            .length *
+            60000,
       );
     const mine = power(recipient),
       theirs = power(sender);
-    const fronts = recipient.incomingAttacks().length;
+    const fronts = new Set(
+      recipient
+        .incomingAttacks()
+        .filter((a) => a.isActive() && !a.retreating())
+        .map((a) => a.attacker().id()),
+    ).size;
+    const recipientNeighbors = this.neighbors(recipient);
+    const senderNeighbors = this.neighbors(sender);
     const threat = this.game
       .players()
       .filter(
@@ -390,13 +432,11 @@ export class Geopolitics {
           p !== sender &&
           p !== recipient &&
           !this.friendly(p.id(), recipient.id()) &&
-          this.neighbors(recipient).includes(p),
+          recipientNeighbors.includes(p),
       )
       .sort((a, b) => power(b) - power(a))[0];
     const commonThreat =
-      !!threat &&
-      power(threat) > mine &&
-      this.neighbors(sender).includes(threat);
+      !!threat && power(threat) > mine && senderNeighbors.includes(threat);
     const value = (assets: DiplomaticAssets) =>
       assets.gold +
       assets.troops * 3 +
@@ -405,7 +445,21 @@ export class Geopolitics {
         (n, id) => n + (this.game.unit(id)?.level() ?? 1) * 10000,
         0,
       );
-    const balance = value(o.give) - value(o.receive);
+    // An existing coalition member does not receive the bilateral payment.
+    const balance =
+      recipient.id() === o.to ? value(o.give) - value(o.receive) : 0;
+    const ceded = recipient.id() === o.to ? o.receive : emptyAssets();
+    const surrendered = ceded.buildings
+      .map((id) => this.game.unit(id))
+      .filter((u) => u !== undefined);
+    const losesLastPort =
+      recipient.units(UnitType.Port).length > 0 &&
+      surrendered.filter((u) => u.type() === UnitType.Port).length ===
+        recipient.units(UnitType.Port).length;
+    const losesLastCity =
+      recipient.units(UnitType.City).length > 0 &&
+      surrendered.filter((u) => u.type() === UnitType.City).length ===
+        recipient.units(UnitType.City).length;
     const wealth = Math.max(
       10000,
       Number(recipient.gold()) +
@@ -413,7 +467,7 @@ export class Geopolitics {
         recipient.numTilesOwned() * 500,
     );
     const concession = Math.trunc((balance * 100) / wealth);
-    const personality = recipient.smallID() % 4; // expansionist, trader, pragmatic, cautious
+    const personality = this.personality(recipient); // expansionist, trader, pragmatic, cautious
     let score =
       12 +
       Math.trunc(m.trust / 3) -
@@ -423,6 +477,8 @@ export class Geopolitics {
       15 +
       concession;
     if (commonThreat) score += 35;
+    if (losesLastPort) score -= 30;
+    if (losesLastCity) score -= 45;
     if (o.ultimatum && theirs > mine * 2) score += 15;
     if (
       this.game.config().gameConfig().difficulty === Difficulty.Hard ||
@@ -434,20 +490,25 @@ export class Geopolitics {
     if (personality === 3 && o.kind === "coalition") score -= 12;
     if (o.kind === "truce") score += 12;
     if (o.kind === "coalition" && !commonThreat) score -= 15;
-    if (o.receive.tiles.length * 3 > recipient.numTilesOwned()) score -= 30;
+    if (ceded.tiles.length * 3 > recipient.numTilesOwned()) score -= 30;
     return {
       score,
-      reason: commonThreat
-        ? "common_threat"
-        : fronts > 0
-          ? "multiple_fronts"
-          : concession < -10
-            ? "cost"
-            : m.betrayal > 0
-              ? "distrust"
-              : score >= 20
-                ? "balanced"
-                : "insufficient",
+      reason:
+        losesLastPort || losesLastCity
+          ? "strategic_assets"
+          : commonThreat
+            ? threat!.units(UnitType.MissileSilo).length > 0
+              ? "nuclear_threat"
+              : "common_threat"
+            : fronts > 0
+              ? "multiple_fronts"
+              : concession < -10
+                ? "cost"
+                : m.betrayal > 0
+                  ? "distrust"
+                  : score >= 20
+                    ? "balanced"
+                    : "insufficient",
     };
   }
   tick() {
@@ -460,7 +521,8 @@ export class Geopolitics {
         o.reason = "expired";
       }
     for (const t of this.state.treaties)
-      if (t.until === tick)
+      if (t.until === tick) {
+        this.log(t.a, t.b, "treaty_expired");
         for (const [a, b] of [
           [t.a, t.b],
           [t.b, t.a],
@@ -469,6 +531,7 @@ export class Geopolitics {
           m.kept++;
           m.trust = Math.min(100, m.trust + 10);
         }
+      }
     this.state.treaties = this.state.treaties.filter((t) => t.until > tick);
     this.state.coalitions = this.state.coalitions
       .filter((c) => c.until > tick)
@@ -512,7 +575,8 @@ export class Geopolitics {
               this.act(p, { action: "accept", target: o.from, offerID: o.id });
             else if (
               id === o.to &&
-              evaluation.score >= -10 &&
+              (evaluation.score >= -10 ||
+                evaluation.reason === "strategic_assets") &&
               !this.state.log
                 .slice(-10)
                 .some(
@@ -522,15 +586,31 @@ export class Geopolitics {
                     l.event === "counter",
                 )
             ) {
-              const give = { ...o.receive },
-                receive = {
-                  ...o.give,
-                  gold: Math.min(
-                    Number(this.game.player(o.from).gold()),
-                    o.give.gold +
-                      Math.max(1000, Math.trunc(Number(p.gold()) / 10)),
-                  ),
-                };
+              const keepsLand = o.receive.tiles.length > 0;
+              const give = keepsLand
+                ? {
+                    ...o.receive,
+                    tiles: [],
+                    buildings: [],
+                    gold: Math.min(
+                      Number(p.gold()),
+                      o.receive.gold +
+                        Math.max(1000, Math.trunc(Number(p.gold()) / 8)),
+                    ),
+                  }
+                : { ...o.receive };
+              const receive = keepsLand
+                ? { ...o.give }
+                : {
+                    ...o.give,
+                    gold: Math.min(
+                      1000000000000,
+                      Number(this.game.player(o.from).gold()),
+                      o.give.gold +
+                        Math.max(1000, Math.trunc(Number(p.gold()) / 10)),
+                    ),
+                  };
+              const countBefore = this.state.offers.length;
               this.act(p, {
                 action: "offer",
                 target: o.from,
@@ -540,7 +620,14 @@ export class Geopolitics {
                 counterTo: o.id,
                 threat: o.threat,
               });
-              this.log(id, o.from, "counter");
+              if (this.state.offers.length > countBefore) {
+                if (keepsLand)
+                  this.state.offers[this.state.offers.length - 1].reason =
+                    "retain_land";
+                this.log(id, o.from, "counter");
+              } else {
+                o.status = "rejected";
+              }
             } else {
               o.status = "rejected";
             }
@@ -565,7 +652,12 @@ export class Geopolitics {
       .sort((a, b) => a.smallID() - b.smallID());
     if (!players.length) return;
     // One AI country per interval; cost stays bounded on large maps.
-    const a = players[Math.trunc(this.game.ticks() / 100) % players.length];
+    const a =
+      players[
+        (Math.trunc(this.game.ticks() / 100) +
+          (this.game.config().gameConfig().geopoliticsSeed ?? 0)) %
+          players.length
+      ];
     if (
       a.type() === PlayerType.Human ||
       this.state.offers.some(
@@ -584,7 +676,7 @@ export class Geopolitics {
     );
     if (
       vulnerable &&
-      a.smallID() % 4 === 0 &&
+      this.personality(a) === 0 &&
       (this.state.cooldowns[`ultimatum:${a.id()}`] ?? 0) <= this.game.ticks()
     ) {
       this.act(a, {
@@ -613,7 +705,7 @@ export class Geopolitics {
       : a.incomingAttacks().length
         ? "peace"
         : "nonaggression";
-    if (kind === "nonaggression" && a.smallID() % 4 === 0) return;
+    if (kind === "nonaggression" && this.personality(a) === 0) return;
     const give = emptyAssets();
     if (kind === "peace") give.gold = Math.trunc(Number(a.gold()) / 12);
     this.act(a, {

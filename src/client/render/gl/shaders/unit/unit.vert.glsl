@@ -50,7 +50,7 @@ void main() {
   // Extra space behind a hull holds its wake, in the same instanced quad.
   vStrategic = 0.0;
   if (vessel) {
-    scale = 1.65 * (atlasCol > 1.5 ? uFleetWarshipScale : (atlasCol > 0.5 ? 0.78 : 1.0));
+    scale = atlasCol > 1.5 ? uFleetWarshipScale : (atlasCol > 0.5 ? 0.64 : 0.82);
     // Screen-space readability, bounded so distant fleets do not cover the map.
     float pixelsPerTile = length(uCamera[0].xy * uViewport * 0.5);
     float hullFraction = atlasCol < 0.5 ? 0.30 : (atlasCol < 1.5 ? 0.43 : 0.685);

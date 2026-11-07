@@ -2,30 +2,41 @@ import { describe, expect, it } from "vitest";
 import { VesselMotion } from "../../../../src/client/render/gl/utils/VesselMotion";
 
 describe("vessel trajectory and body alignment", () => {
-  it("keeps the hull aligned with actual rendered travel", () => {
+  it("limits real turns and reaches the new course without snapping", () => {
+    const m = new VesselMotion(1, 0, 0, 0, 0, 100);
+    let last = m.angle;
+    for (let tick = 1; tick < 70; tick++) {
+      m.update(
+        tick < 20 ? tick : 20,
+        tick < 20 ? 0 : tick - 20,
+        tick * 100,
+        100,
+      );
+      for (let f = 0; f < 10; f++) {
+        m.sample(tick * 100 + f * 10);
+        expect(Math.abs(m.angle - last)).toBeLessThanOrEqual(
+          (Math.PI / 2) * 0.02 + 1e-6,
+        );
+        last = m.angle;
+      }
+    }
+    expect(m.angle).toBeCloseTo(Math.PI / 2, 2);
+  });
+  it("does not rock on uneven staircase routes interspersed with stationary ticks", () => {
     const m = new VesselMotion(1, 0, 0, 0, 0, 100);
     let x = 1,
       y = 0;
-    for (let tick = 1; tick < 50; tick++) {
-      if (tick < 20) {
-        if (tick % 2) y++;
-        else x++;
-      } else y++;
+    const angles: number[] = [];
+    for (let tick = 1; tick < 140; tick++) {
+      if (tick % 3 === 0) x++;
+      else if (tick % 3 === 1) y++;
       m.update(x, y, tick * 100, 100);
-      for (let f = 1; f < 10; f++) {
+      for (let f = 0; f < 10; f++) {
         m.sample(tick * 100 + f * 10);
-        const px = m.x,
-          py = m.y;
-        m.sample(tick * 100 + f * 10 + 0.01);
-        const dx = m.x - px,
-          dy = m.y - py;
-        if (Math.hypot(dx, dy) > 1e-8)
-          expect(
-            (dx * Math.cos(m.angle) + dy * Math.sin(m.angle)) /
-              Math.hypot(dx, dy),
-          ).toBeGreaterThan(0.999);
+        if (tick > 80) angles.push(m.angle);
       }
     }
+    expect(Math.max(...angles) - Math.min(...angles)).toBeLessThan(0.015);
   });
   it("removes repeating grid-step rocking on a straight diagonal course", () => {
     const m = new VesselMotion(1, 0, 0, 0, 0, 100);

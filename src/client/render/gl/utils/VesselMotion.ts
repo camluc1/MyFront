@@ -16,6 +16,10 @@ export class VesselMotion {
   private changedAt: number;
   private sampledAt: number;
   private duration: number;
+  private course: number[];
+  private courseAngle: number;
+  private lastCourseAngle = 0;
+  private stableCourseSamples = 0;
 
   constructor(
     x: number,
@@ -35,6 +39,8 @@ export class VesselMotion {
     this.lastInputY = y;
     this.updatedAt = now;
     this.angle = Math.atan2(y - lastY, x - lastX);
+    this.course = [lastX, lastY, x, y];
+    this.courseAngle = this.angle;
     this.changedAt = this.sampledAt = now;
     this.duration = duration;
   }
@@ -43,7 +49,36 @@ export class VesselMotion {
     if (now === this.updatedAt) return;
     this.sample(now);
     this.updatedAt = now;
-    if (x !== this.lastInputX || y !== this.lastInputY) this.changedAt = now;
+    if (x !== this.lastInputX || y !== this.lastInputY) {
+      if (now - this.changedAt > Math.max(500, this.duration * 3))
+        this.course = [this.lastInputX, this.lastInputY];
+      this.changedAt = now;
+      this.course.push(x, y);
+      if (this.course.length > 26) this.course.splice(0, 2);
+      const dx = x - this.course[0],
+        dy = y - this.course[1];
+      if (Math.hypot(dx, dy) > 0.5) {
+        const desired = Math.atan2(dy, dx);
+        const delta = Math.atan2(
+          Math.sin(desired - this.courseAngle),
+          Math.cos(desired - this.courseAngle),
+        );
+        // Ignore the alternating bearings produced by raster stairs. Actual
+        // bends accumulate beyond the hysteresis and turn the hull smoothly.
+        this.stableCourseSamples =
+          Math.abs(
+            Math.atan2(
+              Math.sin(desired - this.lastCourseAngle),
+              Math.cos(desired - this.lastCourseAngle),
+            ),
+          ) < 0.002
+            ? this.stableCourseSamples + 1
+            : 0;
+        this.lastCourseAngle = desired;
+        if (Math.abs(delta) > Math.PI / 15 || this.stableCourseSamples >= 4)
+          this.courseAngle = desired;
+      }
+    }
     this.lastInputX = x;
     this.lastInputY = y;
     this.history.splice(0, 2);
@@ -71,10 +106,22 @@ export class VesselMotion {
     this.y = this.targetY + (oy + cy * dt) * decay;
     this.vx = (this.vx - omega * cx * dt) * decay;
     this.vy = (this.vy - omega * cy * dt) * decay;
-    // The hull and wake follow the actual rendered velocity. Never rotate an
-    // independently filtered body while it is travelling sideways.
-    if (Math.hypot(this.vx, this.vy) > 0.001)
-      this.angle = Math.atan2(this.vy, this.vx);
+    // Estimate course from distinct navigation positions, not instantaneous
+    // spring velocity: repeated ticks and uneven grid stairs must not rock a hull.
+    if (
+      now - this.changedAt <= this.duration * 2 &&
+      Math.hypot(this.vx, this.vy) > 0.001
+    ) {
+      const delta = Math.atan2(
+        Math.sin(this.courseAngle - this.angle),
+        Math.cos(this.courseAngle - this.angle),
+      );
+      const step = delta * (1 - Math.exp(-5 * dt));
+      this.angle += Math.max(
+        (-Math.PI / 2) * dt,
+        Math.min((Math.PI / 2) * dt, step),
+      );
+    }
   }
 
   wake(now: number): number {

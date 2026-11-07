@@ -175,3 +175,46 @@ it("compresses exact transfer highlights without filling gaps or isolated enclav
   );
   expect(runs.length).toBe(3);
 });
+
+it("lists infrastructure by level and exposes the selected territorial impact", async () => {
+  const b = game.player("b");
+  const first = b.buildUnit(UnitType.City, game.ref(2, 1), {});
+  const second = b.buildUnit(UnitType.Port, game.ref(8, 1), {});
+  second.increaseLevel();
+  await click("title");
+  await click("negotiate");
+  const rows = [
+    ...panel.shadowRoot!.querySelectorAll(".receive .buildings > .building"),
+  ];
+  expect(rows[0].textContent).toContain("geopolitics.level 2");
+  (rows[0].querySelector("input") as HTMLInputElement).click();
+  await panel.updateComplete;
+  expect(panel.shadowRoot!.textContent).toContain(
+    "geopolitics.territory_impact",
+  );
+  expect(
+    panel.shadowRoot!.querySelectorAll(
+      'button[aria-label="geopolitics.locate"]',
+    ).length,
+  ).toBeGreaterThan(0);
+  expect(first.level()).toBe(1);
+});
+
+it("prepares a port purchase without choosing territory on the player's behalf", async () => {
+  const b = game.player("b");
+  b.buildUnit(UnitType.Port, game.ref(8, 1), {});
+  await click("title");
+  await click("negotiate");
+  await click("approach_infrastructure");
+  const gold = panel.shadowRoot!.querySelector<HTMLInputElement>(
+    ".give input[type=number]",
+  )!;
+  expect(Number(gold.value)).toBe(
+    Math.floor(Number(game.player("a").gold()) / 10),
+  );
+  expect(
+    panel.shadowRoot!.querySelector<HTMLInputElement>(
+      ".receive .buildings input",
+    )!.checked,
+  ).toBe(false);
+});

@@ -10,6 +10,7 @@ import {
 import type { SnapshotHeader } from "@openfront/engine-api/game/SnapshotHeader";
 import { TeamCountConfig } from "@openfront/engine-api/Schemas";
 import { DoomsdayClockSpeed } from "@openfront/engine-lib/game/DoomsdayClock";
+import { simpleHash } from "@openfront/engine-lib/Util";
 import { UserMeResponse } from "@openfront/shared/ApiSchemas";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { generateID } from "@openfront/shared/SharedUtil";
@@ -1382,6 +1383,9 @@ export class SinglePlayerModal extends BaseModal {
             gameType: GameType.Singleplayer,
             gameMode: this.geopolitics ? GameMode.FFA : this.gameMode,
             geopolitics: this.geopolitics,
+            geopoliticsSeed: this.geopolitics
+              ? simpleHash(gameID) >>> 0
+              : undefined,
             playerTeams: this.teamCount,
             difficulty: this.selectedDifficulty,
             nationPeaceTimeMinutes: this.nationPeaceTimeMinutes,

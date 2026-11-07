@@ -86,6 +86,7 @@ describe("Geopolitics launch", () => {
     expect(events).toHaveLength(1);
     const c = events[0].gameStartInfo.config;
     expect(c.geopolitics).toBe(true);
+    expect(Number.isInteger(c.geopoliticsSeed)).toBe(true);
     expect(c.gameType).toBe(GameType.Singleplayer);
     expect(c.gameMode).toBe(GameMode.FFA);
     expect(c.customAllianceDuration).toBeUndefined();

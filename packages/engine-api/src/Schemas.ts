@@ -347,6 +347,7 @@ export const GameConfigSchema = z.object({
   // ids are private lobby ids, which are join secrets.
   pool: PoolConfigSchema.optional(),
   geopolitics: z.boolean().optional(),
+  geopoliticsSeed: zb.uint().optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby

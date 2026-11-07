@@ -228,11 +228,11 @@
     "navalPulsePeriod": 1.8,
     "navalPulseRadius": 0.94,
     "trainScale": 0.4,
-    "transportMinPixels": 10,
-    "merchantMinPixels": 8,
-    "warshipMinPixels": 18,
-    "fleetMaxEnlargement": 3,
-    "warshipScale": 1.25,
+    "transportMinPixels": 5,
+    "merchantMinPixels": 4,
+    "warshipMinPixels": 8,
+    "fleetMaxEnlargement": 1.5,
+    "warshipScale": 1.1,
     "motionResponse": 18,
     "wakeFadeMs": 400,
     "flickerSpeed": 0.3,
@@ -372,11 +372,7 @@
     "gradientSolidEnd": 0.1
   },
   "smallPlayerGlow": {
-    "color": [
-      1,
-      0.12,
-      0.1
-    ],
+    "color": [1, 0.12, 0.1],
     "alpha": 0.9,
     "pulseSpeed": 0.003,
     "strength": 0.35

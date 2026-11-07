@@ -12,6 +12,7 @@ import { diffSnapshots } from "./util/Snapshot";
 it("runs strategic AI with attacks and construction, then resumes identically", async () => {
   const start = scriptedGameStart({
     geopolitics: true,
+    geopoliticsSeed: 17432,
     gameType: GameType.Singleplayer,
     bots: 12,
     nations: 6,

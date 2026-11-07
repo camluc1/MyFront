@@ -51,6 +51,7 @@ export const DiplomaticOfferSchema = z.object({
   enforced: z.boolean().optional(),
   approvals: z.array(z.string()),
   required: z.array(z.string()),
+  round: zb.uint({ max: 3 }).optional(),
 });
 export type DiplomaticOffer = z.infer<typeof DiplomaticOfferSchema>;
 export const DiplomacyStateSchema = z.object({
@@ -102,6 +103,9 @@ export const DiplomacyStateSchema = z.object({
       event: z.string(),
     }),
   ),
+  feedback: z
+    .record(z.string(), z.object({ tick: z.number(), reason: z.string() }))
+    .optional(),
 });
 export type DiplomacyState = z.infer<typeof DiplomacyStateSchema>;
 export const emptyAssets = (): DiplomaticAssets => ({
@@ -127,3 +131,15 @@ export const TREATY_TICKS: Record<TreatyKind, number> = {
   peace: 1800,
   coalition: 3000,
 };
+
+/** A match seed changes preferences without making saved/replayed decisions random. */
+export function diplomaticPersonality(
+  seed: number | undefined,
+  smallID: number,
+): number {
+  if (seed === undefined) return smallID % 4; // Keep previously saved campaigns stable.
+  let h = (seed ^ Math.imul(smallID, 0x9e3779b1)) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+  return (h ^ (h >>> 16)) >>> 30;
+}

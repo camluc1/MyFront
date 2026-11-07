@@ -1,5 +1,6 @@
 import { Cell, UnitType } from "@openfront/engine-api/game/GameTypes";
 import {
+  diplomaticPersonality,
   DiplomacyAction,
   DiplomaticOffer,
   emptyAssets,
@@ -8,7 +9,7 @@ import {
 import { EventBus } from "@openfront/shared/EventBus";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { TransformHandler } from "../TransformHandler";
+import { TransformHandler, GoToPositionEvent } from "../TransformHandler";
 import {
   SendDonateGoldIntentEvent,
   SendDonateTroopsIntentEvent,
@@ -58,7 +59,9 @@ export class GeopoliticsPanel extends LitElement {
   @state() private selected: DiplomaticOffer | null = null;
   @state() private tab = "countries";
   @state() private side: "give" | "receive" = "receive";
-  @state() private radius = 6;
+  @state() private radius = 3;
+  @state() private search = "";
+  @state() private buildingType = "all";
   @state() private editing = false;
   @state() private ultimatum = false;
   @state() private threat = "";
@@ -69,6 +72,7 @@ export class GeopoliticsPanel extends LitElement {
   private frame = 0;
   private previewBase: HTMLCanvasElement | null = null;
   private previewTick = -1;
+  private lastFeedbackKey = "";
   private runCache = new Map<
     readonly number[],
     ReturnType<typeof transferRuns>
@@ -353,7 +357,19 @@ export class GeopoliticsPanel extends LitElement {
       "position:fixed;inset:0;pointer-events:none;z-index:1099;width:100vw;height:100vh";
     this.overlay.setAttribute("aria-hidden", "true");
     document.body.append(this.overlay);
-    this.timer = setInterval(() => this.requestUpdate(), 1000);
+    this.timer = setInterval(() => {
+      const feedback = this.game.diplomacy.feedback?.[this.mine()?.id() ?? ""];
+      const feedbackKey = feedback ? `${feedback.tick}:${feedback.reason}` : "";
+      if (feedback && feedbackKey !== this.lastFeedbackKey) {
+        this.lastFeedbackKey = feedbackKey;
+        this.notice = t("feedback_" + feedback.reason);
+        if (!this.selected && this.tab === "inbox") {
+          this.editing = true;
+          this.tab = "negotiate";
+        }
+      }
+      this.requestUpdate();
+    }, 1000);
     this.frame = requestAnimationFrame(() => this.drawOverlay());
   }
   disconnectedCallback() {
@@ -501,7 +517,8 @@ export class GeopoliticsPanel extends LitElement {
     const p = this.game.players().find((p) => p.id() === owner);
     const units = this.game
       .units()
-      .filter((u) => u.owner().id() === owner && structures.has(u.type()));
+      .filter((u) => u.owner().id() === owner && structures.has(u.type()))
+      .sort((a, b) => b.level() - a.level() || a.id() - b.id());
     return html`<section class="asset ${side}">
       <h3>${this.selected ? this.name(owner ?? "") : t(side)}</h3>
       <div class="muted">
@@ -512,29 +529,61 @@ export class GeopoliticsPanel extends LitElement {
       <div class="fields">
         ${(["gold", "troops"] as const).map((key) => html`<label>${t(key)}<input aria-label=${t(side) + " " + t(key)} type="number" min="0" step="100" .value=${String(a[key])} ?disabled=${!this.editing} @change=${(e: Event) => this.quantity(side, key, e)} /></label>`)}
       </div>
+      ${
+        this.editing
+          ? html`<label
+              >${t("filter_buildings")}<select
+                .value=${this.buildingType}
+                @change=${(e: Event) => (this.buildingType = (e.target as HTMLSelectElement).value)}
+              >
+                <option value="all">${t("all_buildings")}</option>
+                ${[...structures].map((type) => html`<option value=${type}>${translateText(`unit_type.${type.toLowerCase().replace(/ /g, "_")}`)}</option>`)}
+              </select></label
+            >`
+          : nothing
+      }
       <div class="buildings">
         ${units
-          .filter((u) => this.editing || a.buildings.includes(u.id()))
+          .filter(
+            (u) =>
+              a.buildings.includes(u.id()) ||
+              (this.editing &&
+                (this.buildingType === "all" ||
+                  this.buildingType === u.type())),
+          )
           .map(
             (u) =>
-              html`<label class="building"
-                ><input
-                  type="checkbox"
-                  .checked=${a.buildings.includes(u.id())}
-                  ?disabled=${!this.editing}
-                  @change=${() => {
-                    this.region(u.tile(), side, a.buildings.includes(u.id()));
-                  }}
-                /><span
-                  >${translateText(`unit_type.${u.type().toLowerCase().replace(/ /g, "_")}`)}
-                  <b class="gold">${t("level")} ${u.level()}</b
-                  ><span class="muted">
-                    · ${this.game.x(u.tile())}, ${this.game.y(u.tile())}</span
-                  ></span
-                ></label
-              >`,
+              html`<div class="building">
+                <label class="building"
+                  ><input
+                    type="checkbox"
+                    .checked=${a.buildings.includes(u.id())}
+                    ?disabled=${!this.editing}
+                    @change=${() => {
+                      this.region(u.tile(), side, a.buildings.includes(u.id()));
+                    }}
+                  /><span
+                    >${translateText(`unit_type.${u.type().toLowerCase().replace(/ /g, "_")}`)}
+                    <b class="gold">${t("level")} ${u.level()}</b
+                    ><span class="muted">
+                      · ${this.game.x(u.tile())}, ${this.game.y(u.tile())}</span
+                    ></span
+                  ></label
+                ><button
+                  aria-label=${t("locate")}
+                  @click=${() => this.bus.emit(new GoToPositionEvent(this.game.x(u.tile()), this.game.y(u.tile())))}
+                >
+                  ⌖
+                </button>
+              </div>`,
           )}
       </div>
+      <p class="muted">
+        ${t("territory_impact")}:
+        ${p ? Math.round((a.tiles.length / Math.max(1, p.numTilesOwned())) * 1000) / 10 : 0}%
+        · ${t("remaining_land")}:
+        ${Math.max(0, (p?.numTilesOwned() ?? 0) - a.tiles.length)}
+      </p>
       <div class="row">
         <span class="muted"
           >${a.tiles.length.toLocaleString()} ${t("tiles")} ·
@@ -542,6 +591,24 @@ export class GeopoliticsPanel extends LitElement {
         >${this.editing ? html`<button @click=${() => this.clear(side)}>${t("clear_region")}</button>` : nothing}
       </div>
     </section>`;
+  }
+  private approach(kind: "survival" | "infrastructure" | "aid" | "pressure") {
+    this.give = emptyAssets();
+    this.receive = emptyAssets();
+    this.counterTo = undefined;
+    this.ultimatum = kind === "pressure";
+    this.threat = "";
+    this.kind = kind === "aid" ? "nonaggression" : "peace";
+    this.buildingType = kind === "infrastructure" ? UnitType.Port : "all";
+    if (kind === "survival" || kind === "infrastructure")
+      this.give.gold = Math.floor(Number(this.mine()?.gold() ?? 0n) / 10);
+    if (kind === "aid")
+      this.give.troops = Math.floor((this.mine()?.troops() ?? 0) / 10);
+    if (kind === "pressure")
+      this.receive.gold = Math.floor(
+        Number(this.game.player(this.target).gold()) / 10,
+      );
+    this.notice = t("approach_" + kind + "_help");
   }
   private renderNegotiation() {
     const o = this.selected
@@ -591,6 +658,7 @@ export class GeopoliticsPanel extends LitElement {
             >`
           : nothing
       }
+      ${this.editing && this.counterTo === undefined ? html`<div class="row wrap" aria-label=${t("approaches")}>${(["survival", "infrastructure", "aid", "pressure"] as const).map((kind) => html`<button @click=${() => this.approach(kind)}>${t("approach_" + kind)}</button>`)}</div>` : nothing}
       <div class="columns">
         ${this.renderAssets("give")}${this.renderAssets("receive")}
       </div>
@@ -639,7 +707,25 @@ export class GeopoliticsPanel extends LitElement {
       <p class="muted">
         🟨 ${t("give")} · 🟩 ${t("receive")} · ${t("enclaves")}
       </p>
-      ${o ? html`<div class="notice">${t("reason_" + o.reason)} ${o.kind === "coalition" ? html`<br />${t("approvals")}: ${o.approvals.length}/${o.required.length}` : nothing}</div>` : nothing}${this.notice ? html`<div role="status" class="notice">${this.notice}</div>` : nothing}
+      ${
+        o
+          ? html`<div class="notice">
+              ${t("reason_" + o.reason)}
+              ${
+                o.kind === "coalition"
+                  ? html`<br />${t("approvals")}:
+                      ${o.approvals.length}/${o.required.length}
+                      <div>
+                        ${o.required.map((id) => html`<span class="badge">${o.approvals.includes(id) ? "✓" : "…"} ${this.name(id)}</span>`)}
+                      </div>`
+                  : nothing
+              }
+            </div>`
+          : nothing
+      }${this.notice ? html`<div role="status" class="notice">${this.notice}</div>` : nothing}
+      <p class="notice">
+        ${t("effect_" + (o?.kind ?? this.kind))}<br />${t("decision_effect")}
+      </p>
       <div class="footer">
         ${
           this.editing
@@ -693,36 +779,48 @@ export class GeopoliticsPanel extends LitElement {
       </div>`;
   }
   private renderCountries() {
-    return html`<div class="stack">
-      ${this.game
-        .players()
-        .filter((p) => p !== this.mine())
-        .sort((a, b) => b.numTilesOwned() - a.numTilesOwned())
-        .map((p) => {
-          const trust = this.game.diplomacy.memory.find(
-            (m) => m.a === p.id() && m.b === this.mine()?.id(),
-          );
-          return html`<article class="card">
-            <div class="row">
-              <div>
-                <strong>${p.name()}</strong>
-                ${p.isFriendly(this.mine()!) ? html`<span class="badge">${t("agreement")}</span>` : nothing}
-                <div class="muted">
-                  ${Math.floor(p.troops()).toLocaleString()} ${t("troops")} ·
-                  ${p.numTilesOwned().toLocaleString()} ${t("tiles")}
+    return html`<label
+        >${t("find_country")}<input
+          type="search"
+          .value=${this.search}
+          @input=${(e: Event) => (this.search = (e.target as HTMLInputElement).value)}
+      /></label>
+      <div class="stack">
+        ${this.game
+          .players()
+          .filter(
+            (p) =>
+              p !== this.mine() &&
+              p.name().toLowerCase().includes(this.search.toLowerCase()),
+          )
+          .sort((a, b) => b.numTilesOwned() - a.numTilesOwned())
+          .map((p) => {
+            const trust = this.game.diplomacy.memory.find(
+              (m) => m.a === p.id() && m.b === this.mine()?.id(),
+            );
+            return html`<article class="card">
+              <div class="row">
+                <div>
+                  <strong>${p.name()}</strong>
+                  ${p.isFriendly(this.mine()!) ? html`<span class="badge">${t("agreement")}</span>` : nothing}
+                  <div class="muted">
+                    ${Math.floor(p.troops()).toLocaleString()} ${t("troops")} ·
+                    ${p.numTilesOwned().toLocaleString()} ${t("tiles")}
+                  </div>
+                  <div class="muted">
+                    ${t("trust")}: ${trust?.trust ?? 0} ·
+                    ${t("personality_" + diplomaticPersonality(this.game.config().gameConfig().geopoliticsSeed, p.smallID()))}<br />${t("kept")}:
+                    ${trust?.kept ?? 0} · ${t("aid")}: ${trust?.aid ?? 0} ·
+                    ${t("betrayals")}: ${trust?.betrayal ?? 0}
+                  </div>
                 </div>
-                <div class="muted">
-                  ${t("trust")}: ${trust?.trust ?? 0} ·
-                  ${t("personality_" + (p.smallID() % 4))}
-                </div>
+                <button @click=${() => this.newOffer(p)}>
+                  ${t("negotiate")}
+                </button>
               </div>
-              <button @click=${() => this.newOffer(p)}>
-                ${t("negotiate")}
-              </button>
-            </div>
-          </article>`;
-        })}
-    </div>`;
+            </article>`;
+          })}
+      </div>`;
   }
   private renderAllies() {
     const id = this.mine()?.id() ?? "";
@@ -871,6 +969,9 @@ export class GeopoliticsPanel extends LitElement {
                         : this.tab === "betray"
                           ? html`<div class="notice">
                                 ${t("betray_warning")}
+                                <p class="gold">
+                                  ${(this.game.diplomacy.coalitions.find((c) => c.members.includes(me) && c.members.includes(this.target))?.members.filter((id) => id !== me) ?? [this.target]).map((id) => this.name(id)).join(" · ")}
+                                </p>
                               </div>
                               <div class="footer">
                                 <button @click=${() => (this.tab = "allies")}>

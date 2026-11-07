@@ -3,7 +3,11 @@ import {
   PlayerType,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
-import { emptyAssets, TreatyKind } from "@openfront/engine-api/Geopolitics";
+import {
+  diplomaticPersonality,
+  emptyAssets,
+  TreatyKind,
+} from "@openfront/engine-api/Geopolitics";
 import {
   IntentSchema,
   DiplomacyIntentSchema,
@@ -303,4 +307,95 @@ it("remembers donated military aid in Geopolitics", () => {
     game.diplomacy.state.memory.find((m) => m.a === b.id() && m.b === a.id())!
       .trust,
   ).toBeGreaterThan(before);
+});
+
+it("varies personality by campaign seed while preserving old campaigns", () => {
+  const signatures = new Set(
+    Array.from({ length: 12 }, (_, seed) =>
+      Array.from({ length: 8 }, (_, i) =>
+        diplomaticPersonality(seed, i + 1),
+      ).join(),
+    ),
+  );
+  expect(signatures.size).toBeGreaterThan(8);
+  expect(diplomaticPersonality(42, 3)).toBe(diplomaticPersonality(42, 3));
+  expect(diplomaticPersonality(undefined, 3)).toBe(3);
+});
+it("weighs the loss of the final port and city independently of cash", () => {
+  const t = game.ref(0, 1);
+  const port = b.buildUnit(UnitType.Port, t, {});
+  const proposal = offer(a, b, "peace", {
+    receive: { ...emptyAssets(), tiles: [t], buildings: [port.id()] },
+  });
+  expect(game.diplomacy.evaluate(proposal, b).reason).toBe("strategic_assets");
+});
+it("explains invalid offers and preserves the feedback through saves", async () => {
+  offer(a, b, "peace", { give: { ...emptyAssets(), gold: 1000000000 } });
+  expect(game.diplomacy.state.offers).toHaveLength(0);
+  expect(game.diplomacy.state.feedback?.[a.id()].reason).toBe("assets");
+  const { bytes, again } = await roundTrip(game, "plains");
+  expect(diffSnapshots(bytes, again)).toEqual([]);
+});
+it("caps counteroffer chains and keeps the last proposal pending", () => {
+  let proposal = offer(a, b);
+  let from = b,
+    to = a;
+  for (let i = 0; i < 3; i++) {
+    proposal = offer(from, to, "peace", { counterTo: proposal.id });
+    [from, to] = [to, from];
+  }
+  const count = game.diplomacy.state.offers.length;
+  offer(from, to, "peace", { counterTo: proposal.id });
+  expect(game.diplomacy.state.offers).toHaveLength(count);
+  expect(proposal.status).toBe("pending");
+  expect(game.diplomacy.state.feedback?.[from.id()].reason).toBe("rounds");
+});
+it("does not treat a payment to another coalition member as its own compensation", () => {
+  const proposal = offer(a, b, "coalition", {
+    give: { ...emptyAssets(), gold: 500000 },
+  });
+  const score = game.diplomacy.evaluate(proposal, c).score;
+  proposal.give.gold = 0;
+  expect(game.diplomacy.evaluate(proposal, c).score).toBe(score);
+});
+
+it("AI counters a request for its last port with monetary compensation", async () => {
+  game = await setup("plains", { geopolitics: true, instantBuild: true }, [
+    new PlayerInfo("a", PlayerType.Human, "aaaaaaaa", "a"),
+    new PlayerInfo("b", PlayerType.Nation, null, "b"),
+  ]);
+  a = game.player("a");
+  b = game.player("b");
+  for (let x = 0; x < 5; x++) {
+    a.conquer(game.ref(x, 0));
+    b.conquer(game.ref(x, 1));
+  }
+  a.addGold(1000000n);
+  b.addGold(1000000n);
+  a.addTroops(10000);
+  b.addTroops(10000);
+  const port = b.buildUnit(UnitType.Port, game.ref(0, 1), {});
+  const original = offer(a, b, "peace", {
+    receive: { ...emptyAssets(), tiles: [port.tile()], buildings: [port.id()] },
+  });
+  for (let i = 0; i < 31; i++) game.executeNextTick();
+  expect(original.status).toBe("countered");
+  const counter = game.diplomacy.state.offers.find((o) => o.from === b.id())!;
+  expect(counter.reason).toBe("retain_land");
+  expect(counter.give.tiles).toEqual([]);
+  expect(counter.give.gold).toBeGreaterThan(0);
+  expect(counter.status).toBe("pending");
+});
+
+it("recognizes a nuclear common threat even when its conventional army is smaller", () => {
+  a.addTroops(90000);
+  b.addTroops(90000);
+  c.addTroops(70000);
+  c.conquer(game.ref(5, 0));
+  c.conquer(game.ref(5, 1));
+  const silo = c.buildUnit(UnitType.MissileSilo, game.ref(5, 0), {});
+  silo.increaseLevel();
+  const proposal = offer(a, b, "coalition", { threat: c.id() });
+  expect(game.diplomacy.evaluate(proposal, b).reason).toBe("nuclear_threat");
+  expect(game.diplomacy.evaluate(proposal, b).score).toBeGreaterThanOrEqual(20);
 });
