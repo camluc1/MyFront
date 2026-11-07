@@ -854,6 +854,174 @@ export class GeopoliticsPanel extends LitElement {
     this.editing = false;
     this.tab = "inbox";
   }
+
+  /** Exact, contextual impact percentages: share of the owner's assets in this offer. */
+  private renderRegionImpact(assets: typeof this.give, ownerID: string) {
+    const owner = this.game.players().find((p) => p.id() === ownerID);
+    if (!owner) return nothing;
+    const owned = owner.units();
+    const selected = new Set(assets.buildings);
+    const labels: [UnitType, string][] = [
+      [UnitType.Port, "Puertos"], [UnitType.City, "Ciudades"],
+      [UnitType.Mine, "Minas"], [UnitType.OilWell, "Petróleo"],
+      [UnitType.GasPlant, "Gas"], [UnitType.Factory, "Fábricas"],
+      [UnitType.Farm, "Granjas"], [UnitType.DefensePost, "Defensas"],
+      [UnitType.SAMLauncher, "Antiaéreas"], [UnitType.MissileSilo, "Silos"],
+    ];
+    const percent = (n: number, total: number) =>
+      total > 0 ? Math.min(100, Math.round(n * 1000 / total) / 10) : 0;
+    const impacts = labels.flatMap(([type, label]) => {
+      const total = owned.filter((u) => u.type() === type && u.isActive()).length;
+      const count = owned.filter((u) => u.type() === type && u.isActive() &&
+        selected.has(u.id())).length;
+      return count ? [{ label, count, pct: percent(count, total) }] : [];
+    });
+    const deposits = this.game.resourceSitesInTiles(assets.tiles);
+    return html`<div class="metric-grid" aria-label="Impacto comprobable sobre los activos del país">
+      ${assets.tiles.length > 0 ? html`<span class="metric-chip">
+        Territorio: <strong>${percent(assets.tiles.length, owner.numTilesOwned())}%</strong>
+        · ${assets.tiles.length.toLocaleString()} casillas
+      </span>` : nothing}
+      ${assets.gold > 0 ? html`<span class="metric-chip">
+        Oro: <strong>${percent(assets.gold, Number(owner.gold()))}%</strong>
+      </span>` : nothing}
+      ${assets.troops > 0 ? html`<span class="metric-chip">
+        Tropas: <strong>${percent(assets.troops, owner.troops())}%</strong>
+      </span>` : nothing}
+      ${impacts.map((item) => html`<span class="metric-chip">
+        ${item.label}: <strong>${item.pct}%</strong> · ${item.count}
+      </span>`)}
+      ${deposits.map((site) => html`<span class="metric-chip">
+        ${t("resource_" + site.resource)} · Q${site.quality}
+      </span>`)}
+    </div>`;
+  }
+
+  /** Diplomacy must read from the current player's perspective, including coalition votes. */
+  private renderDealOverview(o: DiplomaticOffer | null) {
+    const myID = this.mine()?.id() ?? "";
+    const thirdParty = o !== null && o.from !== myID && o.to !== myID;
+    const from = o?.from ?? myID;
+    const to = o?.to ?? this.target;
+    const incoming = o
+      ? (o.to === myID ? o.give : o.receive)
+      : this.receive;
+    const outgoing = o
+      ? (o.to === myID ? o.receive : o.give)
+      : this.give;
+    const incomingOwner = o ? (o.to === myID ? o.from : o.to) : to;
+    const outgoingOwner = o ? (o.to === myID ? o.to : o.from) : from;
+    const incomingTitle = thirdParty ? this.name(o!.from) + " recibe" : "Recibís";
+    const outgoingTitle = thirdParty ? this.name(o!.to) + " recibe" : "Entregás";
+    const duration = (o?.kind ?? this.kind) === "peace"
+      ? (o?.durationTicks ?? this.peaceDuration)
+      : TREATY_TICKS[o?.kind ?? this.kind];
+    const own = this.mine();
+    const rival = this.game.players().find((p) => p.id() === this.target);
+    const ours = Math.max(0, own?.troops() ?? 0);
+    const theirs = Math.max(0, rival?.troops() ?? 0);
+    const share = Math.round(100 * ours / Math.max(1, ours + theirs));
+    const activeOffensive = !!own && !!rival &&
+      (own.incomingAttacks().some((a) => a.attackerID === rival.smallID() && !a.retreating) ||
+       rival.incomingAttacks().some((a) => a.attackerID === own.smallID() && !a.retreating));
+    const entitled = !!o && o.required.includes(myID) && !o.approvals.includes(myID);
+    return html`<section class="offer-summary" aria-label="Consejo diplomático: resumen claro del tratado">
+      <div class="row wrap">
+        <div>
+          <div class="deal-eyebrow">FRONTIER · Consejo diplomático</div>
+          <div class="deal-title">${o ? this.name(o.from) + " propone " : "Tu propuesta: "}${t(o?.kind ?? this.kind)}</div>
+          <div class="muted">${this.name(from)} ↔ ${this.name(to)}</div>
+        </div>
+        <div class="deal-duration">${Math.round(duration / 600)} min de ${(o?.kind ?? this.kind) === "peace" ? "paz" : "tratado"}</div>
+      </div>
+      ${this.editing && this.kind === "peace" ? html`<label style="max-width:270px;margin-top:10px">
+        Duración de la paz
+        <select aria-label="Duración de la paz" .value=${String(this.peaceDuration)}
+          @change=${(e: Event) => this.peaceDuration =
+            Number((e.target as HTMLSelectElement).value) === 3000 ? 3000 : 1800}>
+          <option value="1800">3 minutos</option>
+          <option value="3000">5 minutos</option>
+        </select>
+      </label>` : nothing}
+      ${o?.kind === "coalition" ? html`<div class="treaty-note">
+        Aprobaciones del bloque: ${o.approvals.length}/${o.required.length}.
+        ${o.required.map((id) => html`<span class="badge">
+          ${o.approvals.includes(id) ? "✓" : "…" } ${this.name(id)}
+        </span>`)}
+        ${thirdParty ? html`<p>Tu país vota el acuerdo; no transfiere ni recibe bienes.</p>` : nothing}
+      </div>` : nothing}
+      <div class="war-context">
+        <div class="row"><strong>Situación militar</strong><span class="muted">
+          ${activeOffensive ? "Ofensivas activas" : "Sin enfrentamientos activos"}
+        </span></div>
+        <div class="war-track" role="img" aria-label="Proporción de tropas en reserva entre tu país y el otro país">
+          <span class="ours" style="width:${share}%"></span>
+          <span class="theirs"></span>
+        </div>
+        <div class="row muted">
+          <span>Tus tropas en reserva: ${Math.floor(ours).toLocaleString()}</span>
+          <span>Rival: ${Math.floor(theirs).toLocaleString()}</span>
+        </div>
+      </div>
+      <div class="columns">
+        <div class="asset receive">
+          <div class="deal-side-label">↓ ${incomingTitle}</div>
+          <div class="deal-summary">${this.assetSummary(incoming)}</div>
+          ${this.renderRegionImpact(incoming, incomingOwner)}
+        </div>
+        <div class="asset give">
+          <div class="deal-side-label">↑ ${outgoingTitle}</div>
+          <div class="deal-summary">${this.assetSummary(outgoing)}</div>
+          ${this.renderRegionImpact(outgoing, outgoingOwner)}
+        </div>
+      </div>
+      ${(o?.kind ?? this.kind) === "peace" ? html`<div class="treaty-note">
+        Al firmar, ambos países retiran sus ataques activos y respetan
+        ${Math.round(duration / 600)} minutos de paz.
+        Las casillas y edificios seleccionados se transfieren al aceptar.
+      </div>` : nothing}
+      ${o?.reason && o.status === "pending" ? html`<p class="muted" style="margin-top:10px">
+        Postura diplomática: ${t("reason_" + o.reason)}
+      </p>` : nothing}
+      ${o && entitled && o.status === "pending" ? html`<div class="decision-buttons">
+        <button class="danger" @click=${() => this.send({
+          action: "reject", target: o.from === myID ? o.to : o.from, offerID: o.id
+        })}>Rechazar</button>
+        ${o.to === myID ? html`<button @click=${() => this.counter()}>Contraofertar</button>` : nothing}
+        <button class="primary" @click=${() => (this.confirmAcceptId = o.id)}>Revisar y aceptar</button>
+      </div>` : nothing}
+      ${o && o.from === myID && o.status === "pending" ? html`<div class="decision-buttons">
+        <button @click=${() => this.send({ action:"withdraw", target:o.to, offerID:o.id })}>Retirar propuesta</button>
+      </div>` : nothing}
+      ${this.confirmAcceptId === o?.id && o?.status === "pending" ? html`<div class="notice review">
+        <strong>Confirmar acuerdo de ${t(o.kind)}</strong>
+        ${this.criticalAssetWarnings(outgoing, outgoingOwner).map((warning) =>
+          html`<p class="danger">${warning}</p>`)}
+        <div class="footer"><button @click=${() => this.confirmAcceptId = null}>Cancelar</button>
+          <button class="primary" @click=${() => {
+            this.send({ action:"accept", target:o.from === myID ? o.to : o.from, offerID:o.id });
+            this.confirmAcceptId = null;
+          }}>Confirmar acuerdo</button>
+        </div>
+      </div>` : nothing}
+      ${this.editing ? html`<div class="decision-buttons">
+        <button @click=${() => this.advancedOpen = !this.advancedOpen}>Editar recursos y edificios</button>
+        <button class="primary" @click=${() => this.confirmSend = true}>Revisar propuesta</button>
+      </div>` : nothing}
+      ${this.confirmSend && this.editing ? html`<div class="notice review">
+        <strong>¿Enviar esta propuesta?</strong>
+        <p>El otro país recibirá: ${this.assetSummary(this.give)}</p>
+        <p>Solicitás recibir: ${this.assetSummary(this.receive)}</p>
+        ${[...this.criticalAssetWarnings(this.give, myID),
+          ...this.criticalAssetWarnings(this.receive, this.target)].map((warning) =>
+          html`<p class="danger">${warning}</p>`)}
+        <div class="footer">
+          <button @click=${() => this.confirmSend = false}>Volver</button>
+          <button class="primary" @click=${() => this.sendDraft()}>Confirmar y enviar</button>
+        </div>
+      </div>` : nothing}
+    </section>`;
+  }
   private renderNegotiation() {
     const o = this.selected
       ? (this.game.diplomacy.offers.find((o) => o.id === this.selected!.id) ??
