@@ -347,6 +347,16 @@ export class Geopolitics {
       offer.status = "rejected";
       offer.reason = "declined";
       this.log(id, other.id(), "rejected");
+      // Consecutive rejected AI approaches become progressively less frequent.
+      // This is pair-specific, so another country or a fresh military crisis
+      // can still trigger meaningful diplomacy.
+      const history = this.state.log.filter((event) =>
+        event.actor === id && event.target === other.id() &&
+        event.event === "rejected" && this.game.ticks() - event.tick < 12000,
+      ).length;
+      const wait = Math.min(6000, 900 * 2 ** Math.min(3, history - 1));
+      this.state.cooldowns[`ai:pair:${other.id()}:${id}`] =
+        this.game.ticks() + wait;
       this.emit();
       return;
     }
@@ -785,20 +795,20 @@ export class Geopolitics {
     ) return;
 
     const eligible = this.game.players().filter(
-      (p) => p !== a && p.isAlive() && p.type() !== PlayerType.Bot && !this.friendly(a.id(), p.id()),
+      (p) => p !== a && p.isAlive() && p.type() !== PlayerType.Bot &&
+        !this.friendly(a.id(), p.id()) &&
+        (this.state.cooldowns[`ai:pair:${a.id()}:${p.id()}`] ?? 0) <= tick,
     );
     if (!eligible.length) {
       this.state.cooldowns[initiativeKey] = tick + 300;
       return;
     }
     const power = (p: Player) => this.strategicPower(p);
-    const neighbors = this.neighbors(a).filter(
-      (p) => p.isAlive() && p.type() !== PlayerType.Bot && !this.friendly(a.id(), p.id()),
-    );
+    const neighbors = this.neighbors(a).filter((p) => eligible.includes(p));
     const activeAttackers = a.incomingAttacks()
       .filter((attack) => attack.isActive() && !attack.retreating())
       .map((attack) => attack.attacker())
-      .filter((p) => p.isAlive() && p.type() !== PlayerType.Bot && !this.friendly(a.id(), p.id()))
+      .filter((p) => eligible.includes(p))
       .sort((x, y) => power(y) - power(x) || x.smallID() - y.smallID());
 
     let target: Player | undefined;
@@ -823,8 +833,7 @@ export class Geopolitics {
         .filter((attack) => attack.isActive() && !attack.retreating());
       const pressured = this.game.players()
         .filter((p) => outgoing.some((attack) => attack.target() === p) &&
-          p.isAlive() && p.type() !== PlayerType.Bot &&
-          !this.friendly(a.id(), p.id()) && power(a) >= power(p) * 2)
+          eligible.includes(p) && power(a) >= power(p) * 2)
         .sort((x, y) => power(x) - power(y) || x.smallID() - y.smallID());
       const weaker = pressured.find((p) => p.units(UnitType.Port).some(
         (u) => u.isActive() && this.game.owner(u.tile()) === p));
@@ -921,6 +930,11 @@ export class Geopolitics {
       ultimatum,
     });
     this.state.cooldowns[initiativeKey] = tick + (this.state.offers.length > before ? 300 : 120);
+    if (this.state.offers.length > before) {
+      // A non-rejected AI offer also needs room to breathe. Backoff after
+      // rejection is handled above and takes precedence for this pair.
+      this.state.cooldowns[`ai:pair:${a.id()}:${target.id()}`] = tick + 900;
+    }
     if (ultimatum && this.state.offers.length > before)
       this.state.cooldowns[`ultimatum:${a.id()}`] = tick + 1800;
   }
