@@ -407,3 +407,36 @@ it("recognizes a nuclear common threat even when its conventional army is smalle
   expect(game.diplomacy.evaluate(proposal, b).reason).toBe("nuclear_threat");
   expect(game.diplomacy.evaluate(proposal, b).score).toBeGreaterThanOrEqual(20);
 });
+
+it("transfers a negotiated port and its exact coastal tile, without surrounding land", () => {
+  const coast = game.ref(0, 1);
+  const port = b.buildUnit(UnitType.Port, coast, {});
+  const proposal = offer(a, b, "peace", {
+    receive: { ...emptyAssets(), tiles: [coast], buildings: [port.id()] },
+  });
+  accept(b, proposal.id);
+  expect(proposal.status).toBe("accepted");
+  expect(game.owner(coast)).toBe(a);
+  expect(game.owner(game.ref(1, 1))).toBe(b);
+  expect(port.owner()).toBe(a);
+  expect(a.units(UnitType.Port).some((unit) => unit.id() === port.id())).toBe(true);
+});
+
+it("makes rejected diplomatic proposals progressively less frequent for the same pair", () => {
+  const proposal = offer(a, b);
+  game.diplomacy.act(b, { action: "reject", target: a.id(), offerID: proposal.id });
+  expect(proposal.status).toBe("rejected");
+  const key = `ai:pair:${a.id()}:${b.id()}`;
+  expect(game.diplomacy.state.cooldowns[key]).toBe(game.ticks() + 900);
+  // Diplomacy with a different country is still possible.
+  const other = offer(a, c);
+  expect(other.status).toBe("pending");
+});
+
+it("preserves deterministic diplomacy behavior across snapshot restore", async () => {
+  const proposal = offer(a, b, "peace");
+  game.diplomacy.act(b, { action: "reject", target: a.id(), offerID: proposal.id });
+  const { bytes, again, restored } = await roundTrip(game, "plains");
+  expect(diffSnapshots(bytes, again)).toEqual([]);
+  expect(restored.diplomacy.state.cooldowns).toEqual(game.diplomacy.state.cooldowns);
+});
