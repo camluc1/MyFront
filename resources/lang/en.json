@@ -2684,6 +2684,14 @@
     "message": "A new version of OpenFront is available. The page will now refresh to update."
   },
   "user_setting": {
+    "build_farm": "Build Farm",
+    "build_farm_desc": "Build a farm under your cursor.",
+    "build_mine": "Build Mine",
+    "build_mine_desc": "Build a mine under your cursor.",
+    "build_oil_well": "Build Oil Well",
+    "build_oil_well_desc": "Build an oil well under your cursor.",
+    "build_gas_plant": "Build Gas Plant",
+    "build_gas_plant_desc": "Build a gas plant under your cursor.",
     "alert_frame_desc": "Toggle the alert frame. When enabled, the frame will be displayed when you are betrayed or attacked over land.",
     "alert_frame_label": "Alert Frame",
     "ally_keybinds": "Ally Keybinds",
