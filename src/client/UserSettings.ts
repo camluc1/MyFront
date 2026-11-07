@@ -29,6 +29,12 @@ export function getDefaultKeybinds(isMac: boolean): Record<string, string> {
     buildAtomBomb: "Digit8",
     buildHydrogenBomb: "Digit9",
     buildMIRV: "Digit0",
+    // DLC/economy structures: previously mouse-only. These letters do not
+    // conflict with the existing default movement/combat/camera bindings.
+    buildFarm: "KeyJ",
+    buildMine: "KeyV",
+    buildOilWell: "KeyO",
+    buildGasPlant: "KeyZ",
     attackRatioDown: "KeyT",
     attackRatioUp: "KeyY",
     boatAttack: "KeyB",
