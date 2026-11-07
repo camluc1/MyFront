@@ -403,6 +403,17 @@ export class Geopolitics {
     };
     transfer(a, b, o.give);
     transfer(b, a, o.receive);
+    // Peace must actually end the active military pressure on both sides.
+    // Existing attacks do not automatically stop when a treaty is created.
+    if (o.kind === "peace" || o.kind === "truce") {
+      for (const attacker of [a, b]) {
+        const defender = attacker === a ? b : a;
+        for (const attack of attacker.outgoingAttacks()) {
+          if (attack.isActive() && attack.target() === defender)
+            attack.orderRetreat();
+        }
+      }
+    }
     this.addTreaty(o.from, o.to, o.kind);
     if (o.kind === "coalition") {
       this.state.coalitions = this.state.coalitions.filter(
