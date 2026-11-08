@@ -31,6 +31,8 @@ export const unitTypeToBoatUnit = {
 export const otherUnits = [
   "city",
   "defp",
+  "cast",
+  "idom",
   "port",
   "wshp",
   "silo",
@@ -46,6 +48,8 @@ export type OtherUnit = z.infer<typeof OtherUnitSchema>;
 export type OtherUnitType =
   | UnitType.City
   | UnitType.DefensePost
+  | UnitType.Castle
+  | UnitType.IronDome
   | UnitType.MissileSilo
   | UnitType.Port
   | UnitType.SAMLauncher
@@ -59,6 +63,8 @@ export type OtherUnitType =
 export const unitTypeToOtherUnit = {
   [UnitType.City]: "city",
   [UnitType.DefensePost]: "defp",
+  [UnitType.Castle]: "cast",
+  [UnitType.IronDome]: "idom",
   [UnitType.MissileSilo]: "silo",
   [UnitType.Port]: "port",
   [UnitType.SAMLauncher]: "saml",
