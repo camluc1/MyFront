@@ -829,6 +829,12 @@ export class BuildPreviewController implements Controller {
         return this.game.config().trainStationMaxRange();
       case UnitType.DefensePost:
         return this.game.config().defensePostRange();
+      case UnitType.Castle:
+        return this.game.config().castleRange();
+      case UnitType.IronDome:
+        return this.game.config().ironDomeRange(
+          this.resolveGhostRangeLevel(u) ?? 1,
+        );
       default:
         return 0;
     }
@@ -1401,13 +1407,14 @@ export class BuildPreviewController implements Controller {
   private resolveGhostRangeLevel(
     buildableUnit: BuildableUnit,
   ): number | undefined {
-    if (buildableUnit.type !== UnitType.SAMLauncher) return undefined;
+    if (buildableUnit.type !== UnitType.SAMLauncher &&
+        buildableUnit.type !== UnitType.IronDome) return undefined;
     if (buildableUnit.canUpgrade !== false) {
       const existing = this.game.unit(buildableUnit.canUpgrade);
       if (existing) {
         return existing.level() + 1;
       } else {
-        console.warn("Failed to find existing SAMLauncher for upgrade");
+        console.warn("Failed to find existing defensive structure for range preview");
       }
     }
     return 1;
