@@ -304,6 +304,35 @@ describe("mobile UnitDisplay layout", () => {
     }
   });
 
+  test("premium defenses remain unavailable until their real price loads", async () => {
+    const { display, inputHandler } = makeDisplay();
+    try {
+      await display.updateComplete;
+      const cards = () => display.querySelectorAll(".unit-display-grid > div");
+      const castle = cards()[10].firstElementChild as HTMLElement;
+      const dome = cards()[11].firstElementChild as HTMLElement;
+      expect(castle.className).toContain("opacity-55");
+      expect(dome.className).toContain("opacity-55");
+      castle.click();
+      dome.click();
+      expect(inputHandler.setGhostStructure).not.toHaveBeenCalled();
+
+      // The real purchase price, not a zero fallback, decides availability.
+      (display as any).playerBuildables = [
+        { type: UnitType.Castle, cost: 1_500_000n },
+        { type: UnitType.IronDome, cost: 10_000_000n },
+      ];
+      display.requestUpdate();
+      await display.updateComplete;
+      expect((cards()[10].firstElementChild as HTMLElement).className)
+        .toContain("opacity-55");
+      expect((cards()[11].firstElementChild as HTMLElement).className)
+        .toContain("opacity-55");
+    } finally {
+      display.remove();
+    }
+  });
+
   test("the selected Dome badge shows affordable upgrades, not the requested maximum", async () => {
     const { display } = makeDisplay(UnitType.IronDome);
     (display.game as any).config = () => ({
