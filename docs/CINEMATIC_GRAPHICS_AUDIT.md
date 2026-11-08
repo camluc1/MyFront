@@ -324,3 +324,41 @@ established without visual acceptance.
 
 Changes should remain in `frontier/development` until validated. The
 repository's default `main` branch and any public deployment are separate.
+
+
+### V5 isolated tests and QA evidence actually executed in this session
+
+- **SVG integrity:** both atlases validated as well-formed nested SVG markup
+  with 16 cells at the correct 4×4 positions, no external image/script tags.
+- **Actual artwork preview:** reconstructed both committed SVGs locally and
+  verified their Git blob IDs against the GitHub source. Rasterized with Cairo
+  and **displayed in Chromium** in five stages each using data URIs; these
+  are asset previews, *not gameplay screenshots*. Visual inspection led to
+  an additional corrected mushroom crown and continuous stem.
+- **Fragment/vertex shader syntax:** the 3 representative V5 sprite variants
+  (standard, cinematic, reduced motion) linked on Mesa llvmpipe OpenGL ES
+  3.2. Exact production browser WebGL2 texture upload still needs validation.
+- **Representative terrain-shader smoke:** normal, cinematic, low-quality,
+  fallback, overview and reduced-motion variants compiled/drew on software
+  OpenGL ES without errors. The ordinary renderer and cinematic fallback
+  produced exactly matching pixel checksums in the synthetic scenes;
+  reduced-motion repeated times also matched.
+- **Representative giant texture:** 8192 × 4096 synthetic terrain
+  (33,554,432 tiles, 128 MiB RGBA8), rendered at 960 × 600. One sample run
+  returned median software-only drawing times: **normal 3.21 ms**,
+  **cinematic-full 5.39 ms**, **cinematic-cheap 3.75 ms**, **fallback 3.02 ms**.
+  This demonstrates a *real cost* to full-detail visuals and a reduction
+  of that cost in the adaptive path. It does not demonstrate equivalent GPU
+  performance, full-game FPS, zero lag, or superiority in all circumstances.
+  Test used a synthetic 128px detail texture and a representative nearby
+  water shader; the full repo renderer is not exercised.
+- **Ocean detail logic:** an independently copied TypeScript implementation
+  passed strict standalone typecheck and a deterministic 128×128 byte-buffer
+  test. This is not the full repository typecheck or Vitest suite.
+
+**CI state:** PR #10 has had no GitHub Actions runs/checks available through
+this connector. The full app build, integrated Vitest, actual WebGL2
+sprite-atlas upload, UI, 500+ ship and MIRV playtests therefore remain
+unverified. GPU-driven failure of optional cinematic shaders now triggers
+an attempt to recompile the original shader instead of dropping the terrain
+or explosion pass, except on lost contexts.
