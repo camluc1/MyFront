@@ -15,8 +15,9 @@ export class FrontierStrategyDock extends HTMLElement {
     if (next === "geopolitics" && !document.querySelector("geopolitics-panel")) return;
     this.active = this.active === next ? "none" : next;
     if (this.active === "geopolitics") {
-      const launcher = document.querySelector<HTMLButtonElement>(
-        "geopolitics-panel .launcher > button",
+      const geopolitics = document.querySelector("geopolitics-panel");
+      const launcher = geopolitics?.shadowRoot?.querySelector<HTMLButtonElement>(
+        ".launcher > button",
       );
       if (launcher?.getAttribute("aria-expanded") !== "true") launcher?.click();
     }
