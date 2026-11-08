@@ -158,6 +158,26 @@ export class DefenseCoveragePass {
 
   /** Replace the set of defense posts. No cap. */
   updateDefensePosts(posts: { x: number; y: number; ownerID: number; range?: number }[]): void {
+    // Structure snapshots may be resent after a seek or other non-building
+    // update. Their content, not the incoming array identity, determines
+    // whether the map-wide R8 coverage FBO needs an expensive re-stamp.
+    // Compare against the existing grow-on-demand CPU buffer: no allocations.
+    const previous = this.instanceBuf.float32;
+    if (posts.length === this.count) {
+      let unchanged = true;
+      for (let i = 0; i < posts.length; i++) {
+        const p = posts[i];
+        const off = i * FLOATS_PER_INSTANCE;
+        if (previous[off] !== p.x || previous[off + 1] !== p.y ||
+            previous[off + 2] !== p.ownerID ||
+            previous[off + 3] !== (p.range ?? this.settings.mapOverlay.defensePostRange)) {
+          unchanged = false;
+          break;
+        }
+      }
+      if (unchanged) return;
+    }
+
     this.count = posts.length;
     this.instanceBuf.ensureCapacity(posts.length);
     const f = this.instanceBuf.float32;
