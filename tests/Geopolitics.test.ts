@@ -586,3 +586,20 @@ it("allied border witnesses support a port treaty rather than reacting like neut
     entry.a === c.id() && entry.b === a.id());
   expect(memory?.trust).toBeGreaterThan(8);
 });
+
+it("round-trips the new AI decision rationale without altering existing treaty terms", async () => {
+  const treaty = offer(a, b, "peace", {
+    durationTicks: 3000,
+    receive: { ...emptyAssets(), gold: 250 },
+  });
+  treaty.decisionReason = "cost";
+  game.diplomacy.act(b, {
+    action: "reject", target: a.id(), offerID: treaty.id,
+  });
+  const { bytes, again, restored } = await roundTrip(game, "plains");
+  expect(diffSnapshots(bytes, again)).toEqual([]);
+  const saved = restored.diplomacy.state.offers.find((o) => o.id === treaty.id);
+  expect(saved?.decisionReason).toBe("cost");
+  expect(saved?.durationTicks).toBe(3000);
+  expect(saved?.status).toBe("rejected");
+});
