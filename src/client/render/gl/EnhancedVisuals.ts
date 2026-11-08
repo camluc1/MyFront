@@ -82,6 +82,22 @@ interface VisualProfileTarget {
   };
   unit: { wakeFadeMs: number };
   fx: { debrisDensity: number; debrisLifetimeMs: number };
+  mapOverlay: {
+    staleNukeR: number; staleNukeG: number; staleNukeB: number;
+    staleNukeVariation: number;
+  };
+  falloutBloom: {
+    bloomR: number; bloomG: number; bloomB: number;
+    intensityHot: number; intensityCold: number;
+    particleColorDarkR: number; particleColorDarkG: number;
+    particleColorDarkB: number; particleColorBrightR: number;
+    particleColorBrightG: number; particleColorBrightB: number;
+    particleStrength: number;
+  };
+  lighting: {
+    falloutLightR: number; falloutLightG: number; falloutLightB: number;
+    falloutLightIntensity: number;
+  };
 }
 
 /** Apply before explicit user overrides. No palette, resolution or sim edits. */
@@ -93,7 +109,33 @@ export function applyEnhancedVisualProfile(
   settings.terrain.backgroundColor = "#091826";
   settings.terrain.reliefStrength = 0.17;
   settings.terrain.surfaceTextureStrength = 0.028;
-  settings.unit.wakeFadeMs = 650;
+  settings.unit.wakeFadeMs = 630;
+  // Ash and fading heat, not permanent neon-green contamination.
+  // A player-selected stale-nuke color still overrides this afterward.
+  settings.mapOverlay.staleNukeR = 0.18;
+  settings.mapOverlay.staleNukeG = 0.21;
+  settings.mapOverlay.staleNukeB = 0.23;
+  settings.mapOverlay.staleNukeVariation = 0.025;
+  settings.falloutBloom.bloomR = 0.89;
+  settings.falloutBloom.bloomG = 0.41;
+  settings.falloutBloom.bloomB = 0.20;
+  settings.falloutBloom.intensityHot = Math.min(1.55,
+    settings.falloutBloom.intensityHot);
+  settings.falloutBloom.intensityCold = Math.min(0.06,
+    settings.falloutBloom.intensityCold);
+  settings.falloutBloom.particleColorDarkR = 0.42;
+  settings.falloutBloom.particleColorDarkG = 0.20;
+  settings.falloutBloom.particleColorDarkB = 0.13;
+  settings.falloutBloom.particleColorBrightR = 0.94;
+  settings.falloutBloom.particleColorBrightG = 0.64;
+  settings.falloutBloom.particleColorBrightB = 0.39;
+  settings.falloutBloom.particleStrength = Math.min(0.45,
+    settings.falloutBloom.particleStrength);
+  settings.lighting.falloutLightR = 1.0;
+  settings.lighting.falloutLightG = 0.55;
+  settings.lighting.falloutLightB = 0.29;
+  settings.lighting.falloutLightIntensity = Math.min(3.0,
+    settings.lighting.falloutLightIntensity);
   // Better-shaped explosions, not more debris: reduce overlap in MIRV storms.
   settings.fx.debrisDensity = Math.max(0, Math.min(settings.fx.debrisDensity, 0.7));
   settings.fx.debrisLifetimeMs = Math.min(settings.fx.debrisLifetimeMs, 4500);
