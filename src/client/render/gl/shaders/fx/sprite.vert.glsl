@@ -44,6 +44,8 @@ void main() {
   vAtlasUV = vec2(u, v);
   vAlpha = alpha;
   vFxType = float(type);
-  vFxProgress = clamp(frameIdx / max(1.0, floor(1.0 / max(uv.z,0.0001))-1.0),0.0,1.0);
+  float lastFrame = type == 0 ? 8.0 : type == 2 ? 9.0 :
+    type == 4 ? 3.0 : 8.0;
+  vFxProgress = clamp(frameIdx / lastFrame,0.0,1.0);
   vLocalUV = aPos;
 }
