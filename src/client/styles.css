@@ -1371,3 +1371,61 @@ body.frontier-hud .unit-display-root::before { background: linear-gradient(to ri
 body.frontier-hud .unit-display-root::after { background: linear-gradient(to left,rgba(8,16,29,.95),transparent); }
 body.frontier-hud .frontier-attack-slider { min-height: 1rem; }
 body.frontier-hud .frontier-attack-slider::-webkit-slider-thumb { width: 1.15rem; height: 1.15rem; }
+
+/* Unified right strategic dock. Trackers remain mounted, even in collapsed tabs. */
+body.frontier-hud .frontier-strategy-dock {
+  display: flex;
+  width: min(100%, 20rem);
+  flex-direction: column;
+  align-items: stretch;
+  gap: .3rem;
+  margin-bottom: .5rem;
+  pointer-events: auto;
+}
+body.frontier-hud .frontier-strategy-nav {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 2.6rem;
+  padding: .25rem;
+  gap: .2rem;
+  border: 1px solid var(--frontier-hud-border-strong);
+  border-radius: .75rem;
+  background: var(--frontier-hud-surface);
+  box-shadow: var(--frontier-hud-shadow);
+  backdrop-filter: blur(16px);
+}
+body.frontier-hud .frontier-strategy-nav button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: .4rem .18rem;
+  border-radius: .45rem;
+  border: 1px solid transparent;
+  color: #adbfcd;
+  font-size: clamp(.62rem,.72vw,.76rem);
+  line-height: 1.2;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 140ms, color 140ms;
+}
+body.frontier-hud .frontier-strategy-nav button:hover { color: #fff; background: rgba(148,163,184,.1); }
+body.frontier-hud .frontier-strategy-nav button[aria-pressed="true"] {
+  color: #c0f1ff;
+  border-color: rgba(56,189,248,.25);
+  background: rgba(8,145,178,.17);
+}
+body.frontier-hud:not(:has(geopolitics-panel)) .frontier-strategy-nav [data-strategy-tab="geopolitics"] { display: none; }
+body.frontier-hud .frontier-strategy-dock frontier-world-intelligence,
+body.frontier-hud .frontier-strategy-dock frontier-chronicle {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+body.frontier-hud .frontier-strategy-dock frontier-world-intelligence > section,
+body.frontier-hud .frontier-strategy-dock frontier-chronicle > section { margin: 0; }
+body.frontier-hud .frontier-strategy-dock:not([data-active="intelligence"]) frontier-world-intelligence > section,
+body.frontier-hud .frontier-strategy-dock:not([data-active="chronicle"]) frontier-chronicle > section { display: none; }
+@media (max-width: 640px) {
+  body.frontier-hud .frontier-strategy-dock { width: min(100%, 22rem); margin-bottom: .2rem; }
+}
