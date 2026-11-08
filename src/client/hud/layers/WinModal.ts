@@ -248,6 +248,7 @@ export class WinModal extends LitElement implements Controller {
           ${this._title || ""}
         </h2>
         <div class="min-h-0 flex-1 overflow-y-auto pr-0.5">
+          ${this.isVisible ? this.renderTopTen() : null}
           <game-xp-panel
             .view=${this.xpView}
             .onScreen=${this.isVisible}
@@ -257,7 +258,6 @@ export class WinModal extends LitElement implements Controller {
             @xp-legend=${this.onXpLegend}
           ></game-xp-panel>
           ${this.innerHtml()}
-          ${this.isVisible ? this.renderTopTen() : null}
           ${this.isVisible ? html`<match-history-panel .game=${this.game} .summary=${true}></match-history-panel>` : html``}
         </div>
         <!-- Leaving is the quieter action, on the left; staying in the game
