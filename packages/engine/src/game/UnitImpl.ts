@@ -119,7 +119,9 @@ export class UnitImpl implements Unit {
       case UnitType.Warship:
       case UnitType.Port:
       case UnitType.MissileSilo:
-      case UnitType.DefensePost:      case UnitType.Castle:      case UnitType.IronDome:
+      case UnitType.DefensePost:
+      case UnitType.Castle:
+      case UnitType.IronDome:
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
@@ -257,7 +259,9 @@ export class UnitImpl implements Unit {
       case UnitType.Warship:
       case UnitType.Port:
       case UnitType.MissileSilo:
-      case UnitType.DefensePost:      case UnitType.Castle:      case UnitType.IronDome:
+      case UnitType.DefensePost:
+      case UnitType.Castle:
+      case UnitType.IronDome:
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
@@ -392,7 +396,9 @@ export class UnitImpl implements Unit {
           this.mg.stats().boatDestroyTrade(destroyer, this._owner);
           break;
         case UnitType.City:
-        case UnitType.DefensePost:        case UnitType.Castle:        case UnitType.IronDome:
+        case UnitType.DefensePost:
+        case UnitType.Castle:
+        case UnitType.IronDome:
         case UnitType.MissileSilo:
         case UnitType.Port:
         case UnitType.SAMLauncher:
