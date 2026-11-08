@@ -559,7 +559,7 @@ export class UnitDisplay extends LitElement implements Controller {
     ) {
       return null;
     }
-    const showNuclear = [UnitType.AtomBomb, UnitType.HydrogenBomb, UnitType.MIRV].some((type) => this.isUnitDisplayed(type));
+    const showNuclear = this.isUnitDisplayed(UnitType.AtomBomb) || this.isUnitDisplayed(UnitType.HydrogenBomb) || this.isUnitDisplayed(UnitType.MIRV);
     const availableCategory = BUILD_CATEGORIES.find((cat) => cat.types.some((type) => this.isUnitDisplayed(type)));
     const selectedCategory = BUILD_CATEGORIES.find((cat) => cat.id === this.activeBuildCategory);
     const activeCategory: BuildCategory = this.tutorialMode ? "arsenal" :
