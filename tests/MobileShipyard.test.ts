@@ -104,6 +104,19 @@ describe("Geopolitics mobile shipyard", () => {
     expect(workshop.tile()).not.toBe(before);
   });
 
+  test("can change course mid-voyage and arrive at the second destination", () => {
+    const first = game.ref(14, 13);
+    const second = game.ref(11, 15);
+    game.addExecution(new MoveWarshipExecution(owner, [workshop.id()], first));
+    executeTicks(game, 2);
+    game.addExecution(new MoveWarshipExecution(owner, [workshop.id()], second));
+    for (let tick = 0; tick < 40 && workshop.tile() !== second; tick++) {
+      game.executeNextTick();
+    }
+    expect(workshop.warshipState().patrolTile).toBe(second);
+    expect(workshop.tile()).toBe(second);
+  });
+
   test("does not repair a warship that has just taken enemy fire", () => {
     const ship = makeShip(owner, game, 11);
     ship.modifyHealth(-100, enemy);
