@@ -9,6 +9,7 @@ import type { RenderSettings } from "../../RenderSettings";
 import { createProgram, shaderSrc } from "../../utils/GlUtils";
 import { bakeCinematicCloudAtlas, nuclearGroundAtlas } from "../../utils/CinematicCloudAtlas";
 import { nukeExplosionRadius } from "./FxSettings";
+import { isFxVisible } from "./FxVisibility";
 import fxAtlasMeta from "resources/atlases/fx-atlas-meta.json";
 import spriteFragSrc from "../../shaders/fx/sprite.frag.glsl?raw";
 import spriteVertSrc from "../../shaders/fx/sprite.vert.glsl?raw";
@@ -327,11 +328,9 @@ export class FxSpritePass {
       if(this.cinematic && ((fx.fxType<=FX_MINI_EXPLOSION) !== (pass===0))) continue;
       if(this.cinematic) {
         if(count>=this.budget.fxLimit) break;
-        const cx=camera[0]*(fx.x+.5)+camera[3]*(fx.y+.5)+camera[6];
-        const cy=camera[1]*(fx.x+.5)+camera[4]*(fx.y+.5)+camera[7];
-        const mx=(Math.abs(camera[0])+Math.abs(camera[3]))*160;
-        const my=(Math.abs(camera[1])+Math.abs(camera[4]))*160;
-        if(cx < -1-mx || cx > 1+mx || cy < -1-my || cy > 1+my) continue;
+        // Per-effect bounds match the drawn quad, including the tall
+        // nuclear column. Tiny flashes no longer use a 160-tile margin.
+        if (!isFxVisible(camera, fx)) continue;
         if(fx.fxType===FX_NUKE && fx.cinematic) {
           const area=fx.scale*fx.scale;
           if(plumeArea+area>this.budget.plumeLimit) continue;
