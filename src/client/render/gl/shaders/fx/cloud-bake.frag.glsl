@@ -1,5 +1,8 @@
 #version 300 es
 precision highp float;
+#ifndef FRONTIER_CLOUD_STEPS
+#define FRONTIER_CLOUD_STEPS 28
+#endif
 out vec4 fragColor;
 
 // One-time atlas bake only. This shader NEVER runs in the gameplay frame loop.
@@ -47,9 +50,9 @@ void main() {
   if(ray.y<-.06) { fragColor=vec4(0); return; }
   float transmit=1.0;
   vec3 accumulated=vec3(0);
-  const float stepSize=3.0/28.0;
+  const float stepSize=3.0/float(FRONTIER_CLOUD_STEPS);
   vec3 lightDir=normalize(vec3(-.45,.65,.55));
-  for(int i=0;i<28;i++) {
+  for(int i=0;i<FRONTIER_CLOUD_STEPS;i++) {
     vec3 p=ray-vec3(0,0,(float(i)+.5)*stepSize);
     float d=density(p,life,grow);
     if(d>.005) {

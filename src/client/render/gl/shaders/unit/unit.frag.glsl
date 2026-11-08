@@ -145,6 +145,15 @@ vec4 vehicleSprite(vec2 q, float col) {
         if(q.x>0.36 && q.x<0.55 && abs(q.y)<0.014)gray=0.275;
         if(q.x< -0.42 && q.x> -0.58 && abs(q.y)<0.014)gray=0.275;
       }
+#ifdef FRONTIER_CINEMATIC_ULTRA
+      // More readable bridge, forward deck recess and stern machinery.
+      // Shared hull quad/palette; no extra mesh, texture or draw calls.
+      if(detail>0.35) {
+        if(q.x>0.12 && q.x<0.27 && abs(q.y)<0.032) gray=0.275;
+        if(q.x> -0.32 && q.x< -0.22 && abs(q.y)<0.065) gray=0.92;
+        if(q.x> -0.36 && q.x< -0.31 && abs(q.y)<0.072) gray=0.275;
+      }
+#endif
     } else {
       // Open troop well and full-width forward landing ramp.
       if(q.x> -0.15 && q.x<0.19 && abs(q.y)<0.12)gray=0.275;

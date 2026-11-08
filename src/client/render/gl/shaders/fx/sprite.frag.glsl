@@ -72,10 +72,22 @@ void main() {
     core*=0.4;
     streak*=0.6;
 #endif
-    float alpha=clamp(core*.85+streak*.25,0.0,.78)*vAlpha;
+    float vapor=0.0;
+#ifdef FRONTIER_CINEMATIC_ULTRA
+    // A single faint elongated wisp after a real naval shot, not particles
+    // or black smoke blobs. It fades before the existing 275ms FX expires.
+    if(naval) {
+      vec2 d=p-vec2(-.15*t,-.22*t);
+      vapor=exp(-pow(d.x/(.24+.1*t),2.0)-
+        pow((d.y+.12)/.11,2.0))*smoothstep(.13,.36,t)*(1.0-t)*.13;
+    }
+#endif
+    float alpha=clamp(core*.85+streak*.25+vapor,0.0,.78)*vAlpha;
     if(alpha<.008) discard;
     vec3 warm=vec3(1.0,.77,.37),cool=vec3(.52,.83,1.0);
-    fragColor=vec4(mix(cool,warm,naval ? 1.0 : 0.0),alpha);
+    vec3 color=mix(cool,warm,naval ? 1.0 : 0.0);
+    color=mix(color,vec3(.58,.62,.67),clamp(vapor*3.0,0.0,.5));
+    fragColor=vec4(color,alpha);
     return;
   }
   // A shell hitting water produces spray and a surface ring, not burning

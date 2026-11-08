@@ -1,3 +1,4 @@
+import { cinematicQuality } from "../EnhancedVisuals";
 import { createProgram } from "./GlUtils";
 import cloudBakeSource from "../shaders/fx/cloud-bake.frag.glsl?raw";
 
@@ -47,7 +48,15 @@ export function bakeCinematicCloudAtlas(gl: WebGL2RenderingContext, target: WebG
   let fbo: WebGLFramebuffer | null = null;
   let vao: WebGLVertexArrayObject | null = null;
   try {
-    program = createProgram(gl, BAKE_VERTEX, cloudBakeSource, "CinematicCloudAtlas.bake");
+    // Manual quality selection controls one-time cloud-bake work, not FPS.
+    // Ultra keeps the original maximum ray count; Media/High start faster.
+    const tier = cinematicQuality();
+    const steps = tier === "ultra" ? 28 : tier === "high" ? 22 : 16;
+    const source = cloudBakeSource.replace(
+      "#version 300 es",
+      `#version 300 es\n#define FRONTIER_CLOUD_STEPS ${steps}`,
+    );
+    program = createProgram(gl, BAKE_VERTEX, source, "CinematicCloudAtlas.bake");
     fbo = gl.createFramebuffer();
     vao = gl.createVertexArray();
     if (!fbo || !vao) throw new Error("Cloud atlas allocation failed");
