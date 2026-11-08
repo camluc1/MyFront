@@ -834,7 +834,7 @@ export class UnitDisplay extends LitElement implements Controller {
 
     return html`
       <div
-        class="unit-display-tooltip ${peek ? "block" : "hidden pointer-fine:block"} absolute -translate-x-1/2 -translate-y-full text-gray-200 text-center w-max max-w-[min(100%_-_1rem,100vw_-_1rem)] break-words text-xs bg-gray-800/90 backdrop-blur-xs rounded-sm p-1 z-[100] shadow-lg pointer-events-none"
+        class="unit-display-tooltip ${peek ? "block" : "hidden pointer-fine:block"} absolute -translate-x-1/2 -translate-y-full text-gray-200 text-center w-max max-w-[min(100%_-_1rem,100vw_-_1rem)] break-words text-xs border border-sky-300/20 bg-slate-950/95 rounded-lg p-2 z-[100] shadow-[0_12px_30px_rgba(0,0,0,0.5)] pointer-events-none"
         style=${`left: ${left}px; top: ${top}px;`}
       >
         <div class="font-bold text-sm mb-1">
