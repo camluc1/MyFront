@@ -58,6 +58,13 @@ const gasPlantIcon = assetUrl("images/GasPlantIconWhite.svg");
 const PEEK_HOLD_MS = 450;
 /** How long the details stay up after the browser cancels the touch itself. */
 const PEEK_GRACE_MS = 1200;
+type BuildCategory = "economy" | "defense" | "naval" | "arsenal";
+const BUILD_CATEGORIES = [
+  { id: "economy", label: "Economía", types: [UnitType.City, UnitType.Factory, UnitType.Farm, UnitType.Mine, UnitType.OilWell, UnitType.GasPlant] },
+  { id: "defense", label: "Defensa", types: [UnitType.DefensePost, UnitType.MissileSilo, UnitType.SAMLauncher, UnitType.Castle, UnitType.IronDome] },
+  { id: "naval", label: "Naval", types: [UnitType.Port, UnitType.Warship] },
+] as const;
+
 
 @customElement("unit-display")
 export class UnitDisplay extends LitElement implements Controller {
@@ -68,6 +75,7 @@ export class UnitDisplay extends LitElement implements Controller {
   private playerBuildables: BuildableUnit[] | null = null;
   // The resource toggle remains visible above the responsive build grid.
   @state() private resourcesVisible = false;
+  @state() private activeBuildCategory: BuildCategory = "economy";
   @state() private resourceEconomy: ResourceEconomyInfo | null = null;
 
   private toggleResources(): void {
@@ -550,6 +558,14 @@ export class UnitDisplay extends LitElement implements Controller {
     ) {
       return null;
     }
+    const showNuclear = [UnitType.AtomBomb, UnitType.HydrogenBomb, UnitType.MIRV].some((type) => this.isUnitDisplayed(type));
+    const availableCategory = BUILD_CATEGORIES.find((cat) => cat.types.some((type) => this.isUnitDisplayed(type)));
+    const selectedCategory = BUILD_CATEGORIES.find((cat) => cat.id === this.activeBuildCategory);
+    const activeCategory: BuildCategory = this.tutorialMode ? "arsenal" :
+      this.activeBuildCategory === "arsenal" && !showNuclear ? availableCategory?.id ?? "economy" :
+      selectedCategory && !selectedCategory.types.some((type) => this.isUnitDisplayed(type))
+        ? availableCategory?.id ?? (showNuclear ? "arsenal" : "economy")
+        : this.activeBuildCategory;
     return html`
       <div
         class="unit-display-root relative w-full rounded-xl border border-sky-200/15 bg-slate-950/90 p-2 shadow-[0_12px_28px_rgba(0,0,0,0.30)]
@@ -559,161 +575,127 @@ export class UnitDisplay extends LitElement implements Controller {
         @contextmenu=${(event: Event) => event.preventDefault()}
       >
         ${this.resourceEconomy ? html`<div class="absolute bottom-full left-0 mb-2 w-72 max-w-[90vw] pointer-events-none">${renderResourceEconomy(this.resourceEconomy)}</div>` : null}
-        <div class="flex flex-wrap items-center justify-between gap-2 px-1 pb-2">
-          <span class="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Construcción rápida</span>
-          <button
-            type="button"
-            data-frontier-resources-toggle
-            data-radial-click-through
-            aria-pressed=${this.resourcesVisible}
-            title=${this.resourcesVisible ? "Ocultar recursos naturales" : "Mostrar recursos naturales"}
-            class="shrink-0 rounded-md border border-sky-400/40 bg-sky-950/80 px-3 py-1.5 text-xs font-semibold text-sky-100
-              pointer-fine:hover:bg-slate-700 active:bg-slate-600"
-            @click=${(event: MouseEvent) => {
-              event.stopPropagation();
-              this.toggleResources();
-            }}
-          >
-            ${this.resourcesVisible ? "◉ Ocultar recursos" : "◎ Ver recursos"}
-          </button>
-        </div>
-        <!-- Keep nuclear weapons immediately above the missile-silo build row. -->
-        ${[UnitType.AtomBomb, UnitType.HydrogenBomb, UnitType.MIRV]
-          .some((type) => this.isUnitDisplayed(type)) ? html`
-          <div class="flex flex-wrap items-center gap-2 px-1 pb-2">
-            <span class="text-[10px] font-bold uppercase tracking-[0.12em] text-amber-200/80">Arsenal nuclear</span>
-            <div class="unit-display-nuclear-grid unit-display-grid grid grid-cols-3 gap-2 w-full sm:w-auto sm:min-w-[230px]">
-              ${this.renderUnitItem(atomBombIcon, null, UnitType.AtomBomb, "atom_bomb", this.getHotkey("buildAtomBomb", "Digit8"), "Atómica")}
-              ${this.renderUnitItem(hydrogenBombIcon, null, UnitType.HydrogenBomb, "hydrogen_bomb", this.getHotkey("buildHydrogenBomb", "Digit9"), "Hidrógeno")}
-              ${this.renderUnitItem(mirvIcon, null, UnitType.MIRV, "mirv", this.getHotkey("buildMIRV", "Digit0"), "MIRV")}
+
+        <div class="unit-display-workspace">
+          <div class="unit-display-construction min-w-0 flex-1">
+            <div class="unit-display-tabs" role="tablist" aria-label="Categorías de construcción">
+              <span class="unit-display-eyebrow hidden xl:inline">CONSTRUIR</span>
+              ${BUILD_CATEGORIES.filter((cat) => cat.types.some((type) => this.isUnitDisplayed(type))).map((cat) => html`
+                <button type="button" role="tab" data-build-category=${cat.id}
+                  aria-selected=${activeCategory === cat.id}
+                  class="unit-display-tab ${activeCategory === cat.id ? "is-active" : ""}"
+                  @click=${() => this.selectBuildCategory(cat.id)}>${cat.label}</button>
+              `)}
+              ${showNuclear && !this.tutorialMode ? html`
+                <button type="button" role="tab" data-build-category="arsenal"
+                  aria-selected=${activeCategory === "arsenal"}
+                  class="unit-display-tab unit-display-tab-arsenal lg:hidden ${activeCategory === "arsenal" ? "is-active" : ""}"
+                  @click=${() => this.selectBuildCategory("arsenal")}>☢ Arsenal</button>
+              ` : nothing}
+              <button type="button" data-frontier-resources-toggle data-radial-click-through
+                aria-pressed=${this.resourcesVisible}
+                title=${this.resourcesVisible ? "Ocultar recursos naturales" : "Mostrar recursos naturales"}
+                class="unit-display-resources"
+                @click=${(e: MouseEvent) => { e.stopPropagation(); this.toggleResources(); }}>
+                ${this.resourcesVisible ? "◉ Recursos" : "◎ Recursos"}
+              </button>
             </div>
-          </div>` : nothing}
-        <!-- Auto-wrapping layout: every buildable remains visible without scrolling. -->
-        <div class="unit-display-scroll w-full pb-1.5">
-          <div class="unit-display-grid grid grid-cols-[repeat(auto-fit,minmax(54px,1fr))] gap-1.5 w-full">
-            ${this.renderUnitItem(
-              cityIcon,
-              this._cities,
-              UnitType.City,
-              "city",
-              this.getHotkey("buildCity", "Digit1"),
-            )}
-            ${this.renderUnitItem(
-              factoryIcon,
-              this._factories,
-              UnitType.Factory,
-              "factory",
-              this.getHotkey("buildFactory", "Digit2"),
-            )}
-            ${this.renderUnitItem(
-              portIcon,
-              this._port,
-              UnitType.Port,
-              "port",
-              this.getHotkey("buildPort", "Digit3"),
-            )}
-            ${this.renderUnitItem(
-              defensePostIcon,
-              this._defensePost,
-              UnitType.DefensePost,
-              "defense_post",
-              this.getHotkey("buildDefensePost", "Digit4"),
-            )}
-            ${this.renderUnitItem(
-              missileSiloIcon,
-              this._missileSilo,
-              UnitType.MissileSilo,
-              "missile_silo",
-              this.getHotkey("buildMissileSilo", "Digit5"),
-            )}
-            ${this.renderUnitItem(
-              samLauncherIcon,
-              this._samLauncher,
-              UnitType.SAMLauncher,
-              "sam_launcher",
-              this.getHotkey("buildSamLauncher", "Digit6"),
-            )}
-            ${this.renderUnitItem(
-              warshipIcon,
-              this._warships,
-              UnitType.Warship,
-              "warship",
-              this.getHotkey("buildWarship", "Digit7"),
-            )}
-            ${this.game.config().gameConfig().geopolitics === true && !this.tutorialMode ? html`
-              <div class="flex flex-col items-center justify-center relative" data-mobile-shipyard-container>
-                <button type="button" data-mobile-shipyard data-radial-click-through
-                  title="Buque Taller: repara hasta 3 barcos; $5.000.000"
-                  aria-label="Buque Taller"
-                  aria-pressed=${this.uiState.ghostStructure === UnitType.Warship && this.uiState.supportShipMode === true}
-                  ?disabled=${!this.playerBuildables?.some(b => b.type === UnitType.Warship) ||
-                    (myPlayer.gold() < 5_000_000n && this.game.config().gameConfig().infiniteGold !== true) ||
-                    this.game.config().isUnitDisabled(UnitType.Warship) || myPlayer.units(UnitType.Port).length === 0}
-                  class="w-full min-h-13 lg:min-h-14 rounded-lg border border-cyan-400/40 bg-cyan-950/80 px-1 py-1 flex flex-col items-center justify-center gap-0.5 text-cyan-100 disabled:opacity-40"
-                  @click=${(event: MouseEvent) => {
-                    event.stopPropagation();
-                    const wasSelected = this.uiState.ghostStructure === UnitType.Warship && this.uiState.supportShipMode === true;
-                    if (wasSelected) {
-                      this.inputHandler.setGhostStructure(null, "GUIclick");
-                      this.uiState.supportShipMode = false;
-                    } else {
-                      if (this.uiState.ghostStructure === UnitType.Warship) this.inputHandler.setGhostStructure(null, "GUIclick");
-                      this.inputHandler.setGhostStructure(UnitType.Warship, "GUIclick");
-                      this.uiState.supportShipMode = true;
-                    }
-                    this.requestUpdate();
-                  }}>
-                  <span class="text-lg leading-none" aria-hidden="true">⚓</span>
-                  <span class="text-[9px] font-bold leading-tight text-center">Taller</span>
-                </button>
-              </div>` : nothing}
-            ${this.renderUnitItem(
-              castleIcon,
-              this._castle,
-              UnitType.Castle,
-              "castle",
-              this.getHotkey("buildCastle", ""),
-            )}
-            ${this.renderUnitItem(
-              ironDomeIcon,
-              this._ironDome,
-              UnitType.IronDome,
-              "iron_dome",
-              this.getHotkey("buildIronDome", ""),
-            )}
-            ${this.renderUnitItem(
-              farmIcon,
-              this._farms,
-              UnitType.Farm,
-              "farm",
-              this.getHotkey("buildFarm", ""),
-            )}
-            ${this.renderUnitItem(
-              mineIcon,
-              this._mines,
-              UnitType.Mine,
-              "mine",
-              this.getHotkey("buildMine", ""),
-            )}
-            ${this.renderUnitItem(
-              oilWellIcon,
-              this._oilWells,
-              UnitType.OilWell,
-              "oil_well",
-              this.getHotkey("buildOilWell", ""),
-            )}
-            ${this.renderUnitItem(
-              gasPlantIcon,
-              this._gasPlants,
-              UnitType.GasPlant,
-              "gas_plant",
-              this.getHotkey("buildGasPlant", ""),
-            )}
+            <div class="unit-display-scroll w-full" aria-label="Acciones disponibles">
+              <div class="unit-display-grid">
+                ${activeCategory === "arsenal" ? this.renderNuclearActions() : this.renderBuildCategory(activeCategory)}
+              </div>
+            </div>
           </div>
+          ${showNuclear && !this.tutorialMode ? html`
+            <aside class="unit-display-arsenal hidden lg:flex" aria-label="Arsenal nuclear">
+              <span class="unit-display-arsenal-heading">☢ ARSENAL</span>
+              <div class="unit-display-grid unit-display-nuclear-grid">${this.renderNuclearActions()}</div>
+            </aside>
+          ` : nothing}
         </div>
         ${this.renderUnitTooltip()}
       </div>
     `;
+  }
+
+
+  private selectBuildCategory(category: BuildCategory) {
+    this._hoveredUnitTooltip = null;
+    this.dismissPeek();
+    this.activeBuildCategory = category;
+  }
+
+  private renderNuclearActions() {
+    return html`
+      ${this.renderUnitItem(atomBombIcon, null, UnitType.AtomBomb, "atom_bomb", this.getHotkey("buildAtomBomb", "Digit8"), "Atómica")}
+      ${this.renderUnitItem(hydrogenBombIcon, null, UnitType.HydrogenBomb, "hydrogen_bomb", this.getHotkey("buildHydrogenBomb", "Digit9"), "Hidrógeno")}
+      ${this.renderUnitItem(mirvIcon, null, UnitType.MIRV, "mirv", this.getHotkey("buildMIRV", "Digit0"), "MIRV")}
+    `;
+  }
+
+  private renderMobileShipyard() {
+    const player = this.game.myPlayer();
+    if (!player || this.tutorialMode || !this.game.config().gameConfig().geopolitics || !this.isUnitDisplayed(UnitType.Warship)) return nothing;
+    const selected = this.uiState.ghostStructure === UnitType.Warship && this.uiState.supportShipMode;
+    const lacksPort = player.units(UnitType.Port).length === 0;
+    const lacksGold = player.gold() < 5_000_000n && !this.game.config().gameConfig().infiniteGold;
+    const unavailable = !this.playerBuildables?.some((b) => b.type === UnitType.Warship) || lacksGold || lacksPort;
+    return html`
+      <div class="flex flex-col items-center relative" data-mobile-shipyard-container>
+        <button type="button" data-mobile-shipyard data-radial-click-through
+          aria-label="Buque Taller" aria-pressed=${selected}
+          title=${"Buque Taller · Repara hasta 3 barcos · 5M de oro" +
+            (unavailable ? " · " + (lacksPort ? "Requiere puerto" : lacksGold ? "Oro insuficiente" : "No disponible") : "")}
+          ?disabled=${unavailable}
+          class="unit-display-action unit-display-shipyard ${selected ? "is-selected" : ""}"
+          @click=${(event: MouseEvent) => {
+            event.stopPropagation();
+            if (selected) {
+              this.inputHandler.setGhostStructure(null, "GUIclick");
+              this.uiState.supportShipMode = false;
+            } else {
+              if (this.uiState.ghostStructure === UnitType.Warship) this.inputHandler.setGhostStructure(null, "GUIclick");
+              this.inputHandler.setGhostStructure(UnitType.Warship, "GUIclick");
+              this.uiState.supportShipMode = true;
+            }
+            this.requestUpdate();
+          }}>
+          <span class="unit-display-action-icon" aria-hidden="true">⚓</span>
+          <span class="unit-display-action-cost ${lacksGold ? "is-unaffordable" : ""}">5M <img src=${goldCoinIcon} alt="" width="11" height="11" /></span>
+        </button>
+        <span class="unit-display-action-label">Taller</span>
+      </div>
+    `;
+  }
+
+  private renderBuildCategory(category: BuildCategory) {
+    switch (category) {
+      case "economy":
+        return html`
+          ${this.renderUnitItem(cityIcon, this._cities, UnitType.City, "city", this.getHotkey("buildCity", "Digit1"))}
+          ${this.renderUnitItem(factoryIcon, this._factories, UnitType.Factory, "factory", this.getHotkey("buildFactory", "Digit2"))}
+          ${this.renderUnitItem(farmIcon, this._farms, UnitType.Farm, "farm", this.getHotkey("buildFarm", ""))}
+          ${this.renderUnitItem(mineIcon, this._mines, UnitType.Mine, "mine", this.getHotkey("buildMine", ""))}
+          ${this.renderUnitItem(oilWellIcon, this._oilWells, UnitType.OilWell, "oil_well", this.getHotkey("buildOilWell", ""))}
+          ${this.renderUnitItem(gasPlantIcon, this._gasPlants, UnitType.GasPlant, "gas_plant", this.getHotkey("buildGasPlant", ""))}
+        `;
+      case "defense":
+        return html`
+          ${this.renderUnitItem(defensePostIcon, this._defensePost, UnitType.DefensePost, "defense_post", this.getHotkey("buildDefensePost", "Digit4"))}
+          ${this.renderUnitItem(missileSiloIcon, this._missileSilo, UnitType.MissileSilo, "missile_silo", this.getHotkey("buildMissileSilo", "Digit5"))}
+          ${this.renderUnitItem(samLauncherIcon, this._samLauncher, UnitType.SAMLauncher, "sam_launcher", this.getHotkey("buildSamLauncher", "Digit6"))}
+          ${this.renderUnitItem(castleIcon, this._castle, UnitType.Castle, "castle", this.getHotkey("buildCastle", ""))}
+          ${this.renderUnitItem(ironDomeIcon, this._ironDome, UnitType.IronDome, "iron_dome", this.getHotkey("buildIronDome", ""))}
+        `;
+      case "naval":
+        return html`
+          ${this.renderUnitItem(portIcon, this._port, UnitType.Port, "port", this.getHotkey("buildPort", "Digit3"))}
+          ${this.renderUnitItem(warshipIcon, this._warships, UnitType.Warship, "warship", this.getHotkey("buildWarship", "Digit7"))}
+          ${this.renderMobileShipyard()}
+        `;
+      case "arsenal":
+        return this.renderNuclearActions();
+    }
   }
 
   private getHotkey(action: string, defaultCode: string): string {
