@@ -20,12 +20,18 @@ import { createProgram, shaderSrc } from "../../utils/GlUtils";
 import { nukeExplosionRadius } from "./FxSettings";
 
 import { assetUrl } from "@openfront/shared/AssetUrls";
+import { enhancedVisualsEnabled } from "../../EnhancedVisuals";
 import fxAtlasMeta from "resources/atlases/fx-atlas-meta.json";
 
 import spriteFragSrc from "../../shaders/fx/sprite.frag.glsl?raw";
 import spriteVertSrc from "../../shaders/fx/sprite.vert.glsl?raw";
 
 const fxAtlasUrl = assetUrl("atlases/fx-atlas.png");
+const cinematicNukeAtlasUrl = assetUrl("sprites/cinematic-nuke-atlas.svg");
+/** 16 frames × 200 ms; the old 630ms atlas remains the standard-profile path. */
+const CINEMATIC_NUKE_LIFETIME_MS = 3_200;
+const MAX_CINEMATIC_NUKES = 10;
+const MAX_CINEMATIC_DEBRIS_PER_TYPE = 12;
 
 // ---------------------------------------------------------------------------
 // FX type indices (atlas row)
@@ -189,6 +195,10 @@ export class FxSpritePass {
   private spriteCount = 0;
   private atlasTex: WebGLTexture;
   private atlasReady = false;
+  private readonly cinematic = enhancedVisualsEnabled();
+  private cinematicNukeTex: WebGLTexture | null = null;
+  private cinematicNukeReady = false;
+  private uCinematicNukeReady: WebGLUniformLocation | null = null;
 
   private activeFx: ActiveFx[] = [];
   private timeFn: () => number = () => performance.now();
@@ -214,6 +224,21 @@ export class FxSpritePass {
     this.uFxWorld = gl.getUniformLocation(this.program, "uFxWorld")!;
     gl.useProgram(this.program);
     gl.uniform1i(gl.getUniformLocation(this.program, "uAtlas"), 0);
+    if (this.cinematic) {
+      this.uCinematicNukeReady = gl.getUniformLocation(
+        this.program, "uCinematicNukeReady");
+      gl.uniform1i(gl.getUniformLocation(this.program, "uCinematicNukeAtlas"), 1);
+      this.cinematicNukeTex = gl.createTexture();
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, this.cinematicNukeTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0,
+        gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.activeTexture(gl.TEXTURE0);
+    }
 
     // Placeholder atlas (1x1 transparent)
     this.atlasTex = gl.createTexture()!;
@@ -263,6 +288,7 @@ export class FxSpritePass {
     gl.bindVertexArray(null);
 
     void this.loadAtlas();
+    if (this.cinematic) void this.loadCinematicNukeAtlas();
   }
 
   // -------------------------------------------------------------------------
@@ -308,6 +334,29 @@ export class FxSpritePass {
       this.atlasReady = true;
     } catch (e) {
       console.warn("Failed to load fx atlas:", e);
+    }
+  }
+
+  /** Single optional 1024² RGBA atlas (~4 MiB GPU memory). It is decoded
+   * once per cinematic renderer, not once per detonation. If SVG decode fails,
+   * the old blast sprite remains usable. */
+  private async loadCinematicNukeAtlas(): Promise<void> {
+    if (!this.cinematicNukeTex) return;
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = cinematicNukeAtlasUrl;
+      await img.decode();
+      if (this.isDisposed || !this.cinematicNukeTex) return;
+      const gl = this.gl;
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, this.cinematicNukeTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+        gl.UNSIGNED_BYTE, img);
+      gl.activeTexture(gl.TEXTURE0);
+      this.cinematicNukeReady = true;
+    } catch (error) {
+      console.warn("Cinematic nuke atlas unavailable; using default FX", error);
     }
   }
 
@@ -395,7 +444,9 @@ export class FxSpritePass {
     let debrisIdx = 0;
     const densityScale = this.settings.fx.debrisDensity;
     for (const { type, radiusFactor, density } of DEBRIS_PLAN) {
-      const count = Math.max(0, Math.floor(radius * density * densityScale));
+      const proposed = Math.max(0, Math.floor(radius * density * densityScale));
+      const count = this.cinematic
+        ? Math.min(MAX_CINEMATIC_DEBRIS_PER_TYPE, proposed) : proposed;
       const r = radius * radiusFactor;
       for (let i = 0; i < count; i++) {
         const seed = pos * 997 + debrisIdx++;
@@ -410,12 +461,30 @@ export class FxSpritePass {
 
   pushFx(x: number, y: number, fxType: number, now: number): void {
     const cfg = FX_CONFIG[fxType];
+    // Many MIRVs can detonate in the same frame. Preserve the newest visible
+    // plumes, but never keep hundreds of 3.2-second clouds on the GPU.
+    if (this.cinematic && fxType === FX_NUKE) {
+      let active = 0, oldestIndex = -1, oldestMs = Number.POSITIVE_INFINITY;
+      for (let i = 0; i < this.activeFx.length; i++) {
+        const fx = this.activeFx[i];
+        if (fx.fxType !== FX_NUKE) continue;
+        active++;
+        if (fx.startMs < oldestMs) {
+          oldestMs = fx.startMs;
+          oldestIndex = i;
+        }
+      }
+      if (active >= MAX_CINEMATIC_NUKES && oldestIndex >= 0)
+        this.activeFx.splice(oldestIndex, 1);
+    }
     this.activeFx.push({
       x,
       y,
       fxType,
       startMs: now,
-      lifetimeMs: cfg.frameDurationMs * cfg.frameCount,
+      lifetimeMs: this.cinematic && fxType === FX_NUKE
+        ? CINEMATIC_NUKE_LIFETIME_MS
+        : cfg.frameDurationMs * cfg.frameCount,
       fadeIn: 0,
       fadeOut: 1,
     });
@@ -462,7 +531,12 @@ export class FxSpritePass {
       const elapsed = now - fx.startMs;
 
       let frameIdx: number;
-      if (cfg.looping) {
+      if (this.cinematic && fx.fxType === FX_NUKE) {
+        // Encode 0..15 in the existing uint8 frame byte; no new instance
+        // attributes and no new draw calls are required.
+        frameIdx = Math.min(15, Math.floor(
+          16 * Math.max(0, elapsed) / fx.lifetimeMs));
+      } else if (cfg.looping) {
         const cycle = cfg.frameDurationMs * cfg.frameCount;
         frameIdx = Math.floor((elapsed % cycle) / cfg.frameDurationMs);
       } else {
@@ -505,6 +579,14 @@ export class FxSpritePass {
     gl.uniformMatrix3fv(this.uCamera, false, cameraMatrix);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.atlasTex);
+    if (this.cinematicNukeTex) {
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, this.cinematicNukeTex);
+      gl.activeTexture(gl.TEXTURE0);
+      if (this.uCinematicNukeReady)
+        gl.uniform1f(this.uCinematicNukeReady,
+          this.cinematicNukeReady ? 1 : 0);
+    }
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuf.buffer);
     gl.bufferSubData(
       gl.ARRAY_BUFFER,
@@ -537,5 +619,8 @@ export class FxSpritePass {
     this.instanceBuf.dispose();
     gl.deleteVertexArray(this.vao);
     gl.deleteTexture(this.atlasTex);
+    if (this.cinematicNukeTex) gl.deleteTexture(this.cinematicNukeTex);
+    this.cinematicNukeTex = null;
+    this.cinematicNukeReady = false;
   }
 }
