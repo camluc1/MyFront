@@ -50,6 +50,7 @@ import {
   UT_WARSHIP,
 } from "../../types";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
+import { cinematicQuality, enhancedVisualsEnabled } from "../EnhancedVisuals";
 import type { RenderSettings } from "../RenderSettings";
 import unitFragSrc from "../shaders/unit/unit.frag.glsl?raw";
 import unitVertSrc from "../shaders/unit/unit.vert.glsl?raw";
@@ -62,6 +63,10 @@ import {
 import { createProgram, shaderSrc } from "../utils/GlUtils";
 import { RailMotion } from "../utils/RailMotion";
 import { VesselMotion } from "../utils/VesselMotion";
+import {
+  findNewWeaponLaunches,
+  type WeaponLaunchVisual,
+} from "../utils/WeaponLaunchVisuals";
 
 const unitAtlasUrl = assetUrl("atlases/unit-atlas.png");
 
@@ -202,6 +207,10 @@ function createUnitVao(
 // ---------------------------------------------------------------------------
 
 export class UnitPass {
+  private readonly cinematicCombat = enhancedVisualsEnabled();
+  private launchHistoryReady = false;
+  private seenProjectileIds = new Set<number>();
+  private pendingLaunchVisuals: WeaponLaunchVisual[] = [];
   private motions = new Map<number, VesselMotion | RailMotion>();
   private groundMotions: (VesselMotion | RailMotion)[] = [];
   private gl: WebGL2RenderingContext;
@@ -489,6 +498,11 @@ export class UnitPass {
   }
 
   updateUnits(units: Map<number, UnitState>, gameTick: number): void {
+    // Replay seek / rewound tick: suppress fake bursts when rehydrating units.
+    if (gameTick < this.lastGameTick) {
+      this.seenProjectileIds.clear();
+      this.launchHistoryReady = false;
+    }
     if (gameTick !== this.lastGameTick) {
       this.lastGameTick = gameTick;
       this.lastUnitsUpdateMs = performance.now();
@@ -625,6 +639,19 @@ export class UnitPass {
       }
     }
 
+    if (this.cinematicCombat) {
+      const budget = cinematicQuality() === "ultra" ? 32 : 20;
+      const detected = findNewWeaponLaunches(
+        units, this.seenProjectileIds, this.launchHistoryReady,
+        this.mapW, budget,
+      );
+      this.seenProjectileIds = detected.seen;
+      this.pendingLaunchVisuals = detected.launches;
+      this.launchHistoryReady = true;
+    } else {
+      this.pendingLaunchVisuals = [];
+    }
+
     for (const id of this.motions.keys()) {
       if (!units.get(id)?.isActive || units.get(id)!.waitTicks > 0)
         this.motions.delete(id);
@@ -650,6 +677,13 @@ export class UnitPass {
         this.missileCount * FLOATS_PER_INSTANCE,
       );
     }
+  }
+
+  /** Hand off transient client-only events; never replay them twice. */
+  consumeLaunchVisuals(): WeaponLaunchVisual[] {
+    const visuals = this.pendingLaunchVisuals;
+    this.pendingLaunchVisuals = [];
+    return visuals;
   }
 
   setAltView(active: boolean): void {
@@ -795,6 +829,8 @@ export class UnitPass {
   }
 
   dispose(): void {
+    this.seenProjectileIds.clear();
+    this.pendingLaunchVisuals = [];
     this.motions.clear();
     this.groundMotions.length = 0;
     const gl = this.gl;

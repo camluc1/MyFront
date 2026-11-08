@@ -913,6 +913,8 @@ export class GPURenderer {
     this.frameTick++;
     this.unitPass.setFrameTick(this.frameTick);
     this.unitPass.updateUnits(units, gameTick);
+    const launches = this.unitPass.consumeLaunchVisuals();
+    if (launches.length > 0) this.fxPass.applyWeaponLaunches(launches);
     this.samRadiusPass.setTick(gameTick);
     this.barPass.updateBars(units, this.lastStructures, gameTick);
     this.pointLightPass.updateLights(units);
