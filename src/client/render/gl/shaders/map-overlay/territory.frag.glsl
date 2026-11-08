@@ -142,7 +142,7 @@ void main() {
   // Let more of the existing relief show through political paint. This
   // affects only ordinary ownership, not fallout, skin sampling or alt view;
   // the user-selected opacity remains the upper bound.
-  color.a *= 0.88;
+  color.a *= 0.92;
 #endif
 
   fragColor = color;
