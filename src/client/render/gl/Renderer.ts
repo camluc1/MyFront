@@ -103,7 +103,6 @@ const SAM_RADIUS_HIGHLIGHT_TYPES = new Set([
   "Hydrogen Bomb",
 ]);
 
-const GRID_VIEW_KEY = "renderer:grid_view_enabled";
 
 export class GPURenderer {
   private gl: WebGL2RenderingContext;
@@ -645,11 +644,9 @@ export class GPURenderer {
       mapH,
       this.settings,
     );
-    try {
-      this.gridView = window.localStorage.getItem(GRID_VIEW_KEY) === "true";
-    } catch {
-      this.setGridView(false);
-    }
+    // Coordinate labels are intentionally opt-in. Never inherit a persisted
+    // overlay from an earlier game or show it just for geopolitical view.
+    this.gridView = false;
 
     for (const p of header.players) {
       if (p.team !== null) this.playerTeams.set(p.smallID, p.team);
@@ -1176,12 +1173,8 @@ export class GPURenderer {
   }
 
   setGridView(active: boolean): void {
+    // Explicit M-key toggle only; changing map view must not enable labels.
     this.gridView = active;
-    try {
-      window.localStorage.setItem(GRID_VIEW_KEY, active ? "true" : "false");
-    } catch {
-      // Ignore if we are unable to use localstorage.
-    }
   }
 
   getSettings(): RenderSettings {
@@ -1407,9 +1400,9 @@ export class GPURenderer {
       this.fxPass.draw(cam, zoom);
     }
 
-    // Grid shows on either trigger; names hide only under alt-view (space
-    // hold), not under the persistent M-key gridView toggle.
-    if (this.gridView || this.altView) this.coordinateGridPass.draw(cam, zoom);
+    // The geopolitical/alternate view must stay clean: only the explicit
+    // coordinate-grid toggle (M) may draw squares and A1/B2 labels.
+    if (this.gridView) this.coordinateGridPass.draw(cam, zoom);
     if (pe.name && !this.altView)
       this.namePass.draw(cam, this.nightCompositePass.getAmbient());
 
