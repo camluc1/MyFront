@@ -1,4 +1,5 @@
 import defaults from "../render-settings.json";
+import { enhancedVisualsEnabled } from "../EnhancedVisuals";
 import { sampleSailingRoute, type SailingRoute } from "./SailingRoute";
 
 /** Render-only motion: continuous velocity and a stable course across grid stairs. */
@@ -26,6 +27,7 @@ export class VesselMotion {
   private routeAt = -1;
   private routeSpeed = 0;
   private routeHeadingInitialized = false;
+  private readonly cinematicSteering = enhancedVisualsEnabled();
   private anchorX = 0;
   private anchorY = 0;
 
@@ -153,9 +155,12 @@ export class VesselMotion {
       // between control points on long or stair-stepped naval routes.
       const delta = Math.atan2(
         Math.sin(desired - lastHeading), Math.cos(desired - lastHeading));
-      const maxTurn = Math.PI * 0.62 * dt;
+      const maxTurn = Math.PI * (this.cinematicSteering ? 0.32 : 0.62) * dt;
+      const eased = delta * (1.0-Math.exp(
+        -(this.cinematicSteering ? 3.4 : 7.0)*dt));
       this.angle = !this.routeHeadingInitialized ? desired :
-        lastHeading + Math.max(-maxTurn, Math.min(maxTurn, delta));
+        lastHeading + Math.max(-maxTurn, Math.min(maxTurn,
+          this.cinematicSteering && Math.abs(delta)<0.022 ? 0 : eased));
       this.routeHeadingInitialized = true;
       this.sampledAt = now;
       return;
@@ -184,10 +189,9 @@ export class VesselMotion {
         Math.cos(this.courseAngle - this.angle),
       );
       const step = delta * (1 - Math.exp(-5 * dt));
-      this.angle += Math.max(
-        (-Math.PI / 2) * dt,
-        Math.min((Math.PI / 2) * dt, step),
-      );
+      const turnLimit = Math.PI * (this.cinematicSteering ? 0.32 : 0.5) * dt;
+      this.angle += Math.max(-turnLimit, Math.min(turnLimit,
+        this.cinematicSteering && Math.abs(delta)<0.022 ? 0 : step));
     }
   }
 
