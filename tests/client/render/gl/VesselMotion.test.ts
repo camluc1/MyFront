@@ -87,3 +87,27 @@ it("keeps an unplanned warship's position and bow stable on a two-cell stair rou
   expect(Math.max(...angles) - Math.min(...angles)).toBeLessThan(0.02);
   expect(Math.max(...sides) - Math.min(...sides)).toBeLessThan(0.02);
 });
+
+it("keeps planned ship corners smooth instead of instantly swinging left-right", () => {
+  const m = new VesselMotion(1, 0, 0, 0, 0, 100);
+  const route = {
+    planId: 1, startTick: 0, ticksPerStep: 1, lastStep: 8,
+    segments: [
+      {start:0,end:4,ax:0,ay:0,cx:2,cy:0,bx:4,by:0},
+      {start:4,end:8,ax:4,ay:0,cx:4,cy:2,bx:4,by:4},
+    ],
+  };
+  m.setRoute(route, 2, 0);
+  m.sample(50);
+  expect(m.angle).toBeCloseTo(0, 4);
+  let before = m.angle;
+  for (let tick = 5; tick < 25; tick++) {
+    const now = (tick - 4) * 100;
+    m.setRoute(route, 7, now);
+    m.sample(now + 50);
+    expect(m.angle - before).toBeGreaterThanOrEqual(-1e-6);
+    expect(Math.abs(m.angle - before)).toBeLessThan(0.20);
+    before = m.angle;
+  }
+  expect(m.angle).toBeCloseTo(Math.PI / 2, 2);
+});
