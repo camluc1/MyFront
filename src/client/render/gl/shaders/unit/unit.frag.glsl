@@ -1,4 +1,5 @@
 #version 300 es
+// FRONTIER_CINEMATIC_VARIANT
 precision highp float;
 
 uniform sampler2D uPalette;
@@ -214,6 +215,42 @@ void main() {
       float strength = warship ? uNavalPulse.x : uNavalPulse.y;
       waterEffect = vec4(1.0, 0.12, 0.08, (ring+glow)*edgeFade*strength);
     }
+#ifdef FRONTIER_CINEMATIC
+    // Opt-in wake stays inside the existing vessel quad: constant work per
+    // visible vessel, no particles, history buffers or additional draw call.
+    if (vessel && vHash > 0.01 && texel.a < 0.05 && uAltView == 0) {
+      float aa = max(fwidth(q.x), fwidth(q.y));
+      float lod = 1.0-smoothstep(0.075,0.21,aa);
+      if (lod > 0.01) {
+#ifdef FRONTIER_REDUCED_MOTION
+        float time = 0.0;
+#else
+        float time = uTime;
+#endif
+        bool cargo = vAtlasCol > 0.5 && vAtlasCol < 1.5;
+        float stern = warship ? -0.64 : (cargo ? -0.40 : -0.30);
+        float bow = warship ? 0.72 : (cargo ? 0.45 : 0.34);
+        float behind = max(0.0,stern-q.x);
+        float reach = max(0.08,min(0.55,0.97+stern));
+        float sternMask = step(q.x,stern)*(1.0-smoothstep(0.0,reach,behind));
+        float spread = 0.07+behind*0.34;
+        float edges = 1.0-smoothstep(0.01,0.03+aa,abs(abs(q.y)-spread));
+        float churn = exp(-q.y*q.y/max(0.008,0.008+behind*0.07));
+        float bands = 0.72+0.28*sin(behind*38.0-time*2.5+vOwnerID*0.6);
+        float trail = (edges*0.60+churn*0.30)*sternMask*bands;
+        // Soft bow pressure arc and a short side wash, never a full halo.
+        vec2 front = (q-vec2(bow-0.04,0.0))/vec2(0.16,0.20);
+        float bowArc = (1.0-smoothstep(0.07,0.14+aa*4.0,abs(length(front)-1.0)))*step(bow-0.02,q.x);
+        float extent = 1.0-smoothstep(0.89,0.99,max(abs(q.x),abs(q.y)));
+        float wake = clamp((trail+bowArc*0.28)*extent*lod*clamp(vHash,0.0,1.0)*0.56,0.0,0.48);
+        if (wake>0.005) {
+          float combined = wake+waterEffect.a*(1.0-wake);
+          vec3 foamColor = mix(vec3(0.57,0.78,0.83),vec3(0.88,0.95,0.94),edges);
+          waterEffect=vec4((foamColor*wake+waterEffect.rgb*waterEffect.a*(1.0-wake))/max(combined,0.001),combined);
+        }
+      }
+    }
+#else
     // A short, tapered V wake fades out at distant zoom. No particles or history buffers.
     if (vessel && vHash > 0.01 && texel.a < 0.05 && uAltView == 0) {
       float stern = vAtlasCol > 1.5 ? -0.64 : (vAtlasCol > 0.5 ? -0.40 : -0.30);
@@ -232,6 +269,7 @@ void main() {
         waterEffect = vec4((vec3(0.78,0.90,0.94)*wake + waterEffect.rgb*waterEffect.a*(1.0-wake))/combined,combined);
       }
     }
+#endif
   } else if (inSprite) {
     vec2 atlasUV = vec2((vAtlasCol + vCellUV.x) / float(ATLAS_COLS), vCellUV.y);
     texel = texture(uAtlas, atlasUV);
@@ -387,5 +425,13 @@ void main() {
     if (abs(vFlags-FLAG_ANGRY) > 0.1 && abs(vFlags-FLAG_RETREATING) > 0.1)
       color = mix(color,accent,mark*strategic);
   }
+#ifdef FRONTIER_CINEMATIC
+  if (vessel && vStrategic<0.5 && gray>0.45 &&
+      abs(vFlags-FLAG_RETREATING)>0.1) {
+    float closeDetail=1.0-smoothstep(0.05,0.15,max(fwidth(q.x),fwidth(q.y)));
+    float bevel=(1.0-smoothstep(0.02,0.12,abs(q.y+0.075)))*closeDetail;
+    color=mix(color,vec3(0.84,0.91,0.93),bevel*0.10);
+  }
+#endif
   fragColor = vec4(color, texel.a * alphaMul);
 }
