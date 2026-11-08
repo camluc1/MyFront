@@ -221,14 +221,18 @@ export class WarshipExecution implements Execution {
       a.unit.health() * b.unit.maxHealth() - b.unit.health() * a.unit.maxHealth() ||
       a.unit.id() - b.unit.id(),
     );
+    // Inspect other service vessels only once for this tick. The normal
+    // owner.units() lookup stays memoized and does not allocate per candidate.
+    const otherDocks = owner.units(UnitType.Warship).filter((vessel) =>
+      vessel !== this.warship && vessel.warshipState().supportShip &&
+      vessel.isActive() && !vessel.isMarkedForDeletion() && vessel.health() > 0,
+    );
     let repaired = 0;
     for (const { unit, distSquared } of candidates) {
       // When two docks overlap, only the nearest one may service this ship.
       let closestID = this.warship.id();
       let closestDist = distSquared;
-      for (const vessel of owner.units(UnitType.Warship)) {
-        if (!vessel.warshipState().supportShip || !vessel.isActive() ||
-            vessel.isMarkedForDeletion() || vessel.health() <= 0) continue;
+      for (const vessel of otherDocks) {
         const d = this.mg.euclideanDistSquared(vessel.tile(), unit.tile());
         if (d <= radiusSquared &&
             (d < closestDist || (d === closestDist && vessel.id() < closestID))) {
