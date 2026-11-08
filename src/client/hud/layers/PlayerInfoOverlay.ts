@@ -344,8 +344,12 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
   }
 
   private displayUnitCount(player: PlayerView, type: UnitType, icon: string) {
+    const count = player.totalUnitLevels(type);
+    const group = [UnitType.City, UnitType.Factory, UnitType.Port].includes(type)
+      ? "economy" : "military";
     return !this.game.config().isUnitDisabled(type)
       ? html`<div
+          data-unit-group=${group} data-zero-count=${count === 0}
           class="flex items-center justify-center gap-0.5 lg:gap-1 p-0.5 lg:p-1 border rounded-md border-gray-500 text-[10px] lg:text-xs w-9 lg:w-12 h-6 lg:h-7"
           translate="no"
         >
@@ -353,7 +357,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
             src=${icon}
             class="w-3 h-3 lg:w-4 lg:h-4 object-contain shrink-0"
           />
-          <span>${player.totalUnitLevels(type)}</span>
+          <span>${count}</span>
         </div>`
       : "";
   }
