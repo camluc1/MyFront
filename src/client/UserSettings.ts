@@ -23,6 +23,10 @@ export function getDefaultKeybinds(isMac: boolean): Record<string, string> {
     buildFactory: "Digit2",
     buildPort: "Digit3",
     buildDefensePost: "Digit4",
+    // Castles and domes stay accessible without replacing the ten digit
+    // shortcuts, movement, camera, diplomacy or resource-building letters.
+    buildCastle: "Shift+KeyC",
+    buildIronDome: "KeyI",
     buildMissileSilo: "Digit5",
     buildSamLauncher: "Digit6",
     buildWarship: "Digit7",
