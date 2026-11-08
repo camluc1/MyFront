@@ -23,6 +23,7 @@ import {
   encodeTerrainTile,
   TerrainColorOverrides,
 } from "../utils/ColorUtils";
+import { buildOceanDetailTexture, OCEAN_DETAIL_SIZE } from "../utils/OceanDetailTexture";
 import {
   createMapQuad,
   createProgram,
@@ -37,6 +38,7 @@ import {
 export class TerrainPass {
   private program: WebGLProgram;
   private tex: WebGLTexture;
+  private oceanDetailTex: WebGLTexture | null = null;
   private vao: WebGLVertexArrayObject;
   private uCamera: WebGLUniformLocation;
   private uSurface: WebGLUniformLocation;
@@ -92,6 +94,28 @@ export class TerrainPass {
       data: this.bakeTerrain(terrainBytes),
       filter: gl.NEAREST, // pixel-crisp at all zoom levels
     });
+
+    if (this.cinematic) {
+      // A tiny shared periodic normal/foam map, generated once in JS and
+      // uploaded once. No reflection render target or map-size allocation.
+      this.oceanDetailTex = gl.createTexture();
+      if (this.oceanDetailTex) {
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, this.oceanDetailTex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8,
+          OCEAN_DETAIL_SIZE, OCEAN_DETAIL_SIZE, 0,
+          gl.RGBA, gl.UNSIGNED_BYTE, buildOceanDetailTexture());
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,
+          gl.LINEAR_MIPMAP_LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.useProgram(this.program);
+        gl.uniform1i(gl.getUniformLocation(this.program, "uOceanDetail"), 1);
+      }
+    }
 
     // Fullscreen quad also paints the overview margins in the same draw call.
     this.vao = createMapQuad(gl, 2, 2);
@@ -204,6 +228,10 @@ export class TerrainPass {
       background[2] / 255,
     );
 
+    if (this.oceanDetailTex) {
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, this.oceanDetailTex);
+    }
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.tex);
 
@@ -215,6 +243,7 @@ export class TerrainPass {
     const gl = this.gl;
     gl.deleteProgram(this.program);
     gl.deleteTexture(this.tex);
+    if (this.oceanDetailTex) gl.deleteTexture(this.oceanDetailTex);
     // VAO + buffer leak is acceptable on dispose (context is being destroyed)
   }
 }
