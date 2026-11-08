@@ -51,6 +51,7 @@ import { PointLightPass } from "./passes/PointLightPass";
 import { RailroadPass } from "./passes/RailroadPass";
 import { RangeCirclePass } from "./passes/RangeCirclePass";
 import { SAMRadiusPass } from "./passes/SamRadiusPass";
+import { IronDomePass } from "./passes/IronDomePass";
 import { SelectionBoxPass } from "./passes/SelectionBoxPass";
 import { SkinAtlasArray } from "./passes/SkinAtlasArray";
 import { SmallPlayerGlowPass } from "./passes/SmallPlayerGlowPass";
@@ -136,6 +137,7 @@ export class GPURenderer {
   private fxPass: FxPass;
   private rangeCirclePass: RangeCirclePass;
   private samRadiusPass: SAMRadiusPass;
+  private ironDomePass: IronDomePass;
   private crosshairPass: CrosshairPass;
   private railroadPass: RailroadPass;
   private barPass: BarPass;
@@ -558,6 +560,7 @@ export class GPURenderer {
 
     // --- SAM radius overlay (dashed green circles during build mode) ---
     this.samRadiusPass = new SAMRadiusPass(gl, mapW, this.settings);
+    this.ironDomePass = new IronDomePass(gl, mapW);
     this.samRadiusPass.setPaletteData(paletteData);
 
     // --- Crosshair (warship placement) ---
@@ -959,6 +962,7 @@ export class GPURenderer {
     this.structurePass.updateStructures(units);
     this.structureLevelPass.updateStructures(units);
     this.samRadiusPass.updateStructures(units);
+    this.ironDomePass.updateStructures(units);
     this.unitPass.setStructures(units);
     const posts: { x: number; y: number; ownerID: number }[] = [];
     const w = this.mapW;
@@ -1145,6 +1149,7 @@ export class GPURenderer {
     if (id === this.localPlayerID) return;
     this.localPlayerID = id;
     this.samRadiusPass.setLocalPlayer(id);
+    this.ironDomePass.setLocalPlayer(id);
     this.structurePass.setLocalPlayer(id);
     this.affiliationPalette.setLocalPlayer(id);
     this.unitPass.setLocalPlayer(id);
@@ -1375,6 +1380,7 @@ export class GPURenderer {
     if (pe.railroad) this.railroadPass.draw(cam, zoom);
     if (pe.unit) this.unitPass.drawGround(cam);
     if (pe.falloutBloom) this.bloomPass.draw(cam, this.frameTick);
+    if (pe.structure) this.ironDomePass.draw(cam);
     this.samRadiusPass.draw(cam);
     this.rangeCirclePass.draw(cam);
     this.nukeTrajectoryPass.draw(cam);
@@ -1520,6 +1526,7 @@ export class GPURenderer {
     this.railroadPass.dispose();
     this.rangeCirclePass.dispose();
     this.samRadiusPass.dispose();
+    this.ironDomePass.dispose();
     this.crosshairPass.dispose();
     this.structurePass.dispose();
     this.structureLevelPass.dispose();
