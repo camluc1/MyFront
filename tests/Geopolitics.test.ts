@@ -568,3 +568,21 @@ it("does not modify Classic diplomacy when an ordinary treaty-like action is att
   expect(classic.diplomacy.state.log).toEqual([]);
   expect(classic.diplomacy.state.memory).toEqual([]);
 });
+
+it("allied border witnesses support a port treaty rather than reacting like neutral rivals", () => {
+  const coalition = offer(a, c, "coalition");
+  accept(c, coalition.id);
+  expect(game.diplomacy.coalition(a.id())?.members).toContain(c.id());
+  const port = b.buildUnit(UnitType.Port, game.ref(1, 1), {});
+  const treaty = offer(a, b, "peace", {
+    receive: { ...emptyAssets(), tiles: [port.tile()], buildings: [port.id()] },
+  });
+  accept(b, treaty.id);
+  expect(treaty.status).toBe("accepted");
+  expect(game.diplomacy.state.log.some((event) =>
+    event.actor === c.id() && event.target === a.id() &&
+    event.event === "ally_support")).toBe(true);
+  const memory = game.diplomacy.state.memory.find((entry) =>
+    entry.a === c.id() && entry.b === a.id());
+  expect(memory?.trust).toBeGreaterThan(8);
+});
