@@ -507,9 +507,14 @@ export class ControlPanel extends LitElement implements Controller {
               <span class="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400">
                 <img src=${soldierIcon} alt="" width="12" height="12" class="opacity-80" /> Soldados
               </span>
-              <span class="text-[10px] font-medium text-slate-500">ACTUALES</span>
+              <span class="text-[10px] font-medium text-slate-400">ACTUALES / MÁX.</span>
             </div>
-            <strong class="block truncate text-xl font-bold leading-tight tracking-tight text-white tabular-nums" translate="no">${renderTroops(this._troops)}</strong>
+            <div class="flex min-w-0 items-baseline gap-1 whitespace-nowrap tabular-nums" translate="no"
+              aria-label=${`Soldados: ${renderTroops(this._troops)} de ${renderTroops(this._maxTroops)} de capacidad máxima`}>
+              <strong class="text-base lg:text-lg font-bold leading-tight tracking-tight text-white">${renderTroops(this._troops)}</strong>
+              <span class="text-sm text-slate-500" aria-hidden="true">/</span>
+              <strong class="text-base lg:text-lg font-semibold leading-tight tracking-tight text-cyan-200">${renderTroops(this._maxTroops)}</strong>
+            </div>
             <div class="mt-1.5 flex h-1.5 overflow-hidden rounded-full bg-slate-700/80 ${this._lowTroopsAlert ? "ring-1 ring-red-400/80" : ""}"
               role="progressbar" aria-label="Reserva de soldados"
               aria-valuenow=${Math.round(greenPercent)} aria-valuemin="0" aria-valuemax="100">
