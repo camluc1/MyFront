@@ -8,6 +8,7 @@
 import type { UnitState } from "../../types";
 import { UT_IRON_DOME } from "../../types";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
+import { samRange } from "../utils/NukeTrajectory";
 import { createProgram } from "../utils/GlUtils";
 import vertSrc from "../shaders/iron-dome/iron-dome.vert.glsl?raw";
 import fragSrc from "../shaders/iron-dome/iron-dome.frag.glsl?raw";
@@ -56,7 +57,7 @@ export class IronDomePass {
       data.float32[off] = x + 0.5;
       data.float32[off + 1] = y + 0.5;
       data.float32[off + 2] = u.ownerID;
-      data.float32[off + 3] = 1;
+      data.float32[off + 3] = Math.round(samRange(Math.max(1, u.level)) * 1.2);
       count++;
     }
     this.count = count;
