@@ -106,8 +106,10 @@ export class WarshipExecution implements Execution {
     if (this.warship.warshipState().supportShip) {
       // Service ships do not shoot or random-patrol. Cost is one local scan/tick.
       this.healWarship();
-      this.repairSupportedShips();
+      // Move first: a ship that travels this tick uses the slower underway
+      // repair rate, not the stationary rate from its previous position.
       this.moveSupportShip();
+      this.repairSupportedShips();
       return;
     }
 
