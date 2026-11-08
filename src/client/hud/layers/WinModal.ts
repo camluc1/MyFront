@@ -185,16 +185,66 @@ export class WinModal extends LitElement implements Controller {
     super();
   }
 
+  /** Uses the real client-side player snapshot; no ranking request or game rule changes. */
+  private renderTopTen() {
+    const game = this.game;
+    if (!game) return null;
+    const players = game.players();
+    if (!players.length) return null;
+    const ranked = [...players].sort(
+      (a, b) => b.numTilesOwned() - a.numTilesOwned() ||
+        b.troops() - a.troops() || a.smallID() - b.smallID(),
+    );
+    const leaders = ranked.slice(0, 10);
+    const leaderTiles = Math.max(1, leaders[0]?.numTilesOwned() ?? 1);
+    const localId = game.myPlayer()?.smallID();
+    const localRank = ranked.findIndex((p) => p.smallID() === localId);
+    return html`
+      <section data-final-top-ten class="mb-4 overflow-hidden rounded-xl border border-sky-300/20 bg-slate-950/95 text-slate-100 shadow-lg">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-gradient-to-r from-sky-950/70 to-slate-900/80 px-4 py-3">
+          <div>
+            <div class="text-[10px] font-bold uppercase tracking-[0.18em] text-sky-300">Clasificación</div>
+            <h3 class="mt-0.5 text-base font-bold text-white">Top 10 por territorio</h3>
+          </div>
+          <span class="text-[11px] text-slate-400">${game.gameOver() ? "Al cierre de la partida" : "Estado actual de la partida"}</span>
+        </div>
+        <div class="divide-y divide-white/5">
+          ${leaders.map((player, index) => {
+            const tiles = player.numTilesOwned();
+            const own = player.smallID() === localId;
+            return html`
+              <div class="grid grid-cols-[2rem_minmax(0,1fr)_5rem] items-center gap-3 px-4 py-2 ${own ? "bg-sky-400/10" : ""}">
+                <span class="text-center text-sm font-bold tabular-nums ${index < 3 ? "text-amber-300" : "text-slate-500"}">${index + 1}</span>
+                <div class="min-w-0">
+                  <div class="flex min-w-0 items-center gap-2">
+                    <span class="truncate text-xs font-semibold ${own ? "text-sky-200" : "text-slate-200"}">${player.displayName()}</span>
+                    ${own ? html`<span class="shrink-0 rounded bg-sky-400/15 px-1.5 py-0.5 text-[9px] font-bold text-sky-300">VOS</span>` : null}
+                    ${!player.isAlive() ? html`<span class="shrink-0 text-[9px] text-slate-500">Eliminado</span>` : null}
+                  </div>
+                  <div class="mt-1 h-1 overflow-hidden rounded-full bg-slate-800">
+                    <div class="h-full rounded-full bg-gradient-to-r from-sky-600 to-cyan-400" style=${`width: ${(tiles / leaderTiles) * 100}%`}></div>
+                  </div>
+                </div>
+                <span class="text-right text-xs font-bold tabular-nums text-slate-200">${tiles.toLocaleString()}</span>
+              </div>
+            `;
+          })}
+        </div>
+        ${localRank >= 10 ? html`<div class="border-t border-white/10 px-4 py-2 text-xs text-sky-200">Tu posición: #${localRank + 1} de ${ranked.length}</div>` : null}
+      </section>
+    `;
+  }
+
   render() {
     return html`
       <div
         class="${
           this.isVisible
-            ? "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-800/70 p-4 md:p-6 shrink-0 rounded-lg z-[10010] shadow-2xl backdrop-blur-xs text-white w-[min(90vw,700px)] max-w-[90%] max-h-[90dvh] overflow-hidden flex flex-col"
+            ? "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-sky-300/20 bg-slate-950/95 p-4 md:p-6 shrink-0 z-[10010] shadow-[0_24px_65px_rgba(0,0,0,0.65)] text-white w-[min(94vw,760px)] max-h-[90dvh] overflow-hidden flex flex-col"
             : "hidden"
         }"
       >
-        <h2 class="m-0 mb-4 text-[26px] text-center text-white shrink-0">
+        <h2 class="m-0 mb-4 text-2xl font-bold tracking-tight text-center text-white shrink-0">
           ${this._title || ""}
         </h2>
         <div class="min-h-0 flex-1 overflow-y-auto pr-0.5">
@@ -207,6 +257,7 @@ export class WinModal extends LitElement implements Controller {
             @xp-legend=${this.onXpLegend}
           ></game-xp-panel>
           ${this.innerHtml()}
+          ${this.isVisible ? this.renderTopTen() : null}
           ${this.isVisible ? html`<match-history-panel .game=${this.game} .summary=${true}></match-history-panel>` : html``}
         </div>
         <!-- Leaving is the quieter action, on the left; staying in the game
