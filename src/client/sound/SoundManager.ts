@@ -2,6 +2,7 @@ import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
 import { Howl } from "howler";
 import { AudioMixer, PlayableCategory, streamsMusic } from "./AudioMixer";
+import { oceanAmbienceDataUrl } from "./OceanAmbience";
 import {
   AmbienceTrack,
   ambienceUrls,
@@ -345,7 +346,7 @@ export class SoundManager {
   private getOrLoadAmbience(name: AmbienceTrack): Howl | null {
     const cached = this.ambienceTracks.get(name);
     if (cached) return cached;
-    const src = ambienceUrls.get(name);
+    const src = name === "sea" ? oceanAmbienceDataUrl() : ambienceUrls.get(name);
     if (!src) return null;
     try {
       const sound = new Howl({ src: [src], loop: true, volume: 0 });
