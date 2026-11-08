@@ -1041,7 +1041,10 @@ export class WarshipExecution implements Execution {
       lastObservedPatrolTile: this.lastObservedPatrolTile,
       activeHealingRemainder: this.activeHealingRemainder,
       lastEmittedCombat: this.lastEmittedCombat,
-      assignedRepairShipIDs: [...this.assignedRepairShipIDs],
+      // Do not change normal/classic warship snapshot payloads.
+      assignedRepairShipIDs: this.warship?.warshipState().supportShip
+        ? [...this.assignedRepairShipIDs]
+        : undefined,
     });
   }
 
