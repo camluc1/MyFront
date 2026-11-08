@@ -42,6 +42,13 @@ jobs:
           node scripts/validateUltraNavalGlsl.mjs
       - name: Build the development client
         run: npm run build-dev
+      - name: Verify Ultra naval quality isolation and fleet contracts
+        run: |
+          npx vitest run --project client \
+            tests/client/render/gl/UltraNavalVisualContract.test.ts \
+            tests/client/render/gl/UnitPassFleet.test.ts \
+            tests/client/render/gl/VesselMotionDynamics.test.ts \
+            tests/client/render/gl/VesselMotionCinematic.test.ts
       - name: Check carrier rendering and pre-game player colors
         run: |
           npx vitest run --project node --project client \
