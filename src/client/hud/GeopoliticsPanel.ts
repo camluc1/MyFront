@@ -1038,8 +1038,9 @@ export class GeopoliticsPanel extends LitElement {
     const completion = pending ? Math.max(0, Math.min(100,
       100 * (o.expires - this.game.ticks()) /
         Math.max(1, o.expires - o.created))) : 0;
-    const reason = !o || o.reason === "proposal"
-      ? t("deal_brief_pending") : t("reason_" + o.reason);
+    const rationale = o?.decisionReason ?? o?.reason;
+    const reason = !o || !rationale || rationale === "proposal"
+      ? t("deal_brief_pending") : t("reason_" + rationale);
     return html`<div class="diplomatic-brief" aria-label=${t("deal_outcomes")}>
       <div class="brief-tile">
         <div class="brief-eyebrow">${t("deal_outcomes")}</div>
@@ -1071,7 +1072,7 @@ export class GeopoliticsPanel extends LitElement {
         <span style="width:${completion}%"></span>
       </div>
     </div>` : nothing}
-    ${!risk.length && o && o.reason !== "proposal" ? html`
+    ${o && rationale && rationale !== "proposal" ? html`
       <p class="brief-reason">${t("deal_brief")}: ${reason}</p>
     ` : nothing}
     ${landIn > 0 || landOut > 0 ? html`
@@ -1308,6 +1309,11 @@ export class GeopoliticsPanel extends LitElement {
       </details>
       ${o ? html`<p class="notice" role="status">
         ${t("reason_" + o.reason)} · ${t("effect_" + o.kind)}
+        ${o.decisionReason && o.decisionReason !== o.reason
+          ? html`<span style="display:block;margin-top:5px">
+              ${t("deal_brief")}: ${t("reason_" + o.decisionReason)}
+            </span>`
+          : nothing}
       </p>` : nothing}
       ${this.notice ? html`<p role="status" class="notice">${this.notice}</p>` : nothing}
       <div class="footer">
