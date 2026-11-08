@@ -171,7 +171,9 @@
       "Gas Plant": {
         "scale": 1.12,
         "iconFill": 0.9
-      }
+      },
+      "Castle": { "scale": 1.12, "iconFill": 0.88 },
+      "Iron Dome": { "scale": 1.18, "iconFill": 0.89 }
     },
     "highlightOutlineWidth": 0.04,
     "highlightDimAlpha": 0.3,
