@@ -1,4 +1,5 @@
 #version 300 es
+// FRONTIER_CINEMATIC_VARIANT
 precision highp float;
 
 uniform float uRingWidth;
@@ -45,6 +46,29 @@ float vnoise(float x) {
 
 // Classic expanding white ring (SAM, and nuke style 0).
 void classicRing(float dist) {
+#ifdef FRONTIER_CINEMATIC
+  // Default nukes carry a purple sentinel; SAM interceptions carry white.
+  // Keep SAM and all selected cosmetic styles unchanged. This is a visual
+  // pressure front, not an altered damage radius or another full-screen pass.
+  if (distance(vColor0,vec3(1.0))>0.1) {
+    float aa=max(fwidth(dist),0.003);
+    float ring=1.0-smoothstep(0.0,max(uRingWidth,aa),abs(dist-0.97));
+    float tail=(1.0-smoothstep(0.73,0.98,dist))*smoothstep(0.53,0.78,dist);
+    float life=clamp(vAlpha,0.0,1.0);
+    float heat=life*life;
+#ifdef FRONTIER_REDUCED_MOTION
+    float core=0.0;
+#else
+    float core=exp(-dist*dist*9.0)*heat*heat*0.13;
+#endif
+    float alpha=clamp((ring*0.76+tail*0.12)*life+core,0.0,0.8);
+    if(alpha<0.01)discard;
+    vec3 hot=mix(vec3(0.64,0.39,0.20),vec3(1.0,0.88,0.63),heat);
+    vec3 color=mix(hot,vec3(0.94,0.97,1.0),ring*0.58);
+    fragColor=vec4(color,alpha);
+    return;
+  }
+#endif
   float ringDist = abs(dist - 1.0);
   float ring = 1.0 - smoothstep(0.0, uRingWidth, ringDist);
   if (ring < 0.01) discard;
