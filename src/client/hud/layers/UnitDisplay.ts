@@ -59,12 +59,15 @@ const PEEK_HOLD_MS = 450;
 /** How long the details stay up after the browser cancels the touch itself. */
 const PEEK_GRACE_MS = 1200;
 type BuildCategory = "economy" | "defense" | "naval" | "arsenal";
-const BUILD_CATEGORIES = [
+const BUILD_CATEGORIES: ReadonlyArray<{
+  id: Exclude<BuildCategory, "arsenal">;
+  label: string;
+  types: readonly PlayerBuildableUnitType[];
+}> = [
   { id: "economy", label: "Economía", types: [UnitType.City, UnitType.Factory, UnitType.Farm, UnitType.Mine, UnitType.OilWell, UnitType.GasPlant] },
   { id: "defense", label: "Defensa", types: [UnitType.DefensePost, UnitType.MissileSilo, UnitType.SAMLauncher, UnitType.Castle, UnitType.IronDome] },
   { id: "naval", label: "Naval", types: [UnitType.Port, UnitType.Warship] },
-] as const;
-
+];
 
 @customElement("unit-display")
 export class UnitDisplay extends LitElement implements Controller {
@@ -472,11 +475,9 @@ export class UnitDisplay extends LitElement implements Controller {
 
   private canBuild(item: UnitType): boolean {
     if (this.game?.config().isUnitDisabled(item)) return false;
-    // High-cost Geopolitics defenses must not look free while the async
-    // economy/buildables snapshot is still loading. cost() historically
-    // returned 0n for unknown entries, enabling an unbuyable Dome for a tick.
-    if ((item === UnitType.Castle || item === UnitType.IronDome) &&
-        !this.playerBuildables?.some((bu) => bu.type === item)) return false;
+    // Never display missing asynchronous prices as free build actions.
+    // This applies to every unit, including future game-mode-specific units.
+    if (!this.playerBuildables?.some((bu) => bu.type === item)) return false;
     const player = this.game?.myPlayer();
     switch (item) {
       case UnitType.AtomBomb:
