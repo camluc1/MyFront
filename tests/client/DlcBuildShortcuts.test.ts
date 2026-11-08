@@ -119,6 +119,39 @@ describe("DLC keyboard build controls", () => {
     }
   });
 
+  it("repeating the Dome hotkey steps through 1, 5 and 10 upgrades", () => {
+    const gameView = {
+      inSpawnPhase: () => false,
+      myPlayer: () => ({ isAlive: () => true }),
+    } as unknown as GameView;
+    const ui = {
+      ghostStructure: null as UnitType | null,
+      upgradeMultiplier: 1,
+      rocketDirectionUp: true,
+      attackRatio: 20,
+      preventStacking: false,
+    };
+    const handler = new InputHandler(
+      gameView, ui as any, document.createElement("canvas"), new EventBus(),
+    );
+    handler.initialize();
+    const press = () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyI" }));
+      window.dispatchEvent(new KeyboardEvent("keyup", { code: "KeyI" }));
+    };
+    try {
+      press();
+      expect(ui.ghostStructure).toBe(UnitType.IronDome);
+      expect(ui.upgradeMultiplier).toBe(1);
+      press();
+      expect(ui.upgradeMultiplier).toBe(5);
+      press();
+      expect(ui.upgradeMultiplier).toBe(10);
+    } finally {
+      handler.destroy();
+    }
+  });
+
   it("honors live remapping and does not steal a key reserved by the player", () => {
     const gameView = {
       inSpawnPhase: () => false,
