@@ -100,7 +100,7 @@ bool spriteEffectColor(int rowBase, int owner, float coord, bool iconSpace, out 
 
 // Compact vector silhouettes. No texture download or per-vessel draw call.
 // +X is the bow; palette gray bands retain ownership, combat and cosmetics.
-vec4 vehicleSprite(vec2 q, float col) {
+vec4 vehicleSprite(vec2 q, float col, out float signedHullDistance) {
   float aa = max(fwidth(q.x), fwidth(q.y));
   float detail = 1.0 - smoothstep(0.10, 0.25, aa);
   float gray = 0.706;
@@ -220,6 +220,7 @@ vec4 vehicleSprite(vec2 q, float col) {
       gray = 0.275;
     }
   }
+  signedHullDistance = d;
   float alpha = 1.0 - smoothstep(-aa, aa, d);
   return vec4(vec3(gray), alpha);
 }
@@ -240,7 +241,8 @@ void main() {
   bool train = vAtlasCol > 8.5;
   vec2 q = (vCellUV - 0.5) * 2.0;
   if (vessel || train) {
-    texel = vehicleSprite(q, vAtlasCol);
+    float hullSignedDistance = 1.0;
+    texel = vehicleSprite(q, vAtlasCol, hullSignedDistance);
     // Unit-local pulse, composed behind the hull in this same instance.
     // No terrain modification, accumulated stain, particles or extra draw call.
     bool warship = vAtlasCol > 1.5 && vAtlasCol < 2.5;
@@ -327,6 +329,29 @@ void main() {
       if (wake > 0.005) {
         float combined = wake + waterEffect.a*(1.0-wake);
         waterEffect = vec4((vec3(0.78,0.90,0.94)*wake + waterEffect.rgb*waterEffect.a*(1.0-wake))/combined,combined);
+      }
+    }
+#endif
+#ifdef FRONTIER_CINEMATIC_ULTRA
+    // Ultra only: project a faint water shadow one screen pixel down/right,
+    // approximated from the existing hull distance. Nothing grows the unit
+    // quad, creates extra geometry, or affects hit testing or normal modes.
+    if (vessel && uAltView == 0) {
+      float px = max(fwidth(hullSignedDistance), 0.0001);
+      float displaced = hullSignedDistance
+        - 0.58 * dFdx(hullSignedDistance)
+        - 0.92 * dFdy(hullSignedDistance);
+      float shade = (1.0 - smoothstep(-px * 0.45, px * 1.30, displaced))
+        * (1.0 - texel.a);
+      float shadowAlpha = shade * 0.16;
+      if (shadowAlpha > 0.001) {
+        float current = waterEffect.a;
+        float alpha = current + shadowAlpha * (1.0 - current);
+        vec3 darkWater = vec3(0.025, 0.065, 0.082);
+        waterEffect = vec4(
+          (waterEffect.rgb * current + darkWater * shadowAlpha * (1.0 - current))
+            / max(alpha, 0.001),
+          alpha);
       }
     }
 #endif
@@ -487,6 +512,36 @@ void main() {
       color*=mix(.84,1.10,face);
     }
   }
+#ifdef FRONTIER_CINEMATIC_ULTRA
+  if (vessel) {
+    // Four discrete, low-contrast tonal zones follow the original owner
+    // palette. The team color stays dominant; cargo/deck pigments remain
+    // legible. Top-left lighting is fixed in ship-local coordinates.
+    float detailPx = max(fwidth(q.x), fwidth(q.y));
+    float closeLOD = 1.0 - smoothstep(0.070, 0.225, detailPx);
+    float lightSide = clamp(0.57 - 0.48 * q.y - 0.20 * q.x, 0.0, 1.0);
+    float tone = (step(0.24, lightSide) +
+                  step(0.49, lightSide) +
+                  step(0.75, lightSide)) / 3.0;
+    float hullMaterial = gray > 0.83 ? 0.28 : 1.0;
+    color *= mix(1.0, 0.88 + 0.23 * tone, hullMaterial);
+
+    // Lighten the lit edge of low-luminance player colors, especially blue
+    // over blue water. This is calculated from the ACTUAL owner color, not
+    // from a per-team hardcoded color or a neutral gray replacement.
+    float ownerLuma = dot(territoryColor, vec3(0.2126,0.7152,0.0722));
+    float lift = 0.035 + clamp((0.34-ownerLuma)*0.29, 0.0, 0.10);
+    float sunlight = smoothstep(0.43, 0.85, lightSide);
+    color = mix(color, vec3(1.0), sunlight * lift * hullMaterial);
+
+    // Screen-space ~1px near, less than a pixel at strategic zoom.
+    // Avoid a solid one-pixel black outline on a 4-5px distant ship.
+    float rimPx = clamp(fwidth(hullSignedDistance)*0.87, 0.005, 0.038);
+    float rim = smoothstep(-rimPx*1.85, -rimPx*0.18, hullSignedDistance);
+    vec3 rimColor = mix(borderColor, territoryColor, 0.24);
+    color = mix(color, rimColor, rim * mix(0.44,0.72,closeLOD));
+  }
+#endif
   if (vessel) {
     float aa = max(fwidth(q.x), fwidth(q.y));
     float strategic = vStrategic;
