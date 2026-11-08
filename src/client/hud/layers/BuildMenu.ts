@@ -302,10 +302,25 @@ export class BuildMenu extends LitElement implements Controller {
     .build-button:disabled .build-cost {
       color: #ff4444;
     }
+    .build-icon-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 55px;
+      min-height: 54px;
+      flex-shrink: 0;
+    }
+    .build-icon-wrap > img {
+      display: block;
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+    }
     .build-hotkey {
       position: absolute;
-      top: 6px;
-      left: 6px;
+      top: -7px;
+      right: -17px;
       padding: 2px 6px;
       min-width: 22px;
       max-width: calc(100% - 12px);
@@ -314,10 +329,17 @@ export class BuildMenu extends LitElement implements Controller {
       border: 1px solid #64707a;
       border-radius: 5px;
       background: #303740;
-      color: #d2d9e0;
-      font: 700 12px/1.3 system-ui;
+      color: #e3e9ed;
+      font: 800 13px/1.3 system-ui;
       text-align: center;
       pointer-events: none;
+      z-index: 2;
+      box-shadow: 0 1px 5px #000b;
+    }
+    .build-hotkey.unbound {
+      color: #9ba7ad;
+      border-style: dashed;
+      background: #262b30;
     }
     .build-icon {
       font-size: 40px;
@@ -398,10 +420,10 @@ export class BuildMenu extends LitElement implements Controller {
         padding: 1px 5px;
       }
       .build-hotkey {
-        top: 4px;
-        left: 4px;
+        top: -5px;
+        right: -9px;
         padding: 1px 4px;
-        font-size: 10px;
+        font-size: 11px;
       }
     }
 
@@ -529,21 +551,28 @@ export class BuildMenu extends LitElement implements Controller {
                         : ""
                     }
                   >
-                    ${(() => {
-                      const action = buildActionForUnit(item.unitType);
-                      const configured = action ? this.buildShortcuts[action] : undefined;
-                      return configured
-                        ? html`<span class="build-hotkey" translate="no"
-                            aria-label=${`Shortcut ${formatKeyForDisplay(configured)}`}
-                          >${formatKeyForDisplay(configured)}</span>`
-                        : "";
-                    })()}
-                    <img
-                      src=${item.icon}
-                      alt="${item.unitType}"
-                      width="40"
-                      height="40"
-                    />
+                    <div class="build-icon-wrap">
+                      <img
+                        src=${item.icon}
+                        alt="${item.unitType}"
+                        width="40"
+                        height="40"
+                      />
+                      ${(() => {
+                        const action = buildActionForUnit(item.unitType);
+                        if (!action) return "";
+                        const shortcut = this.buildShortcuts[action];
+                        const label = shortcut ? formatKeyForDisplay(shortcut) : "—";
+                        return html`<span
+                          class="build-hotkey ${shortcut ? "" : "unbound"}"
+                          translate="no"
+                          title=${shortcut
+                            ? `Tecla: ${label}`
+                            : "Atajo sin asignar. Configuración → Teclas"}
+                          aria-label=${shortcut ? `Atajo ${label}` : "Atajo sin asignar"}
+                        >${label}</span>`;
+                      })()}
+                    </div>
                     <span class="build-name">
                       ${item.key && translateText(item.key)}
                     </span>
