@@ -24,7 +24,11 @@ import {
 import { KeyboardLayoutController } from "../../KeyboardLayout";
 import { Platform } from "../../Platform";
 import { UIState } from "../../UIState";
-import { UserSettings } from "../../UserSettings";
+import {
+  KEYBINDS_KEY,
+  USER_SETTINGS_CHANGED_EVENT,
+  UserSettings,
+} from "../../UserSettings";
 import { resolveKeybindLabel, translateText } from "../../Utils";
 import { GameView } from "../../view";
 import {
@@ -69,7 +73,14 @@ export class UnitDisplay extends LitElement implements Controller {
     this.resourcesVisible = !this.resourcesVisible;
     this.eventBus.emit(new ToggleResourcesEvent(this.resourcesVisible));
   }
-  private keybinds: Record<string, { value: string; key: string }> = {};
+  // This must be the effective map (defaults + user remaps), not just saved
+  // overrides. Otherwise Farm/Mine/Oil/Gas and new defenses show no badges.
+  private keybinds: Record<string, string> = {};
+
+  private refreshBuildHotkeys = () => {
+    this.keybinds = new UserSettings().keybinds(Platform.isMac);
+    this.requestUpdate();
+  };
   private keyboardLayout = new KeyboardLayoutController(this);
   private _cities = 0;
   private _warships = 0;
@@ -133,9 +144,7 @@ export class UnitDisplay extends LitElement implements Controller {
       this.resourceEconomy = event.info;
     });
     const config = this.game.config();
-    const userSettings = new UserSettings();
-
-    this.keybinds = userSettings.parsedUserKeybinds();
+    this.refreshBuildHotkeys();
 
     this.tutorialMode = config.gameConfig().tutorial ?? false;
     // The bar is hidden on small screens, where the radial menu builds, but
@@ -173,6 +182,10 @@ export class UnitDisplay extends LitElement implements Controller {
     if (this.windowListenersAttached) return;
     window.addEventListener("resize", this.onLayoutChange);
     window.addEventListener("keydown", this.handleKeyboardDetection);
+    window.addEventListener(
+      `${USER_SETTINGS_CHANGED_EVENT}:${KEYBINDS_KEY}`,
+      this.refreshBuildHotkeys,
+    );
     document.addEventListener("pointerdown", this.handleDocumentPointerDown);
     document.addEventListener("pointerup", this.handleDocumentPointerUp);
     document.addEventListener(
@@ -189,6 +202,10 @@ export class UnitDisplay extends LitElement implements Controller {
     super.disconnectedCallback();
     window.removeEventListener("resize", this.onLayoutChange);
     window.removeEventListener("keydown", this.handleKeyboardDetection);
+    window.removeEventListener(
+      `${USER_SETTINGS_CHANGED_EVENT}:${KEYBINDS_KEY}`,
+      this.refreshBuildHotkeys,
+    );
     document.removeEventListener("pointerdown", this.handleDocumentPointerDown);
     document.removeEventListener("pointerup", this.handleDocumentPointerUp);
     document.removeEventListener(
@@ -684,7 +701,8 @@ export class UnitDisplay extends LitElement implements Controller {
   private getHotkey(action: string, defaultCode: string): string {
     // Without a keyboard the hotkeys cannot be used, so don't resolve them
     // (or the keyboard layout behind them) and don't show them.
-    if (!Platform.hasKeyboard) return "";
+    // An explicitly unbound action must not display a fallback digit.
+    if (!Platform.hasKeyboard || !this.keybinds[action]) return "";
     return resolveKeybindLabel(
       this.keybinds[action],
       defaultCode,
@@ -709,6 +727,7 @@ export class UnitDisplay extends LitElement implements Controller {
       unitType === UnitType.OilWell ||
       unitType === UnitType.GasPlant;
     const displayHotkey = hotkey
+      .replace(/^Shift\+/, "⇧")
       .replace("Digit", "")
       .replace("Key", "")
       .toUpperCase();
