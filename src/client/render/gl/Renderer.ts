@@ -587,7 +587,9 @@ export class GPURenderer {
       this.settings,
       config,
     );
-    this.fxPass = new FxPass(gl, header, this.settings, config);
+    this.fxPass = new FxPass(
+      gl, header, this.settings, config, this.terrainBytesTex,
+    );
     this.barPass = new BarPass(gl, header, this.settings, config);
     this.worldTextPass = new WorldTextPass(gl, this.settings, config);
     this.worldTextPass.setMapWidth(this.mapW);

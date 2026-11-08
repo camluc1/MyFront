@@ -15,6 +15,9 @@ flat in float vFxProgress;
 flat in float vFxFrame;
 flat in float vCinematic;
 in vec2 vLocalUV;
+#ifdef FRONTIER_CINEMATIC
+flat in float vWaterImpact;
+#endif
 out vec4 fragColor;
 #ifdef FRONTIER_CINEMATIC
 vec2 cinematicAtlasUV(float index,vec2 uv) {
@@ -53,6 +56,49 @@ void main() {
     if(alpha<.008) discard;
     vec3 col=mix(vec3(.27,.71,.89),vec3(.96,.98,1.0),clamp(flash+spokes,0.0,1.0));
     fragColor=vec4(col,alpha);
+    return;
+  }
+  // Procedural muzzle/launch flash. Each is a single short-lived instance
+  // generated only when a projectile actually appears, not every frame.
+  if(vFxType>11.5) {
+    vec2 p=(vLocalUV-.5)*2.0;
+    float r=length(p),t=clamp(vFxProgress,0.0,1.0);
+    bool naval=vFxType<12.5;
+    float core=exp(-r*r*(naval ? 18.0 : 24.0))*pow(1.0-t,4.0);
+    float angle=atan(p.y,p.x);
+    float streak=pow(max(0.0,cos(angle*(naval ? 6.0 : 8.0))),36.0)*
+      smoothstep(.04,.13,r)*(1.0-smoothstep(.45,.85,r))*pow(1.0-t,2.4);
+#ifdef FRONTIER_REDUCED_MOTION
+    core*=0.4;
+    streak*=0.6;
+#endif
+    float alpha=clamp(core*.85+streak*.25,0.0,.78)*vAlpha;
+    if(alpha<.008) discard;
+    vec3 warm=vec3(1.0,.77,.37),cool=vec3(.52,.83,1.0);
+    fragColor=vec4(mix(cool,warm,naval ? 1.0 : 0.0),alpha);
+    return;
+  }
+  // A shell hitting water produces spray and a surface ring, not burning
+  // soil. The ground impact and all existing nuclear ground effects are intact.
+  if(abs(vFxType-4.0)<.5 && vWaterImpact>.5) {
+    vec2 p=(vLocalUV-.5)*2.0;
+    float t=clamp(vFxProgress,0.0,1.0);
+    float sprayR=length(vec2(p.x,(p.y+.19)*1.25));
+    float radius=.11+.58*t;
+    float ring=exp(-pow((sprayR-radius)*19.0,2.0))*
+      (1.0-smoothstep(.16,.72,abs(p.y+.19)))*pow(1.0-t,1.35);
+    float up=clamp(-p.y,0.0,1.0);
+    float jet=exp(-pow(p.x/(.11+.18*t),2.0))*
+      smoothstep(.04,.24,up)*(1.0-smoothstep(.45+.23*t,.88,up))*
+      (1.0-t)*.35;
+#ifdef FRONTIER_CINEMATIC_ULTRA
+    float ray=pow(abs(sin(atan(p.y+.19,p.x)*11.0)),22.0);
+    jet+=ray*exp(-pow((sprayR-(.19+.52*t))*6.5,2.0))*.15*(1.0-t);
+#endif
+    float alpha=clamp(ring*.43+jet*.53,0.0,.58)*vAlpha;
+    if(alpha<.006) discard;
+    vec3 color=mix(vec3(.40,.75,.88),vec3(.88,.97,.98),clamp(jet*1.6,0.0,1.0));
+    fragColor=vec4(color,alpha);
     return;
   }
   bool newNuke=vCinematic>.5 && vFxType<.5 && uCinematicNukeReady>.5;

@@ -33,6 +33,7 @@ export { calculateExplosionDurationMs };
 type SpritePass = Pick<
   FxSpritePass,
   | "spawnFxForUnit"
+  | "spawnWeaponLaunch"
   | "applyRailroadDust"
   | "applyConquestEvents"
   | "tick"
@@ -59,6 +60,7 @@ type AttackRingPass = Pick<
 const noop = () => {};
 const NOOP_SPRITE_PASS: SpritePass = {
   spawnFxForUnit: noop,
+  spawnWeaponLaunch: noop,
   applyRailroadDust: noop,
   applyConquestEvents: noop,
   tick: noop,
@@ -115,11 +117,12 @@ export class FxPass {
     header: RendererConfig,
     settings: RenderSettings,
     private config: Config,
+    terrainFlagsTex: WebGLTexture | null = null,
   ) {
     this.mapW = header.mapWidth;
     this.settings = settings;
     this.spritePass = buildOptional(
-      () => new FxSpritePass(gl, header, settings, config),
+      () => new FxSpritePass(gl, header, settings, config, terrainFlagsTex),
       NOOP_SPRITE_PASS,
     );
     this.shockwavePass = buildOptional(
@@ -164,6 +167,13 @@ export class FxPass {
 
     // All other units: sprite-only effects
     this.spritePass.spawnFxForUnit(unit, now);
+  }
+
+  applyWeaponLaunches(launches: readonly {x:number;y:number;kind:"naval"|"sam"}[]): void {
+    const now=this.timeFn();
+    // The renderer only forwards real new missiles; no artificial continuous fire.
+    for (const launch of launches)
+      this.spritePass.spawnWeaponLaunch(launch.x,launch.y,launch.kind,now);
   }
 
   applyRailroadDust(tileRefs: number[]): void {

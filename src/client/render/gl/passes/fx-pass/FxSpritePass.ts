@@ -23,12 +23,15 @@ const FX_NUKE = 0, FX_SAM_EXPLOSION = 1, FX_BUILDING_EXPLOSION = 2;
 const FX_UNIT_EXPLOSION = 3, FX_MINI_EXPLOSION = 4, FX_SINKING_SHIP = 5;
 const FX_MINI_FIRE = 6, FX_MINI_SMOKE = 7, FX_MINI_BIG_SMOKE = 8;
 const FX_MINI_SMOKE_FIRE = 9, FX_DUST = 10, FX_CONQUEST = 11;
-const FX_TYPE_COUNT = 12;
+// Procedural launch flashes: zero new textures and the same instanced draw.
+const FX_NAVAL_LAUNCH = 12, FX_SAM_LAUNCH = 13;
+const FX_TYPE_COUNT = 14;
 // Existing frame counts/durations are unchanged for the classic profile.
 const FX_CONFIG = [
   [9,70,false], [9,70,false], [10,70,false], [4,70,false],
   [4,70,false], [14,90,false], [6,100,true], [4,120,true],
   [5,120,true], [5,120,true], [3,100,false], [10,90,false],
+  [5,55,false], [5,45,false],
 ] as const;
 const DEBRIS_PLAN = [
   { type: FX_MINI_FIRE, radiusFactor: 1, density: 1/25 },
@@ -75,7 +78,8 @@ export class FxSpritePass {
   private readonly atlasAbort = new AbortController();
 
   constructor(private gl: WebGL2RenderingContext, header: RendererConfig,
-    private settings: RenderSettings, private config: Config) {
+    private settings: RenderSettings, private config: Config,
+    private terrainFlagsTex: WebGLTexture | null = null) {
     this.mapW = header.mapWidth;
     const vertex = shaderSrc(spriteVertSrc, { FX_TYPE_COUNT });
     try {
@@ -98,6 +102,9 @@ export class FxSpritePass {
       this.uCinematicImpactReady = gl.getUniformLocation(this.program, "uCinematicImpactReady");
       gl.uniform1i(gl.getUniformLocation(this.program, "uCinematicNukeAtlas"), 1);
       gl.uniform1i(gl.getUniformLocation(this.program, "uCinematicImpactAtlas"), 2);
+      gl.uniform1i(gl.getUniformLocation(this.program, "uTerrainFlags"), 3);
+      gl.uniform1i(gl.getUniformLocation(this.program, "uHasTerrainFlags"),
+        this.terrainFlagsTex ? 1 : 0);
       this.cinematicNukeTex = this.placeholderTexture(1, gl.LINEAR);
       this.cinematicImpactTex = this.placeholderTexture(2, gl.LINEAR);
     }
@@ -173,6 +180,13 @@ export class FxSpritePass {
       const worldData = new Float32Array(FX_TYPE_COUNT * 4);
       for (let i = 0; i < FX_TYPE_COUNT; i++) {
         const row = fxAtlasMeta.rows[i];
+        if (!row) {
+          // Launch flashes are shader-generated, with a small bounded footprint.
+          const width = i === FX_NAVAL_LAUNCH ? 20 : 18;
+          worldData[i*4] = width;
+          worldData[i*4+1] = width;
+          continue;
+        }
         uvData[i*4] = row.yOffset / fxAtlasMeta.height;
         uvData[i*4+1] = row.height / fxAtlasMeta.height;
         uvData[i*4+2] = row.worldWidth / fxAtlasMeta.width;
@@ -275,6 +289,11 @@ export class FxSpritePass {
     else if((type===UT_SHELL && unit.reachedTarget)||(type===UT_TRAIN && !unit.reachedTarget)) this.pushFx(x,y,FX_MINI_EXPLOSION,now);
     else if(STRUCTURE_TYPES.has(type)) this.pushFx(x,y,FX_BUILDING_EXPLOSION,now);
   }
+  /** Visual only. The unit pass detects a real, newly visible launch. */
+  spawnWeaponLaunch(x:number,y:number,kind:"naval"|"sam",now:number): void {
+    if (!this.cinematic) return;
+    this.pushFx(x,y,kind==="naval" ? FX_NAVAL_LAUNCH : FX_SAM_LAUNCH,now);
+  }
   pushFx(x:number,y:number,fxType:number,now:number,scale=1): void {
     const cfg=FX_CONFIG[fxType];
     if(!cfg) return;
@@ -352,6 +371,11 @@ export class FxSpritePass {
     if(this.cinematicImpactTex) {
       gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,this.cinematicImpactTex);
       gl.uniform1f(this.uCinematicImpactReady,this.cinematicImpactReady ? 1 : 0);
+    }
+    if(this.cinematic && this.terrainFlagsTex) {
+      // Existing shared R8UI map. The vertex shader only checks shell impacts.
+      gl.activeTexture(gl.TEXTURE3);
+      gl.bindTexture(gl.TEXTURE_2D,this.terrainFlagsTex);
     }
     gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.atlasTex);
     gl.bindBuffer(gl.ARRAY_BUFFER,this.instanceBuf.buffer);
