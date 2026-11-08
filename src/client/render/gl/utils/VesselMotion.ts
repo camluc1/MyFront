@@ -135,6 +135,9 @@ export class VesselMotion {
 
   sample(now: number): void {
     if (this.route) {
+      const dt = Math.max(0, Math.min(0.1,
+        (now - this.sampledAt) / 1000));
+      const lastHeading = this.angle;
       const fraction = Math.min(
         1,
         Math.max(0, (now - this.routeAt) / Math.max(1, this.duration)),
@@ -143,6 +146,15 @@ export class VesselMotion {
         (this.routeTick + fraction - this.route.startTick) /
         Math.max(1, this.route.ticksPerStep);
       this.routeSpeed = sampleSailingRoute(this.route, step, this);
+      const desired = this.angle;
+      // The sailing centerline remains authoritative, but the ship itself
+      // turns with bounded angular velocity rather than visibly snapping
+      // between control points on long or stair-stepped naval routes.
+      const delta = Math.atan2(
+        Math.sin(desired - lastHeading), Math.cos(desired - lastHeading));
+      const maxTurn = Math.PI * 0.62 * dt;
+      this.angle = lastHeading + Math.max(-maxTurn,
+        Math.min(maxTurn, delta));
       this.sampledAt = now;
       return;
     }
@@ -159,15 +171,15 @@ export class VesselMotion {
     this.y = this.targetY + (oy + cy * dt) * decay;
     this.vx = (this.vx - omega * cx * dt) * decay;
     this.vy = (this.vy - omega * cy * dt) * decay;
-    // Estimate course from distinct navigation positions, not instantaneous
-    // spring velocity: repeated ticks and uneven grid stairs must not rock a hull.
+    // A stable navigational bearing avoids left-right wiggle from the
+    // spring's tiny lateral corrections along rasterized water paths.
     if (
       now - this.changedAt <= this.duration * 2 &&
       Math.hypot(this.vx, this.vy) > 0.001
     ) {
       const delta = Math.atan2(
-        Math.sin(Math.atan2(this.vy, this.vx) - this.angle),
-        Math.cos(Math.atan2(this.vy, this.vx) - this.angle),
+        Math.sin(this.courseAngle - this.angle),
+        Math.cos(this.courseAngle - this.angle),
       );
       const step = delta * (1 - Math.exp(-5 * dt));
       this.angle += Math.max(
