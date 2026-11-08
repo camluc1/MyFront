@@ -57,7 +57,7 @@ export class MapPicker extends LitElement {
     new Map();
   @property({ attribute: false }) onSelectMap?: (map: GameMapType) => void;
   @property({ attribute: false }) onSelectRandom?: () => void;
-  @state() private activeTab: MapTab = "featured";
+  @state() private activeTab: MapTab = "favorites";
   @state() private expandedCategories: Set<string> = new Set();
   @state() private favorites: GameMapType[] = getFavoriteMaps();
 
@@ -140,7 +140,7 @@ export class MapPicker extends LitElement {
     // (e.g. the selected map gets prepended to the featured grid) —
     // positional reuse would leave stale thumbnails behind.
     return html`<div
-      class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+      class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4"
     >
       ${repeat(
         mapList,
@@ -206,7 +206,7 @@ export class MapPicker extends LitElement {
     ) {
       featuredMapList = [selected, ...featuredMaps];
     }
-    return html`<div class="w-full space-y-8">
+    return html`<div class="w-full space-y-5">
       <section class="space-y-4">
         <div class="flex items-end justify-between gap-3">
           <div>
@@ -353,9 +353,9 @@ export class MapPicker extends LitElement {
       type="button"
       role="tab"
       aria-selected=${isActive}
-      class="min-w-0 truncate px-1 sm:px-3 py-2 rounded-lg text-xs font-bold uppercase sm:tracking-wider transition-all active:scale-95 ${
+      class="min-w-0 truncate px-1 sm:px-3 py-3 rounded-lg text-xs font-extrabold uppercase sm:tracking-wider transition-all active:scale-95 ${
         isActive
-          ? "bg-malibu-blue/20 text-white shadow-[var(--shadow-malibu-blue-soft)]"
+          ? "bg-cyan-400/20 text-cyan-100 ring-1 ring-cyan-300/40 shadow-[var(--shadow-malibu-blue-soft)]"
           : "text-white/60 hover:text-white"
       }"
       @click=${() => (this.activeTab = tab)}
@@ -367,7 +367,7 @@ export class MapPicker extends LitElement {
   render() {
     const isSearching = this.searchQuery.trim().length > 0;
     return html`
-      <div class="space-y-8">
+      <div class="space-y-5">
         <div class="w-full flex items-center gap-2">
           ${
             isSearching
@@ -375,18 +375,18 @@ export class MapPicker extends LitElement {
               : html`<div
                     role="tablist"
                     aria-label="${translateText("map.map")}"
-                    class="flex-1 grid grid-cols-4 gap-1 sm:gap-2 rounded-xl border border-white/10 bg-black/20 p-1"
+                    class="flex-1 grid grid-cols-4 gap-1 sm:gap-2 rounded-xl border border-cyan-300/20 bg-slate-900/80 p-1.5"
                   >
+                    ${this.renderTabButton(
+                      "favorites",
+                      translateText("map.favorites"),
+                    )}
                     ${this.renderTabButton(
                       "featured",
                       translateText("map.featured"),
                     )}
                     ${this.renderTabButton("all", translateText("map.all"))}
                     ${this.renderTabButton("earth", translateText("map.earth"))}
-                    ${this.renderTabButton(
-                      "favorites",
-                      translateText("map.favorites"),
-                    )}
                   </div>
                   ${this.activeTab === "all" ? this.renderExpandToggle() : null}`
           }
