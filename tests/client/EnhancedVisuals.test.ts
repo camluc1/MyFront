@@ -8,6 +8,7 @@ import {
   WaterQualityGovernor,
 } from "../../src/client/render/gl/EnhancedVisuals";
 import "../../src/client/components/EnhancedVisualsToggle";
+import { oceanAmbienceDataUrl } from "../../src/client/sound/OceanAmbience";
 
 const source = `#version 300 es\n${ENHANCED_SHADER_MARKER}\nvoid main() {}\n`;
 const initialLanguage = document.documentElement.lang;
@@ -42,6 +43,22 @@ describe("optional cinematic rendering policy", () => {
     terrain: { backgroundColor: "#0b1624", reliefStrength: 0.15, surfaceTextureStrength: 0.035 },
     unit: { wakeFadeMs: 400 },
     fx: { debrisDensity: 1, debrisLifetimeMs: 6000 },
+    mapOverlay: {
+      staleNukeR: 0.05, staleNukeG: 0.55, staleNukeB: 0.07,
+      staleNukeVariation: 0.05,
+    },
+    falloutBloom: {
+      bloomR: 0.055, bloomG: 0.82, bloomB: 0,
+      intensityHot: 1.8, intensityCold: 0.15,
+      particleColorDarkR: 0.05, particleColorDarkG: 0.4,
+      particleColorDarkB: 0.05, particleColorBrightR: 0.2,
+      particleColorBrightG: 1, particleColorBrightB: 0.2,
+      particleStrength: 1,
+    },
+    lighting: {
+      falloutLightR: 0.15, falloutLightG: 0.95,
+      falloutLightB: 0.15, falloutLightIntensity: 5.2,
+    },
     resolution: 1,
     territory: { color: "#123456", alpha: 0.588 },
   });
@@ -61,6 +78,12 @@ describe("optional cinematic rendering policy", () => {
     expect(value.resolution).toBe(1);
     expect(value.territory).toEqual(settings().territory);
     expect(value.fx.debrisDensity).toBeLessThan(settings().fx.debrisDensity);
+    expect(value.mapOverlay.staleNukeG).toBeLessThan(settings().mapOverlay.staleNukeG);
+    expect(value.falloutBloom.bloomR).toBeGreaterThan(value.falloutBloom.bloomG);
+    expect(value.falloutBloom.particleStrength).toBeLessThan(0.5);
+    expect(value.lighting.falloutLightIntensity).toBeLessThan(
+      settings().lighting.falloutLightIntensity,
+    );
   });
 
   it("retains detail at steady frame pacing", () => {
@@ -140,5 +163,44 @@ describe("pregame cinematic control", () => {
     element.remove();
     setEnhancedVisuals(true);
     expect(input.checked).toBe(false);
+  });
+});
+
+describe("lightweight cinematic sea ambience", () => {
+  it("creates exactly one reusable, valid low-bandwidth PCM loop", () => {
+    const url = oceanAmbienceDataUrl();
+    expect(url).toBe(oceanAmbienceDataUrl());
+    expect(url.startsWith("data:audio/wav;base64,")).toBe(true);
+    const audio = atob(url.split(",")[1]);
+    expect(audio.slice(0, 4)).toBe("RIFF");
+    expect(audio.slice(8, 12)).toBe("WAVE");
+    const bytes = Uint8Array.from(audio, (char) => char.charCodeAt(0));
+    const view = new DataView(bytes.buffer);
+    expect(view.getUint32(24, true)).toBe(11025);
+    expect(view.getUint16(22, true)).toBe(1);
+    expect(view.getUint16(34, true)).toBe(8);
+    expect(bytes.length).toBeLessThan(46_000);
+    expect(bytes.length).toBeGreaterThan(44_000);
+  });
+});
+
+describe("giant-map guardrails (synthetic frame traces; not hardware GPU measurements)", () => {
+  it("does not recover costly water effects while a 7680x4320 frame stays slow", () => {
+    const governor = new WaterQualityGovernor();
+    let now = 0, quality = 1;
+    for (let frame = 0; frame < 1100; frame++) {
+      now += 30;
+      quality = governor.sample(now, 7680 * 4320);
+    }
+    expect(quality).toBeLessThan(0.02);
+  });
+
+  it("recovers only after sustained fast frames and obeys the ultra-high-res cap", () => {
+    const governor = new WaterQualityGovernor();
+    let now = 0, quality = 1;
+    for (let i = 0; i < 400; i++) quality = governor.sample(now += 34, 7680 * 4320);
+    for (let i = 0; i < 2000; i++) quality = governor.sample(now += 16.7, 7680 * 4320);
+    expect(quality).toBeLessThanOrEqual(0.35);
+    expect(quality).toBeGreaterThan(0.3);
   });
 });
