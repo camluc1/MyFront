@@ -118,6 +118,12 @@ export class Geopolitics {
     if (this.state.log.length > 120) this.state.log.shift();
   }
   private recordRejection(offer: DiplomaticOffer, actor: string) {
+    // Preserve the AI's actual strategic assessment for the player, instead
+    // of replacing every explanation with the generic "declined" label.
+    if (this.game.hasPlayer(actor) &&
+      this.game.player(actor).type() === PlayerType.Nation)
+      offer.decisionReason = offer.decisionReason ??
+        (offer.reason !== "proposal" ? offer.reason : "insufficient");
     offer.status = "rejected";
     offer.reason = "declined";
     const other = offer.from === actor ? offer.to : offer.from;
@@ -493,6 +499,8 @@ export class Geopolitics {
         this.game.unit(id)?.type() === UnitType.Port).length;
       m.tick = this.game.ticks();
     }
+    if (o.reason !== "proposal" && !o.decisionReason)
+      o.decisionReason = o.reason;
     o.status = "accepted";
     o.reason = "agreement";
     this.log(o.from, o.to, "agreement");
@@ -997,6 +1005,7 @@ export class Geopolitics {
             if (p.type() === PlayerType.Human) continue;
             const evaluation = this.evaluate(o, p);
             o.reason = evaluation.reason;
+            o.decisionReason = evaluation.reason;
             if (evaluation.score >= 20)
               this.act(p, { action: "accept", target: o.from, offerID: o.id });
             else if (
