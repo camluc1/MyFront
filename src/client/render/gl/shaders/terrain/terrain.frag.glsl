@@ -42,8 +42,14 @@ vec3 cinematicOcean(vec3 base, vec2 world, int terrain, float footprint) {
   float swellPhase = dot(world,vec2(0.029,0.018))-time*0.21;
   float swell = sin(swellPhase);
   vec3 color = base*(0.96+0.025*swell);
-  // At overview scale, keep a calm sea rather than subpixel glitter.
+  // A true low-cost tier: on huge framebuffers, overview views, or slow
+  // devices skip the derivative-driven specular highlights and water noise.
+  // Never allocate a second water pass or texture.
   if (detail < 0.035) return color;
+  if (quality <= 0.35) {
+    float broad = sin(dot(world,vec2(0.068,-0.024))-time*0.16);
+    return color*(1.0 + 0.018*broad*detail);
+  }
   float breakup = grain(world*0.034+vec2(time*0.007,0.0));
   float a = dot(world,vec2(0.18,0.09))-time*0.57+breakup*1.8;
   float b = dot(world,vec2(-0.08,0.15))-time*0.39+swell*0.6;
@@ -55,7 +61,9 @@ vec3 cinematicOcean(vec3 base, vec2 world, int terrain, float footprint) {
   float crest = 0.5+0.5*sin(a);
   color *= 1.0+(crest-0.5)*0.085*detail;
   // Restrained cool reflection: ownership fills and naval warnings stay legible.
-  color += vec3(0.57,0.78,0.87)*spec*(0.035+0.075*breakup)*detail;
+  // Bounded broad reflection. Less flashing when waves overlap on giant seas.
+  float reflection = spec*(0.025+0.055*breakup)*detail;
+  color += vec3(0.57,0.76,0.84)*reflection;
   bool shore = (terrain&64)!=0;
   if (shore) {
     float wash = pow(0.5+0.5*sin(a*0.64-time*0.16),5.0);
