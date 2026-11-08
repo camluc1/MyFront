@@ -216,6 +216,25 @@ describe("BuildPreviewController confirm with the pointer off the map", () => {
     expect((emitted[0] as BuildUnitIntentEvent).tile).toBe(0);
   });
 
+  test("caps Iron Dome repeated upgrade quantity at affordable cumulative price", () => {
+    const { controller } = makeController(3, 4);
+    const c = controller as any;
+    c.uiState.upgradeMultiplier = 10;
+    c.game.myPlayer = () => ({ gold: () => 10n });
+    const dome = {
+      type: UnitType.IronDome,
+      canBuild: false,
+      canUpgrade: 7,
+      cost: 1_500_000n,
+      upgradeCosts: [2n, 5n, 9n, 14n, 20n],
+    };
+    expect(c.selectedUpgradeAmount(dome)).toBe(3);
+    c.uiState.upgradeMultiplier = 5;
+    expect(c.selectedUpgradeAmount(dome)).toBe(3);
+    c.game.myPlayer = () => ({ gold: () => 1n });
+    expect(c.selectedUpgradeAmount(dome)).toBe(1);
+  });
+
   test("held placement uses the single-build cost rather than bulk upgrades", () => {
     const { controller } = makeController(3, 4);
     const c = controller as any;
