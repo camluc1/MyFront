@@ -304,6 +304,35 @@ describe("mobile UnitDisplay layout", () => {
     }
   });
 
+  test("the selected Dome badge shows affordable upgrades, not the requested maximum", async () => {
+    const { display } = makeDisplay(UnitType.IronDome);
+    (display.game as any).config = () => ({
+      isUnitDisabled: () => false,
+      gameConfig: () => ({ tutorial: false }),
+      unitInfo: () => ({ upgradable: true }),
+    });
+    vi.spyOn(display.game, "myPlayer").mockReturnValue({
+      gold: () => 10n,
+      isAlive: () => true,
+      units: () => [],
+    } as any);
+    display["playerBuildables"] = [{
+      type: UnitType.IronDome,
+      canBuild: false, canUpgrade: 10, cost: 1_500_000n,
+      upgradeCosts: [2n, 5n, 9n, 14n],
+    }] as any;
+    display.uiState.upgradeMultiplier = 10;
+    try {
+      display.requestUpdate();
+      await display.updateComplete;
+      const dome = display.querySelectorAll(".unit-display-grid > div")[5];
+      expect(dome.querySelector(".unit-display-multiplier")?.textContent?.trim())
+        .toBe("×3");
+    } finally {
+      display.remove();
+    }
+  });
+
   test("does not show hotkeys when there is no keyboard", async () => {
     await withCoarsePointer(async () => {
       const { display } = makeDisplay();
