@@ -262,6 +262,21 @@ export class Geopolitics {
           m.tick = this.game.ticks();
         }
         this.log(id, other.id(), "betrayal");
+        // Rivals and surviving coalition allies remember and publicly condemn
+        // a breach. The consequence is diplomatic; no automatic declarations
+        // of war are added.
+        const formerAllies = new Set(harmed);
+        const witnesses = this.neighbors(other)
+          .filter((p) => p.isAlive() && p !== actor && p !== other &&
+            (formerAllies.has(p.id()) ||
+              this.coalition(other.id())?.members.includes(p.id())))
+          .sort((a, b) => a.smallID() - b.smallID()).slice(0, 4);
+        for (const witness of witnesses) {
+          const m = this.memory(witness.id(), id);
+          m.trust = Math.max(-100, m.trust - 12);
+          m.tick = this.game.ticks();
+          this.log(witness.id(), id, "betrayal_condemned");
+        }
       }
       this.emit();
       return;
@@ -469,6 +484,40 @@ export class Geopolitics {
     o.status = "accepted";
     o.reason = "agreement";
     this.log(o.from, o.to, "agreement");
+    this.witnessTerritorialSettlement(a, b, o.give);
+    this.witnessTerritorialSettlement(b, a, o.receive);
+  }
+  /** Neighboring countries react to a geopolitical border change. Those
+   * reactions affect later AI negotiation through the existing trust memory.
+   * Limit witnessed events to relevant border nations; don't create a global
+   * diplomatic penalty for a small settlement or alter Classic gameplay. */
+  private witnessTerritorialSettlement(
+    loser: Player, winner: Player, assets: DiplomaticAssets,
+  ) {
+    if (assets.tiles.length === 0) return;
+    const portCount = assets.buildings.filter((id) =>
+      this.game.unit(id)?.type() === UnitType.Port).length;
+    this.log(loser.id(), winner.id(),
+      portCount > 0 ? "port_cession" : "territorial_cession");
+    const allies = new Set(this.coalition(winner.id())?.members ?? []);
+    const borderWitnesses = this.neighbors(loser)
+      .filter((p) => p.isAlive() && p !== winner && p !== loser)
+      .sort((a, b) => a.smallID() - b.smallID()).slice(0, 4);
+    for (const observer of borderWitnesses) {
+      const relationship = this.memory(observer.id(), winner.id());
+      if (allies.has(observer.id())) {
+        relationship.trust = Math.min(100, relationship.trust + 5);
+        this.log(observer.id(), winner.id(), "ally_support");
+      } else {
+        const hostile = relationship.trust <= -15 ||
+          relationship.betrayal > 0;
+        relationship.trust = Math.max(-100,
+          relationship.trust - (hostile ? 8 : 3));
+        this.log(observer.id(), winner.id(),
+          hostile ? "rival_alarm" : "territorial_concern");
+      }
+      relationship.tick = this.game.ticks();
+    }
   }
   /** Values static natural-resource deposits intersecting an exact land transfer. */
   private depositValue(tiles: readonly number[]): number {
