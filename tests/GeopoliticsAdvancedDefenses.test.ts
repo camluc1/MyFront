@@ -1,7 +1,7 @@
 import {
   PlayerInfo, PlayerType, TerrainType, UnitType,
 } from "@openfront/engine-api/game/GameTypes";
-import type { AttackLogicInput } from "@openfront/engine/configuration/EngineConfig";
+import { EngineConfig, type AttackLogicInput } from "@openfront/engine/configuration/EngineConfig";
 import {
   protectedByIronDome,
   createBlastIronDomeCoverage,
@@ -21,7 +21,7 @@ describe("Geopolitics advanced defenses", () => {
   });
 
   it("uses fixed 1.5M / 10M costs and 60 / 84 tile ranges", async () => {
-    const game = await setup("plains", { geopolitics: true }, [human("a")]);
+    const game = await setup("plains", { geopolitics: true }, [human("a")], undefined, EngineConfig);
     const player = game.player("a");
     expect(game.config().isUnitDisabled(UnitType.Castle)).toBe(false);
     expect(game.config().isUnitDisabled(UnitType.IronDome)).toBe(false);
@@ -90,7 +90,7 @@ describe("Geopolitics advanced defenses", () => {
   it("protects owner tiles from blast fringes without ammunition or cooldown", async () => {
     const game = await setup(
       "big_plains", { geopolitics: true, infiniteGold: false, instantBuild: true },
-      [human("a"), human("b")],
+      [human("a"), human("b")], undefined, EngineConfig,
     );
     const a = game.player("a");
     const b = game.player("b");
