@@ -726,6 +726,17 @@ export class UnitDisplay extends LitElement implements Controller {
       unitType === UnitType.Mine ||
       unitType === UnitType.OilWell ||
       unitType === UnitType.GasPlant;
+    // Repeated desktop clicks should use the same upgrade ladder as repeated
+    // hotkeys (1 -> 5 -> 10 -> ...). Never imply that a non-upgradable
+    // Castle can be upgraded in bulk; touch taps keep their cancel behavior.
+    const canRepeatBulk =
+      !this.uiState.preventStacking &&
+      (unitType === UnitType.AtomBomb ||
+        this.game.config().unitInfo?.(unitType)?.upgradable === true);
+    const requestedBulk = this.uiState.upgradeMultiplier ?? 1;
+    const bulkBadge = selected && canRepeatBulk && requestedBulk > 1
+      ? requestedBulk
+      : 0;
     const displayHotkey = hotkey
       .replace(/^Shift\+/, "⇧")
       .replace("Digit", "")
@@ -778,7 +789,11 @@ export class UnitDisplay extends LitElement implements Controller {
               return;
             }
             if (selected) {
-              this.inputHandler.setGhostStructure(null, "GUIclick");
+              if (!fromTouch && canRepeatBulk) {
+                this.inputHandler.setGhostStructure(unitType, "GUIclick");
+              } else {
+                this.inputHandler.setGhostStructure(null, "GUIclick");
+              }
             } else if (this.canBuild(unitType)) {
               this.inputHandler.setGhostStructure(unitType, "GUIclick");
               if (fromTouch) {
@@ -826,6 +841,12 @@ export class UnitDisplay extends LitElement implements Controller {
                 </div>`
               : nothing
           }
+          ${bulkBadge > 0
+            ? html`<span
+                class="unit-display-multiplier pointer-events-none absolute right-0.5 top-0.5 rounded border border-cyan-300/45 bg-cyan-950/95 px-1 text-[10px] font-bold leading-tight text-cyan-100 tabular-nums motion-safe:animate-pulse"
+                title="Cantidad seleccionada"
+              >×${bulkBadge}</span>`
+            : nothing}
           <div
             class="flex flex-col items-center justify-center gap-1 pt-2 lg:pt-2"
           >
