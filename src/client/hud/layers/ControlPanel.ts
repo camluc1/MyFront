@@ -550,104 +550,55 @@ export class ControlPanel extends LitElement implements Controller {
   }
 
   private renderDesktop() {
+    const { greenPercent, orangePercent } = this.calculateTroopBar();
+    const percentage = Math.round(this.attackRatio * 100);
     return html`
       ${this.renderNotification()}
-      <!-- Row 1: troop rate | troop bar | gold -->
-      <div class="flex gap-1.5 items-center mb-1">
-        <!-- Troop rate -->
-        <div
-          class="flex items-center gap-1 shrink-0 border rounded-md font-bold text-sm py-0.5 px-1 w-[5.5rem] ${this.tutorialHighlightClass(
-            "troop_rate",
-          )} ${
-            this._troopRateIsIncreasing
-              ? "border-green-400"
-              : "border-orange-400"
-          }"
-          translate="no"
-        >
-          <img
-            src=${soldierIcon}
-            alt=""
-            aria-hidden="true"
-            width="13"
-            height="13"
-            class="shrink-0"
-            style="filter: ${
-              this._troopRateIsIncreasing
-                ? "brightness(0) saturate(100%) invert(74%) sepia(44%) saturate(500%) hue-rotate(83deg) brightness(103%)"
-                : "brightness(0) saturate(100%) invert(65%) sepia(60%) saturate(600%) hue-rotate(330deg) brightness(105%)"
-            }"
-          />
-          <span
-            class="text-sm font-bold tabular-nums ${
-              this._troopRateIsIncreasing ? "text-green-400" : "text-orange-400"
-            }"
-            >+${renderTroops(this.troopRate)}/s</span
-          >
+      <section class="rounded-xl border border-sky-300/15 bg-slate-950/90 p-2.5 text-slate-100 shadow-[0_12px_26px_rgba(0,0,0,0.24)]" aria-label="Estado de la partida">
+        <div class="grid grid-cols-[minmax(100px,0.8fr)_minmax(170px,1.4fr)_minmax(110px,0.9fr)] gap-2">
+          <div class="flex min-w-0 flex-col justify-center rounded-lg border border-sky-300/15 bg-slate-900/75 px-3 py-2 ${this.tutorialHighlightClass("attack_ratio")}">
+            <span class="mb-0.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400">
+              <img src=${swordIcon} alt="" width="12" height="12" class="opacity-70" /> Ataque
+            </span>
+            <strong class="text-xl font-bold leading-tight tracking-tight text-sky-200 tabular-nums" translate="no">${percentage}%</strong>
+          </div>
+          <div class="min-w-0 rounded-lg border border-sky-300/15 bg-slate-900/75 px-3 py-2 ${this.tutorialHighlightClass("troops")}"
+            title=${`Recuperación: +${renderTroops(this.troopRate)}/s · capacidad: ${renderTroops(this._maxTroops)}`}>
+            <div class="mb-0.5 flex items-center justify-between gap-2">
+              <span class="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400">
+                <img src=${soldierIcon} alt="" width="12" height="12" class="opacity-80" /> Soldados
+              </span>
+              <span class="text-[10px] font-medium text-slate-500">ACTUALES</span>
+            </div>
+            <strong class="block truncate text-xl font-bold leading-tight tracking-tight text-white tabular-nums" translate="no">${renderTroops(this._troops)}</strong>
+            <div class="mt-1.5 flex h-1.5 overflow-hidden rounded-full bg-slate-700/80 ${this._lowTroopsAlert ? "ring-1 ring-red-400/80" : ""}"
+              role="progressbar" aria-label="Reserva de soldados"
+              aria-valuenow=${Math.round(greenPercent)} aria-valuemin="0" aria-valuemax="100">
+              <span class="h-full bg-gradient-to-r from-sky-600 to-cyan-400 transition-[width] duration-200" style=${`width: ${greenPercent}%`}></span>
+              <span class="h-full bg-emerald-400/80 transition-[width] duration-200" style=${`width: ${orangePercent}%`}></span>
+            </div>
+          </div>
+          <div class="relative flex min-w-0 flex-col justify-center rounded-lg border border-amber-400/25 bg-amber-400/5 px-3 py-2 ${this.tutorialHighlightClass("gold")}">
+            <span class="mb-0.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-amber-200/70">
+              <img src=${goldCoinIcon} width="13" height="13" alt="" /> Oro
+            </span>
+            <strong class="truncate text-xl font-bold leading-tight tracking-tight text-amber-300 tabular-nums" translate="no">${renderNumber(this._gold)}</strong>
+            ${this._goldGain !== null
+              ? keyed(this._goldGainPulseId, html`<span class="gold-gain-pop pointer-events-none absolute -top-3 right-2 rounded-md border border-emerald-400/25 bg-slate-950 px-1.5 py-0.5 text-xs font-bold text-emerald-300 shadow-lg" translate="no">+${renderNumber(this._goldGain)}</span>`)
+              : nothing}
+          </div>
         </div>
-        <!-- Troop bar -->
-        <div class="flex-1 ${this.tutorialHighlightClass("troops")}">
-          ${this.renderDesktopTroopBar()}
+        <div class="mt-2 flex items-center gap-3 px-1">
+          <span class="shrink-0 text-[10px] font-semibold tracking-wide text-slate-400">FUERZA DE ATAQUE</span>
+          <input type="range" min="1" max="100" aria-label="Porcentaje de soldados para atacar"
+            .value=${String(percentage)}
+            @input=${(e: Event) => this.handleRatioSliderInput(e)}
+            @pointerup=${(e: Event) => this.handleRatioSliderPointerUp(e)}
+            @click=${(e: MouseEvent) => this.handleRatioSliderClick(e)}
+            data-radial-click-through
+            class="min-w-0 flex-1 cursor-pointer accent-sky-400" />
         </div>
-        <!-- Gold -->
-        <div
-          class="flex items-center gap-1 shrink-0 border rounded-md border-yellow-400 font-bold text-yellow-400 text-sm py-0.5 px-1 min-w-[4.5rem] relative ${this.tutorialHighlightClass(
-            "gold",
-          )}"
-          translate="no"
-        >
-          ${
-            this._goldGain !== null
-              ? keyed(
-                  this._goldGainPulseId,
-                  html`<span
-                    class="gold-gain-pop absolute -top-5 right-[5px] min-[1015px]:right-[9px] text-green-400 text-sm font-extrabold tabular-nums whitespace-nowrap pointer-events-none drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]"
-                    >+${renderNumber(this._goldGain)}</span
-                  >`,
-                )
-              : ""
-          }
-          <img src=${goldCoinIcon} width="13" height="13" class="shrink-0" />
-          <span class="tabular-nums">${renderNumber(this._gold)}</span>
-        </div>
-      </div>
-      <!-- Row 2: attack ratio | slider -->
-      <div
-        class="flex items-center gap-1.5 ${this.tutorialHighlightClass(
-          "attack_ratio",
-        )}"
-        translate="no"
-      >
-        <div
-          class="flex items-center gap-1 shrink-0 border border-gray-600 rounded-md px-1 py-0.5 text-sm font-bold text-white cursor-pointer w-[8rem]"
-        >
-          <img
-            src=${swordIcon}
-            alt=""
-            aria-hidden="true"
-            width="12"
-            height="12"
-            style="filter: brightness(0) invert(1);"
-          />
-          <span
-            >${(this.attackRatio * 100).toFixed(0)}%
-            (${renderTroops(
-              (this.game?.myPlayer()?.troops() ?? 0) * this.attackRatio,
-            )})</span
-          >
-        </div>
-        <input
-          type="range"
-          min="1"
-          max="100"
-          .value=${String(Math.round(this.attackRatio * 100))}
-          @input=${(e: Event) => this.handleRatioSliderInput(e)}
-          @pointerup=${(e: Event) => this.handleRatioSliderPointerUp(e)}
-          @click=${(e: MouseEvent) => this.handleRatioSliderClick(e)}
-          data-radial-click-through
-          class="flex-1 h-1.5 accent-aquarius cursor-pointer"
-        />
-      </div>
+      </section>
     `;
   }
 
@@ -756,7 +707,7 @@ export class ControlPanel extends LitElement implements Controller {
       </style>
       <div
         class="relative pointer-events-auto ${
-          this._isVisible ? "relative w-full text-sm px-2 py-1" : "hidden"
+          this._isVisible ? "relative w-full text-sm px-1.5 py-1.5" : "hidden"
         }"
         @contextmenu=${(e: MouseEvent) => e.preventDefault()}
       >

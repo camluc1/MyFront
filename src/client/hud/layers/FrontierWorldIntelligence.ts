@@ -553,21 +553,25 @@ export class FrontierWorldIntelligence
     ];
 
     return html`
-      <section class="pointer-events-auto w-[min(94vw,58rem)] mb-2">
+      <section class="pointer-events-auto ${this.open ? "w-[min(94vw,58rem)]" : "w-[min(94vw,20rem)]"} mb-2">
         <button
           type="button"
-          class="flex w-full items-center justify-between gap-3 rounded-xl border border-violet-800/70 bg-slate-950/95 px-4 py-3 text-left text-white shadow-xl backdrop-blur-md transition hover:border-violet-400/70"
+          class="flex w-full items-center justify-between gap-3 rounded-xl border border-sky-300/15 bg-slate-950/95 px-3 py-2.5 text-left text-white shadow-lg transition hover:border-sky-300/45"
+          aria-label=${this.open ? "Cerrar Inteligencia Mundial" : "Abrir Inteligencia Mundial"}
           aria-expanded=${this.open}
           @click=${() => (this.open = !this.open)}
         >
           <span class="flex min-w-0 items-center gap-3">
             <span
-              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-400/10 text-violet-200"
-              >⌁</span
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-sky-400/20 bg-sky-400/10 text-sky-200"
+              ><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M3 12h18M12 3c-3 3-3 15 0 18M12 3c3 3 3 15 0 18"></path>
+              </svg></span
             >
             <span class="min-w-0">
               <span
-                class="block text-xs font-bold tracking-[0.18em] text-violet-100"
+                class="block text-[11px] font-bold tracking-[0.14em] text-sky-100"
                 >INTELIGENCIA MUNDIAL</span
               >
               <span class="block truncate text-[10px] text-slate-400"
@@ -577,8 +581,8 @@ export class FrontierWorldIntelligence
             </span>
           </span>
           <span
-            class="shrink-0 text-[10px] font-bold tracking-wider text-slate-300"
-            >${this.open ? "CERRAR −" : "ANALIZAR +"}</span
+            class="shrink-0 rounded-md border border-slate-600/60 bg-slate-800/80 px-2 py-1 text-xs font-bold tracking-wider text-slate-200"
+            >${this.open ? "✕" : "ABRIR +"}</span
           >
         </button>
 
