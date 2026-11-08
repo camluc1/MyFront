@@ -18,6 +18,8 @@ import type { GhostPreviewData, RendererConfig, UnitState } from "../../types";
 import {
   UT_CITY,
   UT_DEFENSE_POST,
+  UT_CASTLE,
+  UT_IRON_DOME,
   UT_FACTORY,
   UT_FARM,
   UT_MINE,
@@ -61,6 +63,8 @@ const STRUCTURE_ORDER = [
   UT_MINE,
   UT_OIL_WELL,
   UT_GAS_PLANT,
+  UT_CASTLE,
+  UT_IRON_DOME,
 ] as const;
 
 const ATLAS_COLS = STRUCTURE_ORDER.length;
@@ -353,6 +357,7 @@ export class StructurePass {
       const names = [
         "FarmIconWhite.svg", "MineIconWhite.svg",
         "OilWellIconWhite.svg", "GasPlantIconWhite.svg",
+        "CastleIconWhite.svg", "IronDomeIconWhite.svg",
       ];
       const images = await Promise.all(names.map(async (name): Promise<HTMLImageElement | null> => {
         const img = new Image();
