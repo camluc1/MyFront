@@ -129,7 +129,7 @@ describe("BuildPreviewController confirm with the pointer off the map", () => {
       userSettings as any,
     );
     (controller as any).ghostUnit = {
-      buildableUnit: { type: UnitType.City, canBuild: 1, canUpgrade: false },
+      buildableUnit: { type: UnitType.City, canBuild: 1, canUpgrade: false, cost: 1n },
     };
     (controller as any).ghostResolved = true;
     (controller as any).resolvedGhostTile = worldY * width + worldX;
@@ -324,6 +324,7 @@ describe("BuildPreviewController confirm with the pointer off the map", () => {
       let reply: (units: unknown[]) => void = () => {};
       c.game.myPlayer = () => ({
         isAlive: () => true,
+        gold: () => 100n,
         buildables: () =>
           new Promise((resolve) => {
             reply = resolve;
@@ -334,7 +335,7 @@ describe("BuildPreviewController confirm with the pointer off the map", () => {
       vi.spyOn(c, "emitGhostPreview").mockImplementation(() => {});
       c.requestConfirmStructure(new MouseUpEvent(0, 0));
       c.uiState.preventStacking = !held;
-      reply([{ type: UnitType.City, canBuild: 43, canUpgrade: 7 }]);
+      reply([{ type: UnitType.City, canBuild: 43, canUpgrade: 7, cost: 1n }]);
       await Promise.resolve();
       const intents = emitted.filter(
         (event): event is BuildUnitIntentEvent =>
@@ -398,7 +399,7 @@ describe("BuildPreviewController confirm with the pointer off the map", () => {
     expect(
       emitted.filter((event) => event instanceof BuildUnitIntentEvent),
     ).toEqual([]);
-    expect(emitted).toEqual([
+    expect(emitted.filter((event) => event instanceof ToggleStructureEvent)).toEqual([
       expect.objectContaining({ structureTypes: null }),
     ]);
   });
