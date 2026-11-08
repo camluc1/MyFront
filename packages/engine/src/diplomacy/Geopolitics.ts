@@ -942,60 +942,15 @@ export class Geopolitics {
               id === o.to &&
               (evaluation.score >= -10 ||
                 evaluation.reason === "strategic_assets") &&
-              !this.state.log
-                .slice(-10)
-                .some(
-                  (l) =>
-                    l.actor === id &&
-                    l.target === o.from &&
-                    l.event === "counter",
-                )
+              (this.state.cooldowns["ai:counter:" + id + ":" + o.from] ?? 0) <= tick
             ) {
-              const keepsLand = o.receive.tiles.length > 0;
-              const difficulty = this.game.config().gameConfig().difficulty;
-              const warPressure = this.militaryPressure(p, this.game.player(o.from));
-              // A losing country may surrender a less valuable port rather
-              // than an essential harbor. Otherwise it offers compensation.
-              const requestedPorts = o.receive.buildings.filter((unitID) =>
-                this.game.unit(unitID)?.type() === UnitType.Port);
-              const alternatives = p.units(UnitType.Port)
-                .filter((u) => u.isActive() &&
-                  !requestedPorts.includes(u.id()) &&
-                  this.game.owner(u.tile()) === p &&
-                  !o.receive.tiles.includes(u.tile()))
-                .sort((x, y) =>
-                  this.portLeverage(x.tile(), p, this.game.player(o.from)) -
-                  this.portLeverage(y.tile(), p, this.game.player(o.from)) ||
-                  x.id() - y.id());
-              const alternate = keepsLand && requestedPorts.length > 0 &&
-                alternatives.length > 0 && warPressure > 10
-                  ? alternatives[0] : undefined;
-              const cashRate = difficulty === Difficulty.Easy ? 5 :
-                difficulty === Difficulty.Medium ? 7 :
-                difficulty === Difficulty.Hard ? 9 : 12;
-              const replacementGold = Math.min(Number(p.gold()),
-                o.receive.gold + Math.max(1000,
-                  Math.trunc(Number(p.gold()) / cashRate)));
-              const give = alternate
-                ? { ...o.receive, tiles: [alternate.tile()],
-                    buildings: this.game.units().filter((u) =>
-                      u.isActive() && STRUCTURES.has(u.type()) &&
-                      u.tile() === alternate.tile()).map((u) => u.id()),
-                    gold: o.receive.gold }
-                : keepsLand
-                  ? { ...o.receive, tiles: [], buildings: [], gold: replacementGold }
-                  : { ...o.receive };
-              const receive = keepsLand
-                ? { ...o.give }
-                : {
-                    ...o.give,
-                    gold: Math.min(
-                      1000000000000,
-                      Number(this.game.player(o.from).gold()),
-                      o.give.gold +
-                        Math.max(1000, Math.trunc(Number(p.gold()) / 10)),
-                    ),
-                  };
+              const plan = this.chooseCounteroffer(o, p);
+              if (!plan) {
+                this.recordRejection(o, id);
+                continue;
+              }
+              const give = plan.give;
+              const receive = plan.receive;
               const countBefore = this.state.offers.length;
               this.act(p, {
                 action: "offer",
@@ -1005,12 +960,14 @@ export class Geopolitics {
                 receive,
                 counterTo: o.id,
                 threat: o.threat,
-                durationTicks: o.durationTicks,
+                durationTicks: plan.durationTicks ?? o.durationTicks,
               });
               if (this.state.offers.length > countBefore) {
-                if (keepsLand)
-                  this.state.offers[this.state.offers.length - 1].reason =
-                    "retain_land";
+                this.state.offers[this.state.offers.length - 1].reason =
+                  plan.reason;
+                this.state.cooldowns["ai:counter:" + id + ":" + o.from] =
+                  tick + Math.max(400,
+                    Math.min(1800, 450 + (o.round ?? 0) * 300));
                 this.log(id, o.from, "counter");
               } else {
                 this.recordRejection(o, id);
