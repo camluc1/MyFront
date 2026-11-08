@@ -1020,6 +1020,7 @@ export class GeopoliticsPanel extends LitElement {
     incoming: typeof this.receive,
     outgoing: typeof this.give,
     outgoingOwner: string,
+    thirdParty: boolean,
   ) {
     const ports = (ids: readonly number[]) => ids.filter((id) =>
       this.game.unit(id)?.type() === UnitType.Port).length;
@@ -1043,7 +1044,7 @@ export class GeopoliticsPanel extends LitElement {
       ? t("deal_brief_pending") : t("reason_" + rationale);
     return html`<div class="diplomatic-brief" aria-label=${t("deal_outcomes")}>
       <div class="brief-tile">
-        <div class="brief-eyebrow">${t("deal_outcomes")}</div>
+        <div class="brief-eyebrow">${t(thirdParty ? "deal_others" : "deal_outcomes")}</div>
         <div class="brief-metric">
           ${landIn > 0 ? "+" : ""}${landIn - landOut} ${t("deal_tiles")}
         </div>
@@ -1056,7 +1057,7 @@ export class GeopoliticsPanel extends LitElement {
           ${landIn + landOut === 0 && portIn + portOut === 0 &&
             industryCount(incoming.buildings) +
             industryCount(outgoing.buildings) === 0
-            ? t("deal_land_transfer") : nothing}
+            ? t("deal_no_land") : nothing}
         </div>
       </div>
       <div class="brief-tile ${risk.length ? "emphasis" : ""}">
@@ -1072,7 +1073,7 @@ export class GeopoliticsPanel extends LitElement {
         <span style="width:${completion}%"></span>
       </div>
     </div>` : nothing}
-    ${o && rationale && rationale !== "proposal" ? html`
+    ${risk.length > 0 && o && rationale && rationale !== "proposal" ? html`
       <p class="brief-reason">${t("deal_brief")}: ${reason}</p>
     ` : nothing}
     ${landIn > 0 || landOut > 0 ? html`
@@ -1160,7 +1161,7 @@ export class GeopoliticsPanel extends LitElement {
           ${this.renderRegionImpact(outgoing, outgoingOwner)}
         </div>
       </div>
-      ${this.renderStrategicBrief(o, incoming, outgoing, outgoingOwner)}
+      ${this.renderStrategicBrief(o, incoming, outgoing, outgoingOwner, thirdParty)}
       <p class="muted" style="margin-top:8px">${t("deal_pct_explainer")}</p>
       ${(o?.kind ?? this.kind) === "peace" ? html`<div class="treaty-note">
         ${t("deal_peace_effect")}
@@ -1308,12 +1309,7 @@ export class GeopoliticsPanel extends LitElement {
         <p class="muted">${t("preview_help")}</p>
       </details>
       ${o ? html`<p class="notice" role="status">
-        ${t("reason_" + o.reason)} · ${t("effect_" + o.kind)}
-        ${o.decisionReason && o.decisionReason !== o.reason
-          ? html`<span style="display:block;margin-top:5px">
-              ${t("deal_brief")}: ${t("reason_" + o.decisionReason)}
-            </span>`
-          : nothing}
+        ${t(o.status)} · ${t("effect_" + o.kind)}
       </p>` : nothing}
       ${this.notice ? html`<p role="status" class="notice">${this.notice}</p>` : nothing}
       <div class="footer">
