@@ -8,6 +8,7 @@ uniform float uTime;
 uniform vec4 uSurface; // water motion, highlights, relief, surface grain
 #ifdef FRONTIER_CINEMATIC
 uniform float uWaterQuality;
+uniform sampler2D uOceanDetail;
 #endif
 in vec2 vUV;
 in vec2 vScreen;
@@ -31,58 +32,83 @@ float elevation(ivec2 p, ivec2 limit, float fallback) {
 #ifdef FRONTIER_CINEMATIC
 // Screen/zoom bounded ocean shading. No simulation, reflection texture,
 // extra map-sized buffer, per-tile CPU update or extra draw call.
-vec3 cinematicOcean(vec3 base, vec2 world, int terrain, float footprint) {
+vec3 cinematicOcean(vec3 base, vec2 w, int terrain, float footprint) {
 #ifdef FRONTIER_REDUCED_MOTION
-  float time = 0.0;
+  float t = 0.0;
 #else
-  float time = uTime;
+  float t = uTime;
 #endif
   float quality = clamp(uWaterQuality, 0.0, 1.0);
-  // Pixel-footprint LOD prevents subpixel waves from flickering at world zoom.
-  float close = 1.0-smoothstep(0.65,2.25,footprint);
-  float mid = 1.0-smoothstep(2.5,7.0,footprint);
+  float nearLOD = 1.0-smoothstep(0.60,2.80,footprint);
+  float midLOD = 1.0-smoothstep(2.80,11.0,footprint);
   bool coast = (terrain&64)!=0;
-  // Cohesive wind-driven swells instead of random moving noise. Broad water
-  // remains readable at all zoom levels, even during adaptive degradation.
-  vec2 wind = vec2(0.894,0.447);
-  float waveA = dot(world,wind)*0.055-time*0.22;
-  float swell = sin(waveA);
-  float cross = sin(dot(world,vec2(-0.35,0.94))*0.034-time*0.115);
-  vec3 sea = base*(0.945+0.052*swell*mid+0.024*cross*mid);
-  // Balanced deep-water blue and slightly brighter coastal teal. The map's
-  // own terrain color is never replaced, only modulated.
-  sea += (coast ? vec3(0.015,0.038,0.047) : vec3(0.008,0.020,0.034))*mid;
-  if (close < 0.04 || quality < 0.08) return sea;
-  // Fast fallback with one coherent thin wave crest: no noise texture, no
-  // extra pass, no derivative-based specular when frame pacing drops.
-  // Break long, perfectly parallel wave bands into irregular moving crests.
-  // Reuse the same one noise sample for highlights and near-shore surf.
-  float breakup = quality <= 0.35 ? 0.5 :
-    grain(world*0.045+vec2(time*0.010,-time*0.004));
-  float crestPhase = dot(world,wind)*0.175-time*0.65+
-    cross*0.62+swell*0.5+(breakup-0.5)*1.8;
-  float crest = max(0.0,sin(crestPhase));
-  float ribbon = pow(crest,11.0)*close*(0.36+0.64*breakup);
-  float multiplier = quality <= 0.35 ? 0.55 : 1.0;
-  sea += vec3(0.21,0.40,0.48)*ribbon*0.18*multiplier;
-  if (quality <= 0.35) return sea;
-  // Cross-wind interference adds fine surface glints at high quality.
-  float ripple = sin(dot(world,vec2(-0.16,0.23))-time*0.52+breakup*1.3);
-  float spark = pow(max(0.0,0.62*crest+0.38*ripple),8.0);
-  float glint = spark*close*quality*(0.075+0.06*breakup);
-  sea += vec3(0.49,0.72,0.85)*glint;
+  // Water gains depth and a richer blue/teal shelf, while land and ownership
+  // colors are still rendered and blended by their original paths.
+  float depth = clamp(float(terrain&31)/31.0,0.0,1.0);
+  float shelf = coast ? 0.76 : (1.0-depth)*0.15;
+  vec3 deep = base*vec3(0.64,0.84,1.05)+vec3(0.006,0.012,0.035);
+  vec3 shallow = base*vec3(0.76,1.12,1.08)+vec3(0.002,0.033,0.040);
+  vec3 color = mix(deep,shallow,shelf);
+  // Two ocean-scale swells remain readable on a zoomed-out map. No water
+  // geometry, tile movement or animation CPU pass is required.
+  float swellA = sin(dot(w,vec2(0.026,0.012))-t*0.11+
+    sin(dot(w,vec2(-0.008,0.021))-t*0.037)*0.58);
+  float swellB = sin(dot(w,vec2(-0.017,0.034))-t*0.083);
+  color *= 0.96+midLOD*(swellA*0.075+swellB*0.052);
+  if (nearLOD < 0.025 || quality < 0.06) return color;
+  // Slow frames take an analytic fallback, without noise-map texture reads
+  // or expensive specular terms.
+  if (quality <= 0.35) {
+    float wave = sin(dot(w,vec2(0.125,0.050))-t*0.38+swellB*0.8);
+    color *= 1.0+wave*0.045*nearLOD*quality;
+    return color;
+  }
+  // Two taps of a tiny, seamless 128px normal/foam atlas. Mipmapping
+  // suppresses shimmer as the camera moves; independent drift prevents
+  // frozen repeating stripes. Texture is allocated once per match.
+  vec3 fieldA = texture(uOceanDetail,
+    w*0.018+vec2(t*0.005,-t*0.003)).rgb;
+  vec3 fieldB = texture(uOceanDetail,
+    w*0.035+vec2(-t*0.008,t*0.006)).rgb;
+  float noiseA = mix(fieldA.b,fieldB.b,0.31);
+  float noiseB = mix(fieldA.b,fieldB.b,0.67);
+  float warp = (noiseA-0.5)*3.2+(noiseB-0.5)*1.1;
+  float phaseA = dot(w,vec2(0.176,0.072))-t*0.59+
+    warp+swellA*0.92;
+  float phaseB = dot(w,vec2(-0.112,0.175))-t*0.45+
+    warp*0.61;
+  float waveA = sin(phaseA), waveB = sin(phaseB);
+  float rough = nearLOD*quality;
+  color *= 1.0+rough*(0.083*waveA+0.037*waveB);
+  // Height-field normals from the atlas combine with large analytic waves.
+  // Anisotropic sky highlights create perceived depth without ray tracing.
+  vec2 slope = (fieldA.xy*2.0-1.0)*0.42+
+    (fieldB.xy*2.0-1.0)*0.23+
+    vec2(cos(phaseA)*0.23-cos(phaseB)*0.09,
+         cos(phaseA)*0.11+cos(phaseB)*0.16);
+  vec3 normal = normalize(vec3(-slope,0.91));
+  vec3 halfSky = normalize(vec3(-0.28,0.25,0.95));
+  float glint = pow(max(dot(normal,halfSky),0.0),26.0);
+  color += vec3(0.48,0.71,0.90)*glint*rough*0.17*
+    smoothstep(0.23,0.78,noiseA);
+  // Bright foam fragments form on local breaking crests, not evenly-spaced
+  // geometric stripes across the entire sea.
+  float crest = smoothstep(0.82,0.98,waveA+waveB*0.20);
+  float fragment = smoothstep(0.34,0.73,noiseA)*
+    (0.24+0.76*smoothstep(0.38,0.77,noiseB));
+  float whitecap = crest*fragment*rough;
+  color = mix(color,vec3(0.72,0.88,0.94),whitecap*0.49);
   if (coast) {
-    // White surf on shoreline tiles, held in thin moving streaks, not a
-    // uniform green/white checkerboard overlay on every water tile.
-    float surf = pow(max(0.0,sin(crestPhase*0.65-time*0.10)),6.0);
-    surf *= smoothstep(0.28,0.72,breakup)*close*quality;
-    sea += vec3(0.48,0.71,0.74)*surf*0.22;
-    if (quality > 0.65 && footprint < 1.0) {
-      float caustic = pow(max(0.0,sin(crestPhase*1.5+cross*0.75)),12.0);
-      sea += vec3(0.22,0.36,0.40)*caustic*0.025*close;
+    float wash = max(0.0,sin(phaseA*0.61-t*0.12+noiseA*2.0));
+    float shoreFoam = smoothstep(0.57,0.90,wash)*
+      (0.36+0.64*noiseA)*rough;
+    color = mix(color,vec3(0.74,0.91,0.92),shoreFoam*0.72);
+    if (quality>0.72 && footprint<1.0) {
+      float caustic = pow(max(0.0,sin(phaseA*2.2+phaseB)),13.0);
+      color += vec3(0.13,0.25,0.26)*caustic*rough*0.09;
     }
   }
-  return sea;
+  return color;
 }
 #endif
 
