@@ -1035,6 +1035,7 @@ export class GeopoliticsPanel extends LitElement {
       industries.has(this.game.unit(id)?.type() ?? UnitType.City)).length;
     const portIn = ports(incoming.buildings), portOut = ports(outgoing.buildings);
     const landIn = incoming.tiles.length, landOut = outgoing.tiles.length;
+    const netLand = landIn - landOut;
     const risk = this.criticalAssetWarnings(outgoing, outgoingOwner);
     const pending = o?.status === "pending";
     const timeLeft = pending ? Math.max(0,
@@ -1044,12 +1045,15 @@ export class GeopoliticsPanel extends LitElement {
         Math.max(1, o.expires - o.created))) : 0;
     const rationale = o?.decisionReason ?? o?.reason;
     const reason = !o || !rationale || rationale === "proposal"
-      ? t("deal_brief_pending") : t("reason_" + rationale);
+      ? o?.status === "accepted" ? t("reason_agreement")
+        : o?.status === "rejected" ? t("reason_declined")
+        : t("deal_brief_pending")
+      : t("reason_" + rationale);
     return html`<div class="diplomatic-brief" aria-label=${t("deal_outcomes")}>
       <div class="brief-tile">
         <div class="brief-eyebrow">${t(thirdParty ? "deal_others" : "deal_outcomes")}</div>
         <div class="brief-metric">
-          ${landIn > 0 ? "+" : ""}${landIn - landOut} ${t("deal_tiles")}
+          ${netLand > 0 ? "+" : ""}${netLand} ${t("deal_tiles")}
         </div>
         <div class="brief-text">
           ${portIn > 0 ? html`+${portIn} ${t("deal_gain_port")}` : nothing}
