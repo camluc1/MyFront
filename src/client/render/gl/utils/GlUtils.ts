@@ -2,6 +2,8 @@
  * WebGL2 utility functions: shader compilation, texture creation, VAO helpers.
  */
 
+import { cinematicShaderSource } from "../EnhancedVisuals";
+
 /**
  * Thrown when the WebGL context died while we were building GPU resources —
  * a GPU-process crash, a driver reset, or the browser reclaiming a context
@@ -71,7 +73,7 @@ export function compileShader(
   name: string,
 ): WebGLShader {
   const shader = gl.createShader(type)!;
-  gl.shaderSource(shader, source);
+  gl.shaderSource(shader, cinematicShaderSource(source));
   gl.compileShader(shader);
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
     const log = gl.getShaderInfoLog(shader);
