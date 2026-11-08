@@ -13,6 +13,8 @@ const added = [
   [UnitType.Mine, "buildMine", "KeyV", "V"],
   [UnitType.OilWell, "buildOilWell", "KeyO", "O"],
   [UnitType.GasPlant, "buildGasPlant", "KeyZ", "Z"],
+  [UnitType.Castle, "buildCastle", "Shift+KeyC", "Shift+C"],
+  [UnitType.IronDome, "buildIronDome", "KeyI", "I"],
 ] as const;
 
 beforeEach(() => {
@@ -25,7 +27,7 @@ afterEach(() => {
 });
 
 describe("DLC keyboard build controls", () => {
-  it("covers every DLC buildable with distinct unused default letters", () => {
+  it("covers all economy and advanced defense buildables with non-conflicting defaults", () => {
     const defaults = getDefaultKeybinds(false);
     const actions = BUILD_KEYBIND_ACTIONS.map((entry) => entry.action);
     const codes = Object.entries(defaults)
@@ -101,12 +103,14 @@ describe("DLC keyboard build controls", () => {
     );
     handler.initialize();
     try {
-      for (const [type, , code] of added) {
+      for (const [type, , binding] of added) {
+        const shiftKey = binding.startsWith("Shift+");
+        const code = shiftKey ? binding.slice(6) : binding;
         window.dispatchEvent(new KeyboardEvent("keydown", {
-          code, bubbles: true,
+          code, shiftKey, bubbles: true,
         }));
         window.dispatchEvent(new KeyboardEvent("keyup", {
-          code, bubbles: true,
+          code, shiftKey, bubbles: true,
         }));
         expect(ui.ghostStructure).toBe(type);
       }
