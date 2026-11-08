@@ -41,6 +41,7 @@ jobs:
             tests/GeopoliticsAdvancedDefenses.test.ts \
             tests/client/DlcBuildShortcuts.test.ts \
             tests/client/UnitDisplay.test.ts \
+            tests/client/FrontierHudLayout.test.ts \
             tests/client/controllers/BuildPreviewController.test.ts \
             tests/client/render/gl/IronDomeVisibility.test.ts \
             tests/client/render/gl/DefenseCoveragePerf.test.ts \
