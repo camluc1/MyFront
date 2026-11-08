@@ -51,6 +51,9 @@ export const PACKED_UNIT_TYPES: readonly UnitType[] = [
   UnitType.Mine, // 18
   UnitType.OilWell, // 19
   UnitType.GasPlant, // 20
+  // DLC Geopolitics defenses. Do not change IDs 1-20: old replays depend on them.
+  UnitType.Castle, // 21
+  UnitType.IronDome, // 22
 ] as const;
 
 const UNIT_TYPE_TO_INT = new Map<UnitType, number>(
