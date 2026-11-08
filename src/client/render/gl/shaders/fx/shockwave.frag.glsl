@@ -64,10 +64,17 @@ void classicRing(float dist) {
 #else
     float core=exp(-dist*dist*9.0)*heat*heat*0.13;
 #endif
-    float alpha=clamp((ring*0.70+innerRing*0.26+tail*0.11)*life+core,0.0,0.79);
+    // Cinematic 3-stage pressure wave: hot front, cooling inner edge and
+    // fading warm haze. Only a handful of ALU ops on the original shockwave
+    // quad; no more particles, instances, framebuffer passes or bloom.
+    float flash=life*life*life;
+    float hotFront=ring*(0.64+0.30*flash);
+    float coolingEdge=innerRing*(1.0-flash*0.40);
+    float amberHaze=tail*(0.07+0.09*heat);
+    float alpha=clamp((hotFront+coolingEdge+amberHaze)*life+core,0.0,0.79);
     if(alpha<0.01)discard;
-    vec3 hot=mix(vec3(0.46,0.24,0.18),vec3(1.0,0.78,0.48),heat);
-    vec3 color=mix(hot,vec3(0.99,0.96,0.87),ring*0.68);
+    vec3 ember=mix(vec3(0.34,0.23,0.20),vec3(1.0,0.68,0.34),heat);
+    vec3 color=mix(ember,vec3(1.0,0.96,0.84),ring*(0.42+0.35*flash));
     fragColor=vec4(color,alpha);
     return;
   }
