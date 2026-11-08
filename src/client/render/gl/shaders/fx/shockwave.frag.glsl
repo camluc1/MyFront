@@ -52,7 +52,10 @@ void classicRing(float dist) {
   // pressure front, not an altered damage radius or another full-screen pass.
   if (distance(vColor0,vec3(1.0))>0.1) {
     float aa=max(fwidth(dist),0.003);
+    // Cinematic shock front: a hot, thin pressure wave with a secondary
+    // compression band. Both fit the existing instanced quad and lifetime.
     float ring=1.0-smoothstep(0.0,max(uRingWidth,aa),abs(dist-0.97));
+    float innerRing=(1.0-smoothstep(0.01,0.065+aa,abs(dist-0.84)))*0.28;
     float tail=(1.0-smoothstep(0.73,0.98,dist))*smoothstep(0.53,0.78,dist);
     float life=clamp(vAlpha,0.0,1.0);
     float heat=life*life;
@@ -61,10 +64,10 @@ void classicRing(float dist) {
 #else
     float core=exp(-dist*dist*9.0)*heat*heat*0.13;
 #endif
-    float alpha=clamp((ring*0.76+tail*0.12)*life+core,0.0,0.8);
+    float alpha=clamp((ring*0.70+innerRing*0.26+tail*0.11)*life+core,0.0,0.79);
     if(alpha<0.01)discard;
-    vec3 hot=mix(vec3(0.64,0.39,0.20),vec3(1.0,0.88,0.63),heat);
-    vec3 color=mix(hot,vec3(0.94,0.97,1.0),ring*0.58);
+    vec3 hot=mix(vec3(0.46,0.24,0.18),vec3(1.0,0.78,0.48),heat);
+    vec3 color=mix(hot,vec3(0.99,0.96,0.87),ring*0.68);
     fragColor=vec4(color,alpha);
     return;
   }
