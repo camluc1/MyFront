@@ -57,10 +57,16 @@ void main() {
   // Extra space behind a hull holds its wake, in the same instanced quad.
   vStrategic = 0.0;
   if (vessel) {
-    scale = atlasCol > 1.5 ? uFleetWarshipScale : (atlasCol > 0.5 ? 0.64 : 0.82);
+    // The mobile repair base has a carrier-sized flight-deck silhouette,
+    // but is a ship repair station (no planes). Grow the existing quad only:
+    // it remains one instance with no separate textures or render pass.
+    bool repairCarrier = atlasCol > 1.5 && abs(vFlags - 7.0) < 0.1;
+    scale = atlasCol > 1.5
+      ? uFleetWarshipScale * (repairCarrier ? 1.32 : 1.0)
+      : (atlasCol > 0.5 ? 0.64 : 0.82);
     // Screen-space readability, bounded so distant fleets do not cover the map.
     float pixelsPerTile = length(uCamera[0].xy * uViewport * 0.5);
-    float hullFraction = atlasCol < 0.5 ? 0.30 : (atlasCol < 1.5 ? 0.43 : 0.685);
+    float hullFraction = atlasCol < 0.5 ? 0.30 : (atlasCol < 1.5 ? 0.43 : (repairCarrier ? 0.83 : 0.685));
     float minimumPixels = atlasCol < 0.5 ? uFleetReadability.x : (atlasCol < 1.5 ? uFleetReadability.y : uFleetReadability.z);
     float hullPixels = max(0.001, uUnitSize * scale * hullFraction * pixelsPerTile);
     float enlargement = clamp(minimumPixels / hullPixels, 1.0, uFleetReadability.w);
