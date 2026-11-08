@@ -1,3 +1,5 @@
+import { GAME_COLOR_CHOICES, normalizeGameColorChoice } from "@openfront/shared/GameColorChoices";
+import theme from "../src/client/render/gl/default-theme.json";
 import {
   FailOpenPrivilegeChecker,
   PrivilegeCheckerImpl,
@@ -773,3 +775,49 @@ describe("FailOpenPrivilegeChecker#resolveClanTag", () => {
     expect(result).toEqual({ tag: "ABC", dropped: false });
   });
 });
+
+describe("Free pre-game territory palette", () => {
+  it("uses actual game colors with no duplicate or arbitrary hex", () => {
+    const gameColors = new Set([
+      ...theme.humanColors.map((x) => x.toLowerCase()),
+      ...Object.values(theme.teamColors).map((x) => x.toLowerCase()),
+    ]);
+    expect(GAME_COLOR_CHOICES).toHaveLength(20);
+    expect(new Set(GAME_COLOR_CHOICES.map((x) => x.color)).size).toBe(GAME_COLOR_CHOICES.length);
+    for (const entry of GAME_COLOR_CHOICES) {
+      expect(gameColors.has(entry.color)).toBe(true);
+      expect(normalizeGameColorChoice(entry.color.toUpperCase())).toBe(entry.color);
+    }
+  });
+
+  it("accepts a free palette color without a paid flare", () => {
+    const result = checker.isAllowed([], { color: GAME_COLOR_CHOICES[0].color });
+    expect(result).toEqual({
+      type: "allowed",
+      cosmetics: { color: { color: GAME_COLOR_CHOICES[0].color } },
+    });
+  });
+
+  it("rejects arbitrary colors, preserving paid-color ownership checks", () => {
+    expect(checker.isAllowed([], { color: "#123456" }).type).toBe("forbidden");
+    expect(checker.isAllowed(["color:#123456"], { color: "#123456" })).toEqual({
+      type: "allowed",
+      cosmetics: { color: { color: "#123456" } },
+    });
+    expect(normalizeGameColorChoice("red")).toBeNull();
+    expect(normalizeGameColorChoice("#fffff")).toBeNull();
+  });
+
+  it("preserves free palette choices if the cosmetic catalog is offline", () => {
+    const checker = new FailOpenPrivilegeChecker();
+    expect(checker.isAllowed([], { color: GAME_COLOR_CHOICES[4].color })).toEqual({
+      type: "allowed",
+      cosmetics: { color: { color: GAME_COLOR_CHOICES[4].color } },
+    });
+    expect(checker.isAllowed([], { color: "#123456" })).toEqual({
+      type: "allowed",
+      cosmetics: {},
+    });
+  });
+});
+
