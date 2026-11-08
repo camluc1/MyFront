@@ -208,6 +208,8 @@ export enum UnitType {
   TradeShip = "Trade Ship",
   MissileSilo = "Missile Silo",
   DefensePost = "Defense Post",
+  Castle = "Castle",
+  IronDome = "Iron Dome",
   SAMLauncher = "SAM Launcher",
   City = "City",
   MIRV = "MIRV",
@@ -243,6 +245,8 @@ export const BuildableAttacks = unitTypeGroup([
 export const Structures = unitTypeGroup([
   UnitType.City,
   UnitType.DefensePost,
+  UnitType.Castle,
+  UnitType.IronDome,
   UnitType.SAMLauncher,
   UnitType.MissileSilo,
   UnitType.Port,

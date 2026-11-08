@@ -184,8 +184,12 @@ export class Config {
   }
 
   isUnitDisabled(unitType: UnitType): boolean {
+    if ((unitType === UnitType.Castle || unitType === UnitType.IronDome) &&
+        this._gameConfig.geopolitics !== true) return true;
     return this._gameConfig.disabledUnits?.includes(unitType) ?? false;
   }
+  castleRange(): number { return this.defensePostRange() * 2; }
+  ironDomeRange(): number { return Math.round(this.samRange(1) * 1.2); }
   instantBuild(): boolean {
     return this._gameConfig.instantBuild;
   }
@@ -238,6 +242,12 @@ export class Config {
         break;
       case UnitType.DefensePost:
         info = { constructionDuration: this.instantBuild() ? 0 : 5 * 10 };
+        break;
+      case UnitType.Castle:
+        info = { constructionDuration: this.instantBuild() ? 0 : 15 * 10 };
+        break;
+      case UnitType.IronDome:
+        info = { constructionDuration: this.instantBuild() ? 0 : 30 * 10 };
         break;
       case UnitType.SAMLauncher:
         info = {

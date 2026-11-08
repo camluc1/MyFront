@@ -36,6 +36,7 @@ export interface AttackLogicInput {
   } | null;
   /** A defense post owned by the defender is in range of the tile. */
   defenderHasDefensePost: boolean;
+  defenderHasCastle?: boolean;
   /** Fraction of land tiles with fallout, or null if the tile has no fallout. */
   falloutRatio: number | null;
   /** Tiles on the attack front this tick (plus jitter); fixed for the tick. */
@@ -370,6 +371,10 @@ export class EngineConfig extends Config {
           (numUnits: number) => Math.min(250_000, (numUnits + 1) * 50_000),
           UnitType.DefensePost,
         );
+      case UnitType.Castle:
+        return this.costWrapper(() => 1_500_000, UnitType.Castle);
+      case UnitType.IronDome:
+        return this.costWrapper(() => 10_000_000, UnitType.IronDome);
       case UnitType.SAMLauncher:
         return this.costWrapper(
           (numUnits: number) => Math.min(3_000_000, (numUnits + 1) * 1_500_000),
@@ -549,7 +554,10 @@ export class EngineConfig extends Config {
     const { attackTroops, attacker, defender } = input;
     let { mag, tileCost } = terrainAttackBase(input.terrain);
 
-    if (defender !== null && input.defenderHasDefensePost) {
+    if (defender !== null && input.defenderHasCastle) {
+      mag *= this.defensePostDefenseBonus() * 2;
+      tileCost *= this.defensePostSpeedBonus() * 2;
+    } else if (defender !== null && input.defenderHasDefensePost) {
       mag *= this.defensePostDefenseBonus();
       tileCost *= this.defensePostSpeedBonus();
     }
