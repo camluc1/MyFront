@@ -146,6 +146,33 @@ describe("graphics preview panel", () => {
     panel.close();
   });
 
+  it("toggles the existing performance overlay from graphics without forcing it on", async () => {
+    const store = new UserSettings();
+    store.setPerformanceOverlay(false);
+    const { settings, panel } = await mount();
+    settings.openGraphicsPanel();
+    await panel.updateComplete;
+    const toggle = panel.querySelector<HTMLInputElement>(
+      'input[aria-label="FPS / TPS / P95"]',
+    )!;
+    expect(toggle).toBeTruthy();
+    expect(toggle.checked).toBe(false);
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(store.performanceOverlay()).toBe(true);
+    await panel.updateComplete;
+    expect(panel.querySelector<HTMLInputElement>(
+      'input[aria-label="FPS / TPS / P95"]',
+    )!.checked).toBe(true);
+    const off = panel.querySelector<HTMLInputElement>(
+      'input[aria-label="FPS / TPS / P95"]',
+    )!;
+    off.checked = false;
+    off.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(store.performanceOverlay()).toBe(false);
+    panel.close();
+  });
+
   it("closes an active child silently when the owner is closed by navigation", async () => {
     const { settings, panel } = await mount();
     const onReturn = vi.fn();
