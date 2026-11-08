@@ -50,6 +50,8 @@ export const DiplomaticOfferSchema = z.object({
     "countered",
   ]),
   reason: z.string(),
+  /** Last AI assessment; optional so older campaign saves still load. */
+  decisionReason: z.string().max(80).optional(),
   ultimatum: z.boolean().optional(),
   enforced: z.boolean().optional(),
   /** Optional for old saves: pre-existing peace agreements remain 3 minutes. */
