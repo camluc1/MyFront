@@ -86,3 +86,62 @@ This iteration makes diplomacy **decision-first** while preserving the simulatio
 
 ### QA before release
 Focused tests added for duration, snapshot, contextual opening, exact asset impact, sender/recipient perspective and third-party coalition voting. As of authoring, those test files are **committed but not executed** in this environment. Run typecheck, Vite build, Geopolitics engine tests, panel interaction tests, save/restore, and manual checks in the browser at various resolutions, particularly right-click menus and territory editing. This release must not be called fully validated until they pass.
+
+
+## V3 — Strategic diplomacy and world feedback (November 2026)
+
+**Scope:** exclusive to offline single-player Geopolitics. Classic Conquest's AI,
+construction, attack rules, economics, save schema and controls are unchanged
+by these mechanics. No network language model or probabilistic chat is used.
+
+### Decisions and repeat play
+
+- AI counteroffers now use a **deterministic choice among validated proposals**:
+  keep the requested land for cash or troops, offer an alternative operational
+  port, adjust compensation, or offer a longer peace treaty while losing a war.
+  Candidate plans are scored both for the original proposer's likely acceptance
+  and the defender's strategic opportunity cost (ports, last critical
+  infrastructure, natural deposits, reserves), with stable national personality
+  and difficulty differences. No cost, troop pool or treasury is modified
+  until an offer is actually accepted.
+- The intended bargaining logic is legible to players: a proposal retains a
+  short strategic reason; the engine persists the latest AI decision reason
+  through acceptance/rejection instead of overwriting it with a generic status.
+  Reasons are *deterministic explanations*, not made-up acceptance probabilities.
+- Peace/territory settlement can trigger **regional reactions**. Nearby countries
+  become more cautious about a winner's expansion; members of its coalition
+  recognize a successful settlement positively. These reactions modify the
+  existing bounded trust memory used by subsequent diplomacy and are recorded
+  as events in the diplomatic chronicle. Betrayals can draw condemnation from
+  relevant nearby surviving coalition members. They do **not** create
+  automatic wars or add global stability/economy systems.
+- Offers addressed to the human are paced across AI nations with a global
+  60-simulation-second respite; a fresh severe military threat may justify
+  an earlier offer but requires a minimum 18-second interval. The pre-existing
+  pair-specific exponential rejection backoff remains.
+- The geopolitical council highlights consequential changes with short
+  non-blocking notifications, existing audio cues routed through the game's
+  sound mixer, a clear world-reaction chronology, animated but exact land
+  transfer outlines and distinct transferred-port rings. Motion respects
+  reduced-motion preferences and outlines are suppressed for very large
+  transfers to avoid rendering spikes.
+- The treaty summary prioritizes **exact received/given assets, critical risks,
+  real treaty duration, the AI's actual reason, strategic consequences, and a
+  visible expiry timer**, without pretending to predict victory probability.
+  A country's dossier includes a trust meter and documented latest reaction.
+  These additions sit on top of the V2 decision-first negotiation layout.
+- Spanish and English strings are provided for new geopolitical feedback.
+
+### Verification required before declaring 9–10/10
+
+Regression tests have been authored for alternatives to port demands, unchanged
+asset ownership until consent, local support/concern reactions, persisted AI
+reasons and diplomatic memory, backoff, saved games, Classic isolation,
+accessible milestone cards and non-replay of historical notifications.
+
+**These tests have not been executed in this conversation.** Run the repository
+typecheck, Vite production build, relevant engine and Lit/Vitest tests, lint,
+format checks, and manual gameplay at all four difficulty settings. In
+particular, observe responsiveness on the World map and verify audio settings,
+port deployment, exact land painting, pause/resume and old saved games. The
+code and intentional design are not by themselves a measured 10/10 experience.
