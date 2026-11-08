@@ -673,6 +673,7 @@ export class Geopolitics {
     const treasury = Math.max(0, Number(defender.gold()));
     const troops = Math.max(0, defender.troops());
     const difficulty = this.game.config().gameConfig().difficulty;
+    const personality = this.personality(defender);
     const reluctance = difficulty === Difficulty.Easy ? 5 :
       difficulty === Difficulty.Medium ? 7 :
       difficulty === Difficulty.Hard ? 10 : 14;
@@ -767,12 +768,42 @@ export class Geopolitics {
           Math.trunc((fullCost - cost) * 60 / capacity)));
         const gain = option.receive.gold - originalReceive.gold;
         const valueOfGain = Math.min(12, Math.trunc(gain * 40 / capacity));
+        const portsLost = option.give.buildings.filter((id) =>
+          this.game.unit(id)?.type() === UnitType.Port).length;
+        const industryLost = option.give.buildings.filter((id) => {
+          const kind = this.game.unit(id)?.type();
+          return kind === UnitType.Mine || kind === UnitType.OilWell ||
+            kind === UnitType.GasPlant || kind === UnitType.Factory;
+        }).length;
+        // Stable personality adds variety, not randomness: territorialists
+        // resist annexations, traders guard working capital and production,
+        // pragmatists seek workable terms, cautious nations preserve reserves.
+        const stancePenalty = personality === 0
+          ? Math.min(14, option.give.tiles.length * 2 + portsLost * 8)
+          : personality === 1
+            ? Math.min(14,
+              Math.trunc(option.give.gold * 30 / capacity) +
+              industryLost * 5)
+            : personality === 3
+              ? Math.min(14,
+                Math.trunc(option.give.troops * 45 / Math.max(1, troops)) +
+                portsLost * 4)
+              : 0;
+        const longPeaceBonus =
+          option.durationTicks === 3000 && pressure >= 15
+            ? (personality === 3 ? 8 : 3) : 0;
         // A realistic deal should satisfy the opponent while preserving as
         // much of the defender's long-term strategic position as possible.
         return { option, index, acceptance,
-          value: acceptance * 2 + savings + valueOfGain };
+          value: acceptance * 2 + savings + valueOfGain +
+            longPeaceBonus - stancePenalty };
       })
-      .filter((entry) => entry.acceptance >= (pressure > 20 ? -20 : -8))
+      .filter((entry) => entry.acceptance >= (
+        pressure > 20
+          ? difficulty === Difficulty.Impossible ? -8 : -20
+          : difficulty === Difficulty.Easy ? -15 :
+            difficulty === Difficulty.Impossible ? 0 : -8
+      ))
       .sort((a, b) => b.value - a.value ||
         b.acceptance - a.acceptance || a.index - b.index);
     return ranked[0]?.option ?? null;
