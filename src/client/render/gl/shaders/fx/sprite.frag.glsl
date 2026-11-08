@@ -47,6 +47,9 @@ void main() {
     float initial = pow(1.0-clamp(vFxProgress,0.0,1.0),8.0);
     vec3 warm = vec3(1.0,0.63,0.28) *
       initial * (newMushroom ? 0.13 : 0.10);
+#ifdef FRONTIER_REDUCED_MOTION
+    warm *= 0.35;
+#endif
     fragColor = vec4(min(vec3(1.0),art.rgb+warm),
       clamp(art.a*vAlpha,0.0,1.0));
     return;
