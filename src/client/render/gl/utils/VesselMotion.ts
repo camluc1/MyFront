@@ -25,6 +25,7 @@ export class VesselMotion {
   private routeTick = 0;
   private routeAt = -1;
   private routeSpeed = 0;
+  private routeHeadingInitialized = false;
   private anchorX = 0;
   private anchorY = 0;
 
@@ -153,8 +154,9 @@ export class VesselMotion {
       const delta = Math.atan2(
         Math.sin(desired - lastHeading), Math.cos(desired - lastHeading));
       const maxTurn = Math.PI * 0.62 * dt;
-      this.angle = lastHeading + Math.max(-maxTurn,
-        Math.min(maxTurn, delta));
+      this.angle = !this.routeHeadingInitialized ? desired :
+        lastHeading + Math.max(-maxTurn, Math.min(maxTurn, delta));
+      this.routeHeadingInitialized = true;
       this.sampledAt = now;
       return;
     }
