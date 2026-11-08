@@ -66,7 +66,7 @@ export class UnitDisplay extends LitElement implements Controller {
   public uiState: UIState;
   public inputHandler: InputHandler;
   private playerBuildables: BuildableUnit[] | null = null;
-  // Visible outside the horizontally scrolling quick-build item list.
+  // The resource toggle remains visible above the responsive build grid.
   @state() private resourcesVisible = false;
   @state() private resourceEconomy: ResourceEconomyInfo | null = null;
 
@@ -148,7 +148,7 @@ export class UnitDisplay extends LitElement implements Controller {
     this.refreshBuildHotkeys();
 
     this.tutorialMode = config.gameConfig().tutorial ?? false;
-    // The bar is hidden on small screens, where the radial menu builds, but
+    // The dock can stack on small screens while the radial menu also builds, but
     // the onboarding tutorial fires its atom bomb from here on every screen.
     if (this.tutorialMode) this.classList.remove("hidden");
 
@@ -561,27 +561,6 @@ export class UnitDisplay extends LitElement implements Controller {
         ${this.resourceEconomy ? html`<div class="absolute bottom-full left-0 mb-2 w-72 max-w-[90vw] pointer-events-none">${renderResourceEconomy(this.resourceEconomy)}</div>` : null}
         <div class="flex flex-wrap items-center justify-between gap-2 px-1 pb-2">
           <span class="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Construcción rápida</span>
-          ${this.game.config().gameConfig().geopolitics === true && !this.tutorialMode ? html`
-            <button type="button" data-mobile-shipyard data-radial-click-through
-              title="Buque Taller: repara hasta 3 barcos; $5.000.000"
-              aria-pressed=${this.uiState.ghostStructure === UnitType.Warship && this.uiState.supportShipMode === true}
-              ?disabled=${!this.playerBuildables?.some(b => b.type === UnitType.Warship) ||
-                (myPlayer.gold() < 5_000_000n && this.game.config().gameConfig().infiniteGold !== true) ||
-                this.game.config().isUnitDisabled(UnitType.Warship) || myPlayer.units(UnitType.Port).length === 0}
-              class="shrink-0 rounded-md border border-cyan-400/40 bg-cyan-950/80 px-3 py-1.5 text-xs font-semibold text-cyan-100 disabled:opacity-40"
-              @click=${(event: MouseEvent) => {
-                event.stopPropagation();
-                const wasSelected = this.uiState.ghostStructure === UnitType.Warship && this.uiState.supportShipMode === true;
-                if (wasSelected) {
-                  this.inputHandler.setGhostStructure(null, "GUIclick");
-                  this.uiState.supportShipMode = false;
-                } else {
-                  if (this.uiState.ghostStructure === UnitType.Warship) this.inputHandler.setGhostStructure(null, "GUIclick");
-                  this.inputHandler.setGhostStructure(UnitType.Warship, "GUIclick");
-                  this.uiState.supportShipMode = true;
-                }
-                this.requestUpdate();
-              }}>⚓ Buque Taller · $5M</button>` : nothing}
           <button
             type="button"
             data-frontier-resources-toggle
@@ -598,14 +577,20 @@ export class UnitDisplay extends LitElement implements Controller {
             ${this.resourcesVisible ? "◉ Ocultar recursos" : "◎ Ver recursos"}
           </button>
         </div>
-        <div
-          class="unit-display-scroll w-full overflow-x-auto overflow-y-hidden overscroll-x-contain touch-pan-x pb-1.5"
-          @scroll=${this.onScroll}
-        >
-          <div
-            class="unit-display-grid grid grid-cols-[repeat(var(--unit-display-columns),minmax(0,1fr))] gap-1.5 w-full mx-auto lg:grid-rows-1 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-[62px] lg:w-max max-lg:landscape:grid-rows-1 max-lg:landscape:grid-flow-col max-lg:landscape:grid-cols-none max-lg:landscape:auto-cols-[52px] max-lg:landscape:w-max max-[360px]:grid-cols-none max-[360px]:grid-flow-col max-[360px]:auto-cols-[46px] max-[360px]:w-max"
-            style=${`--unit-display-columns: ${this.enabledUnitCount}`}
-          >
+        <!-- Keep nuclear weapons immediately above the missile-silo build row. -->
+        ${!this.tutorialMode && [UnitType.AtomBomb, UnitType.HydrogenBomb, UnitType.MIRV]
+          .some((type) => this.isUnitDisplayed(type)) ? html`
+          <div class="flex flex-wrap items-center gap-2 px-1 pb-2">
+            <span class="text-[10px] font-bold uppercase tracking-[0.12em] text-amber-200/80">Arsenal nuclear</span>
+            <div class="unit-display-nuclear-grid unit-display-grid grid grid-cols-3 gap-2 w-full sm:w-auto sm:min-w-[230px]">
+              ${this.renderUnitItem(atomBombIcon, null, UnitType.AtomBomb, "atom_bomb", this.getHotkey("buildAtomBomb", "Digit8"), "Atómica")}
+              ${this.renderUnitItem(hydrogenBombIcon, null, UnitType.HydrogenBomb, "hydrogen_bomb", this.getHotkey("buildHydrogenBomb", "Digit9"), "Hidrógeno")}
+              ${this.renderUnitItem(mirvIcon, null, UnitType.MIRV, "mirv", this.getHotkey("buildMIRV", "Digit0"), "MIRV")}
+            </div>
+          </div>` : nothing}
+        <!-- Auto-wrapping layout: every buildable remains visible without scrolling. -->
+        <div class="unit-display-scroll w-full pb-1.5">
+          <div class="unit-display-grid grid grid-cols-[repeat(auto-fit,minmax(54px,1fr))] gap-1.5 w-full">
             ${this.renderUnitItem(
               cityIcon,
               this._cities,
@@ -655,27 +640,33 @@ export class UnitDisplay extends LitElement implements Controller {
               "warship",
               this.getHotkey("buildWarship", "Digit7"),
             )}
-            ${this.renderUnitItem(
-              atomBombIcon,
-              null,
-              UnitType.AtomBomb,
-              "atom_bomb",
-              this.getHotkey("buildAtomBomb", "Digit8"),
-            )}
-            ${this.renderUnitItem(
-              hydrogenBombIcon,
-              null,
-              UnitType.HydrogenBomb,
-              "hydrogen_bomb",
-              this.getHotkey("buildHydrogenBomb", "Digit9"),
-            )}
-            ${this.renderUnitItem(
-              mirvIcon,
-              null,
-              UnitType.MIRV,
-              "mirv",
-              this.getHotkey("buildMIRV", "Digit0"),
-            )}
+            ${this.game.config().gameConfig().geopolitics === true && !this.tutorialMode ? html`
+              <div class="flex flex-col items-center justify-center relative" data-mobile-shipyard-container>
+                <button type="button" data-mobile-shipyard data-radial-click-through
+                  title="Buque Taller: repara hasta 3 barcos; $5.000.000"
+                  aria-label="Buque Taller"
+                  aria-pressed=${this.uiState.ghostStructure === UnitType.Warship && this.uiState.supportShipMode === true}
+                  ?disabled=${!this.playerBuildables?.some(b => b.type === UnitType.Warship) ||
+                    (myPlayer.gold() < 5_000_000n && this.game.config().gameConfig().infiniteGold !== true) ||
+                    this.game.config().isUnitDisabled(UnitType.Warship) || myPlayer.units(UnitType.Port).length === 0}
+                  class="w-full min-h-13 lg:min-h-14 rounded-lg border border-cyan-400/40 bg-cyan-950/80 px-1 py-1 flex flex-col items-center justify-center gap-0.5 text-cyan-100 disabled:opacity-40"
+                  @click=${(event: MouseEvent) => {
+                    event.stopPropagation();
+                    const wasSelected = this.uiState.ghostStructure === UnitType.Warship && this.uiState.supportShipMode === true;
+                    if (wasSelected) {
+                      this.inputHandler.setGhostStructure(null, "GUIclick");
+                      this.uiState.supportShipMode = false;
+                    } else {
+                      if (this.uiState.ghostStructure === UnitType.Warship) this.inputHandler.setGhostStructure(null, "GUIclick");
+                      this.inputHandler.setGhostStructure(UnitType.Warship, "GUIclick");
+                      this.uiState.supportShipMode = true;
+                    }
+                    this.requestUpdate();
+                  }}>
+                  <span class="text-lg leading-none" aria-hidden="true">⚓</span>
+                  <span class="text-[9px] font-bold leading-tight text-center">Taller</span>
+                </button>
+              </div>` : nothing}
             ${this.renderUnitItem(
               castleIcon,
               this._castle,
@@ -743,6 +734,7 @@ export class UnitDisplay extends LitElement implements Controller {
     unitType: PlayerBuildableUnitType,
     structureKey: string,
     hotkey: string,
+    label?: string,
   ) {
     if (!this.isUnitDisplayed(unitType)) {
       return html``;
@@ -908,6 +900,7 @@ export class UnitDisplay extends LitElement implements Controller {
             }
           </div>
         </div>
+        ${label ? html`<span class="text-[10px] font-semibold leading-tight text-center mt-1 text-slate-200">${label}</span>` : nothing}
       </div>
     `;
   }
