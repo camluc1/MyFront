@@ -3,7 +3,7 @@ precision highp float;
 
 uniform sampler2D uPalette;
 uniform sampler2D uAtlas; // Original six sprites
-uniform sampler2D uFrontierAtlas; // Four new sprites, separate texture
+uniform sampler2D uFrontierAtlas; // Six frontier sprites: resources + Castle + Iron Dome
 uniform sampler2D uAffiliation;   // 256×2 RGBA8 — row 1 = unit affiliation
 uniform sampler2D uEffect;        // RGBA32F — shared effect palette, keyed by
                                   //   ownerID. The structures block starts at row
@@ -135,7 +135,11 @@ float shapeSDF(vec2 p, float R) {
     return sdPolygon(p, R, 6.0, PI / 6.0);    // Mine
   if (vAtlasIdx < 8.5)
     return length(p) - R;                     // Oil Well: round pumpjack badge
-  return length(p) - R;                       // Gas Plant: round flame badge
+  if (vAtlasIdx < 9.5)
+    return length(p) - R;                     // Gas Plant
+  if (vAtlasIdx < 10.5)
+    return sdPolygon(p, R, 8.0, PI / 8.0);   // Castle: fortified octagon
+  return length(p) - R;                       // Iron Dome: circular shield
 }
 
 void main() {
@@ -208,7 +212,7 @@ void main() {
     // ten-column UVs into the original six-column or new four-column atlas.
     float localU = vAtlasUV.x * float(ATLAS_COLS) - vAtlasIdx;
     float atlasCol = vAtlasIdx < 5.5 ? vAtlasIdx : vAtlasIdx - 6.0;
-    float cols = vAtlasIdx < 5.5 ? 6.0 : 4.0;
+    float cols = vAtlasIdx < 5.5 ? 6.0 : 6.0;
     float colStart = atlasCol / cols;
     float colEnd = (atlasCol + 1.0) / cols;
     vec2 safeUV = vec2(
