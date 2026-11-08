@@ -1703,6 +1703,7 @@ export async function getPlayerCosmeticsRefs(
 
   return {
     flag: flag ?? undefined,
+    color: userSettings.getPreferredGameColor() ?? undefined,
     patternName: pattern?.name ?? undefined,
     patternColorPaletteName: pattern?.colorPalette?.name ?? undefined,
     skinName,
@@ -1719,6 +1720,7 @@ export async function getPlayerCosmetics(
   const cosmetics = await fetchCosmetics();
 
   const result: PlayerCosmetics = {};
+  if (refs.color) result.color = { color: refs.color };
 
   if (refs.flag) {
     result.flag = await resolveFlagUrl(refs.flag);
