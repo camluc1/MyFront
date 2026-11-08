@@ -17,7 +17,7 @@ describe("V5 renderer integration contract", () => {
   it("draws two distinct cinematic blast atlases in the existing FX pass",()=>{
     expect(spriteFragment).toContain("uCinematicNukeAtlas");
     expect(spriteFragment).toContain("uCinematicImpactAtlas");
-    expect(spriteFragment).toContain("sampleCinematicAtlas");
+    expect(spriteFragment).toContain("cinematicAtlasUV");
     expect(spriteVertex).toContain("vFxFrame");
   });
   it("skips expensive sea normal samples at low quality",()=>{
