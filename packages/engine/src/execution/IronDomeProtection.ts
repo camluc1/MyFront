@@ -16,13 +16,14 @@ export function protectedByIronDome(
   tile: TileRef,
   owner: Player,
 ): boolean {
-  return game.config().gameConfig().geopolitics === true &&
-    game.hasUnitNearby(
-      tile,
-      game.config().ironDomeRange(),
-      UnitType.IronDome,
-      owner.id(),
-    );
+  if (game.config().gameConfig().geopolitics !== true) return false;
+  const config = game.config();
+  return game.anyUnitNearby(
+    tile, Math.ceil(config.maxSamRange() * 1.2), [UnitType.IronDome],
+    (unit) => game.euclideanDistSquared(tile, unit.tile()) <=
+      config.ironDomeRange(unit.level()) ** 2,
+    owner.id(),
+  );
 }
 
 /**
@@ -38,13 +39,16 @@ export function createBlastIronDomeCoverage(
       game.unitCount(UnitType.IronDome) === 0) {
     return () => false;
   }
-  const rangeSq = game.config().ironDomeRange() ** 2;
-  const domes = new Map<number, { x: number; y: number }[]>();
+  const domes = new Map<number, { x: number; y: number; rangeSq: number }[]>();
   for (const dome of game.units(UnitType.IronDome)) {
     if (!dome.isActive() || dome.isUnderConstruction()) continue;
     const id = dome.owner().smallID();
     const arr = domes.get(id);
-    const pos = { x: game.x(dome.tile()), y: game.y(dome.tile()) };
+    const pos = {
+      x: game.x(dome.tile()),
+      y: game.y(dome.tile()),
+      rangeSq: game.config().ironDomeRange(dome.level()) ** 2,
+    };
     if (arr) arr.push(pos);
     else domes.set(id, [pos]);
   }
@@ -54,7 +58,7 @@ export function createBlastIronDomeCoverage(
     const x = game.x(tile), y = game.y(tile);
     for (const dome of entries) {
       const dx = x - dome.x, dy = y - dome.y;
-      if (dx * dx + dy * dy <= rangeSq) return true;
+      if (dx * dx + dy * dy <= dome.rangeSq) return true;
     }
     return false;
   };
