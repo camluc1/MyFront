@@ -9,6 +9,7 @@ import {
 } from "../../src/client/render/gl/EnhancedVisuals";
 import "../../src/client/components/EnhancedVisualsToggle";
 import { oceanAmbienceDataUrl } from "../../src/client/sound/OceanAmbience";
+import { categoryOf } from "../../src/client/sound/Sounds";
 
 const source = `#version 300 es\n${ENHANCED_SHADER_MARKER}\nvoid main() {}\n`;
 const initialLanguage = document.documentElement.lang;
@@ -181,6 +182,10 @@ describe("lightweight cinematic sea ambience", () => {
     expect(view.getUint16(34, true)).toBe(8);
     expect(bytes.length).toBeLessThan(46_000);
     expect(bytes.length).toBeGreaterThan(44_000);
+    expect(categoryOf("sea")).toBe("ambience");
+    const samples = bytes.subarray(44);
+    expect(new Set(samples).size).toBeGreaterThan(25);
+    expect(samples.some((value) => value !== 128)).toBe(true);
   });
 });
 
