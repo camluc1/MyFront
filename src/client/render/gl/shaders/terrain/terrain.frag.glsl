@@ -55,15 +55,18 @@ vec3 cinematicOcean(vec3 base, vec2 world, int terrain, float footprint) {
   if (close < 0.04 || quality < 0.08) return sea;
   // Fast fallback with one coherent thin wave crest: no noise texture, no
   // extra pass, no derivative-based specular when frame pacing drops.
-  float crestPhase = dot(world,wind)*0.175-time*0.65+cross*0.62;
+  // Break long, perfectly parallel wave bands into irregular moving crests.
+  // Reuse the same one noise sample for highlights and near-shore surf.
+  float breakup = quality <= 0.35 ? 0.5 :
+    grain(world*0.045+vec2(time*0.010,-time*0.004));
+  float crestPhase = dot(world,wind)*0.175-time*0.65+
+    cross*0.62+swell*0.5+(breakup-0.5)*1.8;
   float crest = max(0.0,sin(crestPhase));
-  float ribbon = pow(crest,10.0)*close;
+  float ribbon = pow(crest,11.0)*close*(0.36+0.64*breakup);
   float multiplier = quality <= 0.35 ? 0.55 : 1.0;
   sea += vec3(0.21,0.40,0.48)*ribbon*0.18*multiplier;
   if (quality <= 0.35) return sea;
-  // A cross-wind interference pattern breaks up the crests at close zoom.
-  // Only high detail uses one stable grain and a broad directional normal.
-  float breakup = grain(world*0.045+vec2(time*0.010,-time*0.004));
+  // Cross-wind interference adds fine surface glints at high quality.
   float ripple = sin(dot(world,vec2(-0.16,0.23))-time*0.52+breakup*1.3);
   float spark = pow(max(0.0,0.62*crest+0.38*ripple),8.0);
   float glint = spark*close*quality*(0.075+0.06*breakup);
