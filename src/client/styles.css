@@ -1340,3 +1340,34 @@ body.frontier-hud .unit-display-action-icon { font-size: 1.3rem; line-height: 1.
   body.frontier-hud .unit-display-action,
   body.frontier-hud .unit-display-tab { transition: none; }
 }
+
+/* Override the legacy nested button rule at matching specificity. */
+body.frontier-hud .unit-display-grid > div > .unit-display-action:first-child {
+  min-height: clamp(3.6rem,4.5vw,4.3rem);
+  border-color: rgba(148,163,184,.24);
+  border-radius: .55rem;
+  background: rgba(22,38,55,.85);
+}
+body.frontier-hud .unit-display-grid > div > .unit-display-action.is-selected:first-child {
+  border-color: #67e8f9;
+  background: rgba(8,145,178,.16);
+}
+body.frontier-hud .unit-display-grid > div > .unit-display-action.is-unavailable:first-child { opacity: .58; }
+body.frontier-hud .unit-display-grid > div > .unit-display-action.is-resource:first-child { border-color: rgba(52,211,153,.25); }
+body.frontier-hud .unit-display-grid > div > .unit-display-action:hover:first-child {
+  border-color: rgba(103,232,249,.65);
+  background: rgba(22,78,99,.36);
+}
+body.frontier-hud .unit-display-arsenal .unit-display-grid > div > .unit-display-action:first-child {
+  border-color: rgba(251,146,60,.33);
+  background: rgba(100,47,25,.18);
+}
+body.frontier-hud .unit-display-arsenal .unit-display-grid > div > .unit-display-action:hover:first-child {
+  border-color: rgba(253,186,116,.75);
+}
+body.frontier-hud .unit-display-root::before,
+body.frontier-hud .unit-display-root::after { top: 2.5rem; }
+body.frontier-hud .unit-display-root::before { background: linear-gradient(to right,rgba(8,16,29,.95),transparent); }
+body.frontier-hud .unit-display-root::after { background: linear-gradient(to left,rgba(8,16,29,.95),transparent); }
+body.frontier-hud .frontier-attack-slider { min-height: 1rem; }
+body.frontier-hud .frontier-attack-slider::-webkit-slider-thumb { width: 1.15rem; height: 1.15rem; }
