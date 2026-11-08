@@ -251,8 +251,8 @@ describe("mobile UnitDisplay layout", () => {
           ?.querySelector(".unit-display-hotkey")?.textContent?.trim();
       // Button order is the quick-build bar's 10 originals + advanced defenses
       // + resource buildings, not the engine's enum order.
-      expect(badge(4)).toBe("⇧C"); // Castle
-      expect(badge(5)).toBe("I"); // Iron Dome
+      expect(badge(10)).toBe("⇧C"); // Castle after digits 1–0
+      expect(badge(11)).toBe("I"); // Iron Dome
       expect(badge(12)).toBe("J"); // Farm
       expect(badge(13)).toBe("V"); // Mine
       expect(badge(14)).toBe("O"); // Oil Well
@@ -264,7 +264,7 @@ describe("mobile UnitDisplay layout", () => {
       });
       await display.updateComplete;
       expect(badge(12)).toBe("⇧J");
-      expect(badge(5)).toBeUndefined();
+      expect(badge(11)).toBeUndefined();
     } finally {
       display.remove();
       settings.removeCached(KEYBINDS_KEY, false);
@@ -294,11 +294,11 @@ describe("mobile UnitDisplay layout", () => {
       display.uiState.ghostStructure = UnitType.Castle;
       display.requestUpdate();
       await display.updateComplete;
-      (cards()[4].firstElementChild as HTMLElement).click();
+      (cards()[10].firstElementChild as HTMLElement).click();
       expect(inputHandler.setGhostStructure).toHaveBeenLastCalledWith(
         null, "GUIclick",
       );
-      expect(cards()[4].querySelector(".unit-display-multiplier")).toBeNull();
+      expect(cards()[10].querySelector(".unit-display-multiplier")).toBeNull();
     } finally {
       display.remove();
     }
@@ -325,7 +325,7 @@ describe("mobile UnitDisplay layout", () => {
     try {
       display.requestUpdate();
       await display.updateComplete;
-      const dome = display.querySelectorAll(".unit-display-grid > div")[5];
+      const dome = display.querySelectorAll(".unit-display-grid > div")[11];
       expect(dome.querySelector(".unit-display-multiplier")?.textContent?.trim())
         .toBe("×3");
     } finally {
