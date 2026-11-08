@@ -236,3 +236,91 @@ ahead; a live app based on `main` may show none of these fixes. Check the
 deployment source/revision before diagnosing a screenshot as containing
 the new renderer. Do not merge into `main` without an explicit release
 decision and QA approval.
+
+
+## V5 — Rebuild the art foundation rather than adjusting the old sprite
+
+**User acceptance target** (not a verified score): ocean 9/10, nuclear
+mushroom 9.5/10, impacts 9/10, terrain 8.5/10, ships 9/10, visual whole 9/10.
+Earlier assistant-generated claims of 8.7/10 are withdrawn. A source change is
+not equivalent to an independent gameplay art-quality judgment.
+
+### Stage A: ocean material
+
+The cinematic terrain pass now mixes water color by encoded depth and existing
+coastal flags; draws large overlapping wind-driven swells; and at close zoom
+samples a **128×128 deterministic, seamless RGBA normal/foam texture** twice.
+A tiny mipmap chain prevents shimmer at farther zoom. The normals contribute
+sky glints and physically motivated highlight direction; foam fragments follow
+crests and beaches instead of fixed parallel diagonal stripes. At quality <=
+0.35 it immediately uses a cheap analytic wave and performs no normal-texture
+samples. Extreme zoom skips close-water detail. This remains **one existing
+terrain draw call** and no extra full-map texture.
+
+### Stage B: conventional impacts
+
+A new original **16-frame, 1024×1024 transparent SVG atlas** replaces the
+four-frame tiny blast animation in the cinematic profile when its image has
+decoded. It depicts short-lived flash, irregular fireball, advancing pressure
+front, debris points and dark smoke. Building, unit and shell impacts use
+different lifetimes (1200/900/700 ms). SAM interception, custom effects,
+ordinary graphics and gameplay physics retain their original artwork.
+The new texture is rasterized and uploaded **once per cinematic renderer**.
+It adds a texture binding, not a separate render pass or per-impact emitter.
+
+### Stage C: the actual mushroom
+
+A separate original **16-frame, 1024×1024 SVG atlas** replaces the 9-frame,
+630ms nuclear sprite with a **3.2s rising column and smoke cap**. Stages
+include fireball, expanding ground pressure ring, hot ascension, visible stem,
+broad mushroom crown, an incandescent underside and gradual cooling. Rendering
+uses the existing instanced FX quad and the separate existing shockwave; no
+added explosion sprite instances. No visible asset? The old blast remains
+available as a fallback, preserving complete gameplay functionality.
+The draw pass caps high-quality mushroom sprites at 10 simultaneous instances.
+
+### Stages D/E: terrain, fleets
+
+Mountain crests and valleys now receive restrained directional light and
+material grain; national control colors are preserved. Ship steering limits
+visible yaw on bends without changing authoritative position, simulation or
+arrival time. The existing boat trail pass doubles as a pale foam ribbon only
+at sufficiently close zoom, while the original tactical path and fleet
+instance count remain. Standard and affiliation view are isolated.
+
+### Stage F: global performance budgets
+
+- Ocean normal map: 128² RGBA8 = **64 KiB** plus ~21 KiB of mipmaps, created
+  only with the optional graphics profile; never map-width × map-height.
+- Two sprite atlases: 1024² RGBA8 each = **8 MiB total**, loaded once per
+  renderer (plus compact SVG source), not per weapon. If decode fails, the
+  original atlas is used.
+- At most 10 concurrent cinematic mushroom sprites; debris limited to 12
+  instances per type per detonation; at most 640 instances in the total FX
+  batch during extreme MIRV storms. High-importance impacts take priority
+  over smoke fragments.
+- There is no new geometry pass, real-time volumetric fluid simulation,
+  ray tracing, noise regeneration each frame, impact damage adjustment,
+  unit type or game resource. Existing dynamic framebuffer/zoom quality
+  governor stays active.
+- Newly enlarged blast quads shade more pixels than old quads and two extra
+  small textures cost memory: this is an explicit, bounded tradeoff, **not**
+  a claim of zero performance penalty.
+- Existing compact FPS/TPS/p95 overlay should be used to compare matched
+  saves on identical hardware in normal and cinematic variants.
+
+### QA and deployment gates
+
+Repository tests cover deterministic normal generation, source-level
+normal/cinematic shader isolation, the 16-frame SVG grid, FX limits and
+cinematic steering. Before release, run TypeScript/format/lint, all Vitest
+tests, the production build, software WebGL smoke compilation, and actual
+WebGL2 browser decode of both SVG atlases, including Safari/mobile behavior.
+Compare 2000×1000 world maps, 500+ warships, many MIRV simultaneous
+detonations, old save resume, graphics-off, reduced-motion and alternative
+cosmetics. Capture median/p95/p99 frame time, sim TPS, GPU memory and
+representative screenshots of each explosion stage. No 9/10 score is
+established without visual acceptance.
+
+Changes should remain in `frontier/development` until validated. The
+repository's default `main` branch and any public deployment are separate.
