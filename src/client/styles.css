@@ -1429,3 +1429,19 @@ body.frontier-hud .frontier-strategy-dock:not([data-active="chronicle"]) frontie
 @media (max-width: 640px) {
   body.frontier-hud .frontier-strategy-dock { width: min(100%, 22rem); margin-bottom: .2rem; }
 }
+
+/* Header: group infrastructure and armament without a wall of equally bright zeros. */
+body.frontier-hud player-info-overlay [data-unit-group] {
+  border-color: rgba(148,163,184,.24);
+  background: rgba(15,23,42,.4);
+  transition: opacity 150ms, border-color 150ms;
+}
+body.frontier-hud player-info-overlay [data-unit-group="military"]:first-of-type {
+  border-left-color: rgba(125,211,252,.55);
+}
+body.frontier-hud player-info-overlay [data-zero-count="true"] { opacity: .46; }
+body.frontier-hud player-info-overlay [data-zero-count="true"]:hover { opacity: .88; }
+body.frontier-hud player-info-overlay [data-zero-count="false"] {
+  border-color: rgba(125,211,252,.35);
+  color: #e3f5ff;
+}
