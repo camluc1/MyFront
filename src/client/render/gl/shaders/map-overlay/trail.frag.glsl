@@ -65,13 +65,17 @@ void main() {
       vec2 directed=vec2(r-l,d-u);
       if(abs(xx-yy)<.01 && dot(directed,directed)>.01) tangent=normalize(directed);
 #ifdef FRONTIER_CINEMATIC_ULTRA
-      float nw=boatNeighbor(tc+ivec2(-1,-1),owner),ne=boatNeighbor(tc+ivec2(1,-1),owner);
-      float sw=boatNeighbor(tc+ivec2(-1,1),owner),se=boatNeighbor(tc+ivec2(1,1),owner);
-      // Principal axis remains valid on symmetric vertical/diagonal trails.
-      float xy=(nw+se-ne-sw)*.5;
-      if(abs(xx-yy)+abs(xy)>.01) {
-        float angle=.5*atan(2.0*xy,xx-yy);
-        tangent=vec2(cos(angle),sin(angle));
+      // Exactly straight two-sided segments already have an unambiguous
+      // axis. Only corners, ends and diagonals need the four extra reads.
+      // These are identical for ordinary straight wakes, at full resolution.
+      if(abs(xx-yy)<1.5) {
+        float nw=boatNeighbor(tc+ivec2(-1,-1),owner),ne=boatNeighbor(tc+ivec2(1,-1),owner);
+        float sw=boatNeighbor(tc+ivec2(-1,1),owner),se=boatNeighbor(tc+ivec2(1,1),owner);
+        float xy=(nw+se-ne-sw)*.5;
+        if(abs(xx-yy)+abs(xy)>.01) {
+          float angle=.5*atan(2.0*xy,xx-yy);
+          tangent=vec2(cos(angle),sin(angle));
+        }
       }
 #endif
       vec2 across=vec2(-tangent.y,tangent.x);

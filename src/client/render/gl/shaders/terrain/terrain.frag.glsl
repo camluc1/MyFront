@@ -38,6 +38,22 @@ vec2 shoreNormal(vec2 world) {
 }
 #endif
 #ifdef FRONTIER_CINEMATIC
+// Constant integer powers: identical curve to pow(x,N) for nonnegative x,
+// but expressed as multiplies (no per-pixel exp/log approximation).
+float power26(float x) {
+  float x2=x*x, x4=x2*x2, x8=x4*x4, x16=x8*x8;
+  return x16*x8*x2;
+}
+#ifdef FRONTIER_CINEMATIC_ULTRA
+float power48(float x) {
+  float x2=x*x, x4=x2*x2, x8=x4*x4, x16=x8*x8, x32=x16*x16;
+  return x32*x16;
+}
+#endif
+float power13(float x) {
+  float x2=x*x, x4=x2*x2, x8=x4*x4;
+  return x8*x4*x;
+}
 vec3 cinematicOcean(vec3 base,vec2 w,int terrain,float footprint) {
 #ifdef FRONTIER_REDUCED_MOTION
   float t=0.0;
@@ -53,6 +69,9 @@ vec3 cinematicOcean(vec3 base,vec2 w,int terrain,float footprint) {
   vec3 deep=base*vec3(.64,.84,1.05)+vec3(.006,.012,.035);
   vec3 shallow=base*vec3(.76,1.12,1.08)+vec3(.002,.033,.040);
   vec3 color=mix(deep,shallow,shelf);
+  // For footprints >= 11 tiles, midLOD and nearLOD are exactly zero.
+  // The original shader returns color * .96; avoid invisible ocean work.
+  if(footprint>=11.0) return color*.96;
   float swellA=sin(dot(w,vec2(.026,.012))-t*.11+sin(dot(w,vec2(-.008,.021))-t*.037)*.58);
   float swellB=sin(dot(w,vec2(-.017,.034))-t*.083);
   color*=.96+midLOD*(swellA*.075+swellB*.052);
@@ -83,13 +102,14 @@ vec3 cinematicOcean(vec3 base,vec2 w,int terrain,float footprint) {
 #endif
   vec3 normal=normalize(vec3(-slope,.91));
   vec3 halfSky=normalize(vec3(-.28,.25,.95));
-  float glint=pow(max(dot(normal,halfSky),0.0),26.0);
+  float glint=power26(max(dot(normal,halfSky),0.0));
   color+=vec3(.48,.71,.90)*glint*rough*.17*smoothstep(.23,.78,noiseA);
 #ifdef FRONTIER_CINEMATIC_ULTRA
   // Broad sky reflection plus fine highlights, rather than stronger white glare.
-  float sky=pow(clamp(1.0-normal.z,0.0,1.0),2.0);
+  float skyFacing=clamp(1.0-normal.z,0.0,1.0);
+  float sky=skyFacing*skyFacing;
   color=mix(color,vec3(.19,.34,.44),min(.12,sky*.55)*rough);
-  float sparkle=pow(max(dot(normal,normalize(vec3(-.33,.16,.97))),0.0),48.0);
+  float sparkle=power48(max(dot(normal,normalize(vec3(-.33,.16,.97))),0.0));
   color+=vec3(.48,.62,.67)*sparkle*rough*.055*noiseB;
 #endif
   float crest=smoothstep(.82,.98,waveA+waveB*.20);
@@ -107,7 +127,7 @@ vec3 cinematicOcean(vec3 base,vec2 w,int terrain,float footprint) {
     float shoreFoam=smoothstep(.57,.90,wash)*(.36+.64*noiseA)*rough;
     color=mix(color,vec3(.74,.91,.92),shoreFoam*.72);
     if(quality>.72 && footprint<1.0) {
-      float caustic=pow(max(0.0,sin(phaseA*2.2+phaseB)),13.0);
+      float caustic=power13(max(0.0,sin(phaseA*2.2+phaseB)));
       color+=vec3(.13,.25,.26)*caustic*rough*.09;
     }
   }
