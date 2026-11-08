@@ -556,6 +556,159 @@ export class Geopolitics {
     return Math.min(40, Math.trunc(deployed * 25 / defending) +
       (invasions.length > 0 ? 8 : 0));
   }
+  /** Approximate the military and resource opportunity cost of a concession.
+   * This is not a price displayed to the player: it is a planning comparison.
+   * Last critical infrastructure and distant naval reach must not be treated
+   * as interchangeable with a few units of gold. */
+  private concessionCost(
+    owner: Player, receiver: Player, assets: DiplomaticAssets,
+  ): number {
+    let cost = assets.gold + assets.troops * 3 +
+      assets.tiles.length * 500 + this.depositValue(assets.tiles);
+    const selected = new Set(assets.buildings);
+    for (const id of assets.buildings) {
+      const unit = this.game.unit(id);
+      if (!unit || !unit.isActive()) continue;
+      const type = unit.type();
+      const level = Math.max(1, unit.level());
+      const weights: Partial<Record<UnitType, number>> = {
+        [UnitType.City]: 8000, [UnitType.Factory]: 7000,
+        [UnitType.Port]: 6000, [UnitType.Mine]: 5200,
+        [UnitType.OilWell]: 6500, [UnitType.GasPlant]: 5800,
+        [UnitType.Farm]: 3400, [UnitType.MissileSilo]: 16000,
+        [UnitType.SAMLauncher]: 9000, [UnitType.DefensePost]: 8500,
+      };
+      cost += level * (weights[type] ?? 1000);
+      if (type === UnitType.Port)
+        cost += this.portLeverage(unit.tile(), owner, receiver);
+      if ((type === UnitType.Port || type === UnitType.City ||
+        type === UnitType.OilWell || type === UnitType.GasPlant ||
+        type === UnitType.Mine) &&
+        owner.units(type).every((other) => selected.has(other.id())))
+        cost += 60000;
+    }
+    return cost;
+  }
+
+  /** Choose between several credible responses instead of always selling land
+   * for a fixed fraction of treasury. Each alternative is validated by the
+   * same atomic transfer rules as a human proposal. No randomness is consumed. */
+  private chooseCounteroffer(
+    offer: DiplomaticOffer, defender: Player,
+  ): { give: DiplomaticAssets; receive: DiplomaticAssets;
+       reason: string; durationTicks?: 1800 | 3000 } | null {
+    const proposer = this.game.player(offer.from);
+    const pressure = this.militaryPressure(defender, proposer);
+    const requested = offer.receive;
+    const requestedLand = requested.tiles.length > 0;
+    const treasury = Math.max(0, Number(defender.gold()));
+    const troops = Math.max(0, defender.troops());
+    const difficulty = this.game.config().gameConfig().difficulty;
+    const reluctance = difficulty === Difficulty.Easy ? 5 :
+      difficulty === Difficulty.Medium ? 7 :
+      difficulty === Difficulty.Hard ? 10 : 14;
+    const compensation = Math.min(treasury, Math.max(1000,
+      Math.trunc(treasury / reluctance)));
+    const originalReceive = { ...offer.give };
+    const options: Array<{
+      give: DiplomaticAssets; receive: DiplomaticAssets;
+      reason: string; durationTicks?: 1800 | 3000;
+    }> = [];
+    const add = (give: DiplomaticAssets, receive: DiplomaticAssets, reason: string,
+      durationTicks?: 1800 | 3000) =>
+      options.push({ give, receive, reason, durationTicks });
+
+    if (requestedLand) {
+      // Keep the coast, compensate the enemy from the treasury instead.
+      add({ ...requested, tiles: [], buildings: [],
+        gold: Math.min(treasury, requested.gold + compensation) },
+        originalReceive, "retain_land");
+      if (pressure > 14 && troops > 150) {
+        add({ ...requested, tiles: [], buildings: [],
+          gold: Math.min(treasury, requested.gold + Math.trunc(compensation / 2)),
+          troops: Math.min(troops,
+            requested.troops + Math.trunc(troops / reluctance / 3)) },
+          originalReceive, "military_pressure");
+      }
+      const requestedPorts = new Set(requested.buildings.filter(
+        (id) => this.game.unit(id)?.type() === UnitType.Port));
+      if (requestedPorts.size > 0 && pressure >= 8) {
+        const alternatePorts = defender.units(UnitType.Port)
+          .filter((unit) => unit.isActive() &&
+            this.game.owner(unit.tile()) === defender &&
+            !requestedPorts.has(unit.id()) &&
+            !requested.tiles.includes(unit.tile()))
+          .sort((left, right) =>
+            this.portLeverage(left.tile(), defender, proposer) -
+            this.portLeverage(right.tile(), defender, proposer) ||
+            left.id() - right.id()).slice(0, 3);
+        for (const port of alternatePorts) {
+          const buildings = this.game.units().filter((unit) =>
+            unit.isActive() && STRUCTURES.has(unit.type()) &&
+            unit.tile() === port.tile()).map((unit) => unit.id());
+          add({ ...requested, tiles: [port.tile()], buildings },
+            originalReceive, "alternative_port");
+        }
+      }
+      // A losing nation can concede what was asked, but request better peace
+      // terms instead of making a pointless identical counteroffer.
+      if (offer.kind === "peace" && pressure >= 18) {
+        add({ ...requested },
+          { ...originalReceive,
+            gold: Math.min(Number(proposer.gold()),
+              originalReceive.gold + Math.trunc(Math.max(1, treasury) / 20)) },
+          "survival_peace", 3000);
+      }
+    } else {
+      const requestedGold = requested.gold;
+      if (requestedGold > 0) {
+        add({ ...requested, gold: Math.max(0,
+          Math.trunc(requestedGold * (pressure > 20 ? 0.85 : 0.65))) },
+          originalReceive, "economic_compensation");
+      }
+      if (requested.troops > 0)
+        add({ ...requested, troops: Math.min(troops,
+          Math.trunc(requested.troops * 0.65)) },
+          originalReceive, "military_pressure");
+      if (offer.kind === "peace" && pressure > 12) {
+        add({ ...requested },
+          { ...originalReceive,
+            gold: Math.min(Number(proposer.gold()),
+              originalReceive.gold + Math.max(1000,
+                Math.trunc(treasury / 20))) },
+          "survival_peace", 3000);
+      }
+    }
+
+    const fullCost = this.concessionCost(defender, proposer, requested);
+    const capacity = Math.max(10000,
+      treasury + troops * 3 + defender.numTilesOwned() * 500);
+    const ranked = options
+      .filter((option) => this.validAssets(defender, option.give) &&
+        this.validAssets(proposer, option.receive))
+      .map((option, index) => {
+        const counter: DiplomaticOffer = {
+          ...offer, from: defender.id(), to: proposer.id(),
+          give: option.give, receive: option.receive,
+          durationTicks: option.durationTicks ?? offer.durationTicks,
+        };
+        const acceptance = this.evaluate(counter, proposer).score;
+        const cost = this.concessionCost(defender, proposer, option.give);
+        const savings = Math.max(-30, Math.min(30,
+          Math.trunc((fullCost - cost) * 60 / capacity)));
+        const gain = option.receive.gold - originalReceive.gold;
+        const valueOfGain = Math.min(12, Math.trunc(gain * 40 / capacity));
+        // A realistic deal should satisfy the opponent while preserving as
+        // much of the defender's long-term strategic position as possible.
+        return { option, index, acceptance,
+          value: acceptance * 2 + savings + valueOfGain };
+      })
+      .filter((entry) => entry.acceptance >= (pressure > 20 ? -20 : -8))
+      .sort((a, b) => b.value - a.value ||
+        b.acceptance - a.acceptance || a.index - b.index);
+    return ranked[0]?.option ?? null;
+  }
+
   /** Deterministic evaluation of an offer from the recipient country's perspective. */
   evaluate(
     o: DiplomaticOffer,
