@@ -3013,6 +3013,12 @@
     "contain_detail": "Seek partners against a threatening neighbor; attack only when relative strength permits."
   },
   "geopolitics": {
+    "deal_trust_meter": "Diplomatic trust",
+    "deal_trust_low": "Fragile relationship",
+    "deal_trust_high": "Trusting relationship",
+    "deal_last_reaction": "Latest reaction",
+    "deal_memory_ports": "Ports negotiated",
+    "deal_memory_rejections": "Recorded rejections",
     "deal_no_land": "No territorial change",
     "deal_others": "Balance between signatories",
     "reason_alternative_port": "We offer a different port to keep our most strategically important harbor.",
