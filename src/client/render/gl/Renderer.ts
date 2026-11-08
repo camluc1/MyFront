@@ -964,14 +964,16 @@ export class GPURenderer {
     this.samRadiusPass.updateStructures(units);
     this.ironDomePass.updateStructures(units);
     this.unitPass.setStructures(units);
-    const posts: { x: number; y: number; ownerID: number }[] = [];
+    const posts: { x: number; y: number; ownerID: number; range?: number }[] = [];
     const w = this.mapW;
     for (const u of units.values()) {
-      if (u.unitType === "Defense Post" && !u.underConstruction) {
+      if ((u.unitType === "Defense Post" || u.unitType === "Castle") &&
+          u.isActive && !u.underConstruction) {
         posts.push({
           x: u.pos % w,
           y: (u.pos - (u.pos % w)) / w,
           ownerID: u.ownerID,
+          range: u.unitType === "Castle" ? 60 : undefined,
         });
       }
     }
