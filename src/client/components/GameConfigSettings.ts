@@ -243,6 +243,7 @@ export interface GameConfigSettingsData {
 export class GameConfigSettings extends LitElement {
   @property({ attribute: false }) settings?: GameConfigSettingsData;
   @property({ attribute: false }) sectionGapClass = "space-y-6";
+  @property({ attribute: false }) mapBrowserClass = "";
   @state() private mapSearchQuery = "";
 
   createRenderRoot() {
@@ -403,7 +404,7 @@ export class GameConfigSettings extends LitElement {
         placeholder="${translateText("map_component.search_maps") }"
         .value=${this.mapSearchQuery}
         @input=${this.handleMapSearchInput}
-        class="w-48 px-3 py-1.5 pl-8 pr-7 rounded-lg text-sm bg-transparent border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-malibu-blue/50 transition-all"
+        class="w-full sm:w-64 px-3 py-2 pl-8 pr-7 rounded-lg text-sm bg-transparent border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-malibu-blue/50 transition-all"
       />
       <svg
         class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40"
@@ -445,7 +446,9 @@ export class GameConfigSettings extends LitElement {
           "text-aquarius",
           "bg-malibu-blue/20",
           "map.map",
-          html`<map-picker
+          html`<div class="rounded-2xl border border-cyan-300/15 bg-slate-950/35 p-3 sm:p-5">
+            <p class="mb-3 text-xs font-semibold leading-relaxed text-slate-300">Elegí un mapa desde Favoritos, Destacados o Todos. La dificultad y las reglas se configuran en las secciones siguientes.</p>
+            <map-picker class=${this.mapBrowserClass}
             .selectedMap=${settings.map.selected}
             .useRandomMap=${settings.map.useRandom}
             .randomMapDivider=${settings.map.randomMapDivider ?? false}
@@ -454,7 +457,8 @@ export class GameConfigSettings extends LitElement {
             .onSelectMap=${this.handleSelectMap}
             .onSelectRandom=${this.handleSelectRandom}
             .searchQuery=${this.mapSearchQuery}
-          ></map-picker>`,
+          ></map-picker>
+          </div>`,
           undefined,
           this.renderMapSearchInput(),
         )}
