@@ -1,4 +1,5 @@
 #version 300 es
+// FRONTIER_CINEMATIC_VARIANT
 precision highp float;
 precision highp usampler2D;
 
@@ -82,5 +83,39 @@ void main() {
       color = mix(a, b, fract(f));
     }
   }
+#ifdef FRONTIER_CINEMATIC
+  if (isNuke == 0u && uAltView == 0) {
+    // The existing stamped boat path doubles as a foamy wake spine when
+    // zoomed in. Only occupied trail pixels execute the neighbor lookups;
+    // no per-vessel sprites, geometry, map texture or draw pass.
+    float footprint = max(fwidth(vWorldPos.x),fwidth(vWorldPos.y));
+    float detail = 1.0-smoothstep(0.65,1.85,footprint);
+    if (detail > 0.01) {
+      ivec2 end = textureSize(uTrailTex,0)-1;
+      ivec2 leftPos = clamp(tc+ivec2(-1,0),ivec2(0),end);
+      ivec2 rightPos = clamp(tc+ivec2(1,0),ivec2(0),end);
+      ivec2 upPos = clamp(tc+ivec2(0,-1),ivec2(0),end);
+      ivec2 downPos = clamp(tc+ivec2(0,1),ivec2(0),end);
+      uint l = texelFetch(uTrailTex,leftPos,0).r & 0xFFFu;
+      uint r = texelFetch(uTrailTex,rightPos,0).r & 0xFFFu;
+      uint u = texelFetch(uTrailTex,upPos,0).r & 0xFFFu;
+      uint d = texelFetch(uTrailTex,downPos,0).r & 0xFFFu;
+      vec2 tangent = vec2(
+        (r==owner ? 1.0 : 0.0)-(l==owner ? 1.0 : 0.0),
+        (d==owner ? 1.0 : 0.0)-(u==owner ? 1.0 : 0.0));
+      if (dot(tangent,tangent)<0.25) tangent=vec2(1.0,0.0);
+      vec2 across=normalize(vec2(-tangent.y,tangent.x));
+      float lateral=abs(dot(fract(vWorldPos)-vec2(0.5),across));
+      float whiteEdge=1.0-smoothstep(0.04,0.27,lateral);
+#ifdef FRONTIER_REDUCED_MOTION
+      float wave=0.8;
+#else
+      float wave=0.74+0.26*sin(dot(vWorldPos,tangent)*8.0-uTime*1.6);
+#endif
+      float foam=whiteEdge*detail*wave;
+      color=mix(color,vec3(0.76,0.92,0.96),foam*0.56);
+    }
+  }
+#endif
   fragColor = vec4(color, uTrailAlpha);
 }
