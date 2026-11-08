@@ -188,6 +188,21 @@ describe("Geopolitics mobile shipyard", () => {
     expect(admiral.units(UnitType.Warship)).toHaveLength(0);
   });
 
+  test("enemy combat warship recognizes the mobile workshop as an attack target", () => {
+    // Model a declared war: the target should be discoverable by the ordinary
+    // warship AI, not only vulnerable to manually spawned projectiles.
+    vi.spyOn(enemy, "canAttackPlayer").mockReturnValue(true);
+    game.config().warshipShellAttackRate = () => 0;
+    const tile = game.ref(11, 10);
+    const attacker = enemy.buildUnit(UnitType.Warship, tile, { patrolTile: tile });
+    game.addExecution(new WarshipExecution(attacker));
+    const before = workshop.health();
+    executeTicks(game, 12);
+    expect(attacker.targetUnit()).toBe(workshop);
+    expect(workshop.health()).toBeLessThan(before);
+    vi.restoreAllMocks();
+  });
+
   test("enemy gunfire damages and can sink the support ship", () => {
     // Exercise the actual projectile damage pipeline rather than deleting
     // the unit directly. The workshop is a vulnerable naval target.
