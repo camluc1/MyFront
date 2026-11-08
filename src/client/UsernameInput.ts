@@ -1,4 +1,5 @@
 import { UserMeResponse } from "@openfront/shared/ApiSchemas";
+import { GAME_COLOR_CHOICES } from "@openfront/shared/GameColorChoices";
 import { sanitizeClanTag } from "@openfront/shared/SharedUtil";
 import { html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
@@ -7,6 +8,7 @@ import { getUserMe, invalidateUserMe } from "./Api";
 import { checkClanTagOwnership } from "./ClanApi";
 import { verifiedBadge } from "./components/ui/VerifiedBadge";
 import { gamePortal } from "./GamePortal";
+import { GAME_COLOR_KEY, USER_SETTINGS_CHANGED_EVENT, UserSettings } from "./UserSettings";
 import { showInGameAlert, showInGameConfirm } from "./InGameModal";
 import {
   accountNameHeld,
@@ -133,6 +135,17 @@ export class UsernameInput extends LitElement {
   // Playing under the account's verified bare name (sub-only). The free-form
   // name stays in baseUsername/localStorage so unchecking restores it.
   @state() private verifiedActive: boolean = false;
+  @state() private colorPaletteOpen = false;
+  @state() private preferredGameColor: string | null = null;
+  private syncPreferredGameColor = () => {
+    this.preferredGameColor = new UserSettings().getPreferredGameColor();
+  };
+
+  private chooseGameColor(color: string | null) {
+    new UserSettings().setPreferredGameColor(color);
+    this.colorPaletteOpen = false;
+  }
+
   private userMe: UserMeResponse | false | null = null;
   // The raw Steam persona, once it lands. Kept alongside the free-form name so
   // resolution sees the same inputs the seed did (see resolvedName).
@@ -279,9 +292,10 @@ export class UsernameInput extends LitElement {
   // Bound for the element's lifetime rather than with the menu, so no stray
   // listener can outlive it.
   private handleDocumentPointerDown = (e: Event) => {
-    if (!this.clanMenuOpen) return;
+    if (!this.clanMenuOpen && !this.colorPaletteOpen) return;
     if (e.composedPath().includes(this)) return;
     this.clanMenuOpen = false;
+    this.colorPaletteOpen = false;
   };
 
   private handleClanMenuKeydown(e: KeyboardEvent) {
@@ -619,6 +633,11 @@ export class UsernameInput extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    window.addEventListener(
+      `${USER_SETTINGS_CHANGED_EVENT}:${GAME_COLOR_KEY}`,
+      this.syncPreferredGameColor,
+    );
+    this.syncPreferredGameColor();
     document.addEventListener("pointerdown", this.handleDocumentPointerDown, {
       capture: true,
     });
@@ -720,6 +739,10 @@ export class UsernameInput extends LitElement {
   }
 
   disconnectedCallback() {
+    window.removeEventListener(
+      `${USER_SETTINGS_CHANGED_EVENT}:${GAME_COLOR_KEY}`,
+      this.syncPreferredGameColor,
+    );
     document.removeEventListener(
       "pointerdown",
       this.handleDocumentPointerDown,
@@ -731,6 +754,7 @@ export class UsernameInput extends LitElement {
       document.removeEventListener(type, this.handleClanMembershipChange);
     }
     this.clanMenuOpen = false;
+    this.colorPaletteOpen = false;
     if (this.claimGraceTimer !== null) {
       clearTimeout(this.claimGraceTimer);
       this.claimGraceTimer = null;
@@ -801,7 +825,7 @@ export class UsernameInput extends LitElement {
       <!-- The name field takes whatever the tag picker and trailing button
            leave, so the row always fills the strip. -->
       <div class="flex items-center w-full h-full gap-1.5 sm:gap-2">
-        ${this.renderClanControl()} ${this.renderNameControl()}
+        ${this.renderClanControl()} ${this.renderNameControl()} ${this.renderGameColorPicker()}
       </div>
       <!-- One positioned slot, stacked. An error and the reservation reminder
            are not alternatives: the error is transient and self-inflicted
@@ -1023,6 +1047,82 @@ export class UsernameInput extends LitElement {
             ${translateText("username.clan_browse")}
           </button>
         </div>
+      </div>
+    `;
+  }
+
+  /**
+   * The same palette as the territory renderer, directly alongside the name
+   * field. Only approved swatches may reach the multiplayer join packet.
+   */
+  private renderGameColorPicker() {
+    const current = this.preferredGameColor;
+    const pickerLabel = translateText("username.color_choose");
+    const defaultLabel = translateText("username.color_default");
+    return html`
+      <div class="relative shrink-0 h-full max-h-[44px]" data-game-color-picker>
+        <button
+          type="button"
+          id="game-color-picker-toggle"
+          aria-label=${pickerLabel}
+          title=${pickerLabel}
+          aria-haspopup="true"
+          aria-expanded=${this.colorPaletteOpen}
+          class="flex h-full aspect-square items-center justify-center rounded-lg border border-white/20 bg-slate-950/75 shadow-inner transition-colors hover:border-cyan-300/60 focus-visible:outline-2 focus-visible:outline-cyan-300 cursor-pointer"
+          @click=${() => {
+            this.colorPaletteOpen = !this.colorPaletteOpen;
+            if (this.colorPaletteOpen) this.clanMenuOpen = false;
+          }}
+        >
+          <span class="h-6 w-6 rounded-full border-2 border-white/70 ring-1 ring-black/70 shadow-md"
+            style=${current
+              ? `background-color: ${current}`
+              : "background: conic-gradient(#ef4444 0 25%,#3b82f6 25% 50%,#eab308 50% 75%,#22c55e 75% 100%)"}
+            aria-hidden="true"></span>
+        </button>
+        ${this.colorPaletteOpen
+          ? html`<div
+              class="absolute top-full right-0 z-[100] mt-2 w-[min(86vw,320px)] rounded-xl border border-cyan-300/25 bg-slate-950/95 p-3 shadow-[0_20px_50px_rgba(0,0,0,0.65)] backdrop-blur-xl"
+              role="group"
+              aria-label=${pickerLabel}
+              @keydown=${(event: KeyboardEvent) => {
+                if (event.key === "Escape") {
+                  event.stopPropagation();
+                  this.colorPaletteOpen = false;
+                  this.querySelector<HTMLButtonElement>("#game-color-picker-toggle")?.focus();
+                }
+              }}
+            >
+              <div class="mb-2 flex items-center justify-between gap-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-cyan-100">${pickerLabel}</span>
+                <button type="button" data-game-color-default
+                  aria-pressed=${current === null}
+                  class="rounded-md border px-2 py-1 text-[11px] font-semibold transition-colors ${current === null
+                    ? "border-cyan-300/75 bg-cyan-500/15 text-cyan-100"
+                    : "border-white/20 text-slate-300 hover:bg-white/10"}"
+                  @click=${() => this.chooseGameColor(null)}>${defaultLabel}</button>
+              </div>
+              <div class="grid grid-cols-5 gap-2" role="group" aria-label=${pickerLabel}>
+                ${GAME_COLOR_CHOICES.map((choice) => html`
+                  <button
+                    type="button"
+                    class="group relative flex aspect-square items-center justify-center rounded-lg border-2 transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white ${current === choice.color ? "border-white shadow-[0_0_0_2px_rgba(103,232,249,0.65)]" : "border-white/20"}"
+                    data-game-color=${choice.color}
+                    aria-label=${choice.label}
+                    title=${choice.label}
+                    aria-pressed=${current === choice.color}
+                    style=${`background-color: ${choice.color}`}
+                    @click=${() => this.chooseGameColor(choice.color)}
+                  >
+                    ${current === choice.color ? html`<span class="rounded-full bg-black/65 px-1 text-[13px] font-bold text-white" aria-hidden="true">✓</span>` : null}
+                  </button>
+                `)}
+              </div>
+              <p class="mt-2 text-[11px] leading-snug text-slate-400">
+                ${translateText("username.color_team_note")}
+              </p>
+            </div>`
+          : null}
       </div>
     `;
   }
