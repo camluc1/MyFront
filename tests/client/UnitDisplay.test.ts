@@ -4,6 +4,7 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { EventBus } from "@openfront/shared/EventBus";
+import { KEYBINDS_KEY, UserSettings } from "../../src/client/UserSettings";
 import { describe, expect, test, vi } from "vitest";
 import { ToggleResourcesEvent } from "../../src/client/controllers/MapLayerController";
 import type { UnitDisplay } from "../../src/client/hud/layers/UnitDisplay";
@@ -234,6 +235,70 @@ describe("mobile UnitDisplay layout", () => {
 
       const hotkeys = display.querySelectorAll(".unit-display-hotkey");
       expect(hotkeys.length).toBeGreaterThan(0);
+    } finally {
+      display.remove();
+    }
+  });
+
+  test("shows all resource and advanced defense default shortcuts, plus live rebinding", async () => {
+    const settings = new UserSettings();
+    settings.removeCached(KEYBINDS_KEY, false);
+    const { display } = makeDisplay();
+    try {
+      await display.updateComplete;
+      const badge = (i: number) =>
+        display.querySelectorAll(".unit-display-grid > div")[i]
+          ?.querySelector(".unit-display-hotkey")?.textContent?.trim();
+      // Button order is the quick-build bar's 10 originals + advanced defenses
+      // + resource buildings, not the engine's enum order.
+      expect(badge(4)).toBe("⇧C"); // Castle
+      expect(badge(5)).toBe("I"); // Iron Dome
+      expect(badge(12)).toBe("J"); // Farm
+      expect(badge(13)).toBe("V"); // Mine
+      expect(badge(14)).toBe("O"); // Oil Well
+      expect(badge(15)).toBe("Z"); // Gas Plant
+
+      settings.setKeybinds({
+        buildFarm: { value: "Shift+KeyJ", key: "Shift+J" },
+        buildIronDome: { value: "Null", key: "" },
+      });
+      await display.updateComplete;
+      expect(badge(12)).toBe("⇧J");
+      expect(badge(5)).toBeUndefined();
+    } finally {
+      display.remove();
+      settings.removeCached(KEYBINDS_KEY, false);
+    }
+  });
+
+  test("repeated desktop clicks raise upgrade quantity, but do not bulk-upgrade Castle", async () => {
+    const { display, inputHandler } = makeDisplay(UnitType.Port);
+    (display.game as any).config = () => ({
+      isUnitDisabled: () => false,
+      gameConfig: () => ({ tutorial: false }),
+      unitInfo: (type: UnitType) => ({ upgradable: type !== UnitType.Castle }),
+    });
+    try {
+      await display.updateComplete;
+      const cards = () => display.querySelectorAll(".unit-display-grid > div");
+      (cards()[2].firstElementChild as HTMLElement).click(); // Port
+      expect(inputHandler.setGhostStructure).toHaveBeenCalledWith(
+        UnitType.Port, "GUIclick",
+      );
+      display.uiState.upgradeMultiplier = 5;
+      display.requestUpdate();
+      await display.updateComplete;
+      expect(cards()[2].querySelector(".unit-display-multiplier")?.textContent?.trim())
+        .toBe("×5");
+
+      display.uiState.ghostStructure = UnitType.Castle;
+      display.requestUpdate();
+      await display.updateComplete;
+      (cards()[4].firstElementChild as HTMLElement).click();
+      expect(inputHandler.setGhostStructure).toHaveBeenLastCalledWith(
+        null, "GUIclick",
+      );
+      expect(cards()[4].querySelector(".unit-display-multiplier")).toBeNull();
     } finally {
       display.remove();
     }
