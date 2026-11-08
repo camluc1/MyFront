@@ -530,6 +530,9 @@ export class GeopoliticsPanel extends LitElement {
     const mine = this.mine();
     if (mine) {
       for (const offer of this.game.diplomacy.offers) this.observedOffers.add(offer.id);
+      for (const event of this.game.diplomacy.log)
+        this.observedDiplomaticMoments.add(event.tick + ":" + event.actor + ":" +
+          event.target + ":" + event.event);
       const incoming = this.game.diplomacy.offers
         .filter((o) => o.status === "pending" && o.from !== mine.id() &&
           o.required.includes(mine.id()) && !o.approvals.includes(mine.id()))
@@ -573,6 +576,7 @@ export class GeopoliticsPanel extends LitElement {
           this.tab = "negotiate";
         }
       }
+      this.checkDiplomaticMoments();
       this.requestUpdate();
     }, 1000);
     this.frame = requestAnimationFrame(() => this.drawOverlay());
@@ -1237,9 +1241,21 @@ export class GeopoliticsPanel extends LitElement {
   }
   private renderRecentEvents() {
     const recent = this.game.diplomacy.log.slice(-5).reverse();
-    return recent.length ? html`<section class="event-feed">
-      <h3>${t("recent_diplomacy")}</h3>
-      ${recent.map((event) => html`<div class="event"><span class="muted">${Math.floor(event.tick / 10)}s</span> · <strong>${this.name(event.actor)}</strong> ${t("event_" + event.event)} ${event.target ? "· " + this.name(event.target) : ""}</div>`)}
+    const isMajor = (event: string) =>
+      ["agreement", "port_cession", "territorial_cession", "ally_support"].includes(event);
+    const isStrained = (event: string) =>
+      ["betrayal", "betrayal_condemned", "rival_alarm", "territorial_concern"].includes(event);
+    return recent.length ? html`<section class="event-feed" aria-label=${t("deal_world_reactions")}>
+      <div class="row wrap"><h3>${t("deal_world_reactions")}</h3>
+        <span class="muted">${t("deal_now")}</span></div>
+      ${recent.map((event) => html`<div
+        class="event ${isMajor(event.event) ? "event-major" :
+          isStrained(event.event) ? "event-strained" : ""}">
+        <span class="muted">${Math.floor(event.tick / 10)}s</span>
+        · <strong>${this.name(event.actor)}</strong>
+        ${t("event_" + event.event)}
+        ${event.target ? this.name(event.target) : ""}
+      </div>`)}
     </section>` : nothing;
   }
   private renderPoliticalLayers() {
@@ -1539,6 +1555,7 @@ export class GeopoliticsPanel extends LitElement {
             : nothing
         }
       </aside>
+      ${this.moment && !this.opened ? this.renderMoment() : nothing}
       ${
         this.opened
           ? html`<section class="panel" aria-label=${t("title")}>
@@ -1559,6 +1576,14 @@ export class GeopoliticsPanel extends LitElement {
                   ✕
                 </button>
               </header>
+              ${this.moment ? html`<div class="moment-inline">
+                <div class="row wrap"><strong>${t("moment_headline")}</strong>
+                  <button @click=${() => this.openMomentHistory()}>${t("moment_open")}</button>
+                </div>
+                <span class="muted">${this.name(this.moment.actor)}
+                  ${t("event_" + this.moment.event)} ${this.name(this.moment.target)}
+                </span>
+              </div>` : nothing}
               <nav role="tablist">
                 ${["countries", "inbox", "allies", "history"].map(
                   (tab) =>
