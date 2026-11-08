@@ -45,6 +45,7 @@ import {
   missileSiloIcon,
   portIcon,
   samLauncherIcon,
+  repairCarrierIcon,
   warshipIcon,
 } from "../HotbarIcons";
 import { TutorialHighlight, TutorialHighlightEvent } from "../Tutorial";
@@ -661,7 +662,7 @@ export class UnitDisplay extends LitElement implements Controller {
             }
             this.requestUpdate();
           }}>
-          <span class="unit-display-action-icon" aria-hidden="true">⛴</span>
+          <img src=${repairCarrierIcon} alt="" aria-hidden="true" class="unit-display-action-image" />
           <span class="unit-display-action-cost ${lacksGold ? "is-unaffordable" : ""}">5M <img src=${goldCoinIcon} alt="" width="11" height="11" /></span>
         </button>
         <span class="unit-display-action-label">Portabuques</span>
