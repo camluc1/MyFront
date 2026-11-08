@@ -60,6 +60,18 @@ describe("directional fleet batches", () => {
     h.pass.updateUnits(units, 3);
     expect((h.pass as any).motions.size).toBe(0);
   });
+  it("renders the Portabuques as its own support-carrier class in the same fleet instance", () => {
+    const h = harness(2);
+    const support = { ...ship(2000, 2000), unitType: "Warship", supportShip: true } as UnitState;
+    const ordinary = { ...ship(2001, 2001), unitType: "Warship", supportShip: false } as UnitState;
+    h.pass.updateUnits(new Map([[1, support], [2, ordinary]]), 1);
+    expect(h.bytes[12]).toBe(2); // Warship atlas, no new network sprite.
+    expect(h.bytes[13]).toBe(7); // Distinct carrier shader branch.
+    expect(h.bytes[28]).toBe(2);
+    expect(h.bytes[29]).toBe(0); // Ordinary warship still uses its original appearance.
+    expect(h.bufferSubData).toHaveBeenCalledTimes(1);
+  });
+
   it("uploads ten thousand ships in a single ground buffer update", () => {
     const h = harness(10000);
     const units = new Map(
