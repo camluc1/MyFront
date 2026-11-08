@@ -203,7 +203,8 @@ export class WarshipExecution implements Execution {
   /** One nearby-unit lookup per dock and at most three repairs per tick. */
   private repairSupportedShips(): void {
     const owner = this.warship.owner();
-    if (owner.inDoomsdayClock() || this.warship.isInCombat()) return;
+    if (owner.inDoomsdayClock() ||
+      this.mg.ticks() - this.warship.warshipState().lastCombatTick <= 3) return;
     const component = this.mg.getWaterComponent(this.warship.tile());
     if (component === null) return;
     const radiusSquared = SUPPORT_SHIP_RADIUS * SUPPORT_SHIP_RADIUS;
@@ -262,10 +263,10 @@ export class WarshipExecution implements Execution {
     return findMinimumBy(
       this.warship.owner().units(UnitType.Warship),
       (candidate) => this.mg.euclideanDistSquared(this.warship.tile(), candidate.tile()),
-      (candidate) => candidate !== this.warship && candidate.warshipState().supportShip &&
+      (candidate) => candidate !== this.warship && candidate.warshipState().supportShip === true &&
         candidate.isActive() && !candidate.isMarkedForDeletion() && candidate.health() > 0 &&
         this.mg.hasWaterComponent(candidate.tile(), component),
-    );
+    ) ?? undefined;
   }
 
   private healWarship(): void {
