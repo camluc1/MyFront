@@ -1,6 +1,7 @@
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { Controller } from "../Controller";
+import { enhancedVisualsEnabled } from "../render/gl/EnhancedVisuals";
 import { AmbienceTrack, SetAmbienceEvent } from "../sound/Sounds";
 import { TransformHandler } from "../TransformHandler";
 import { GameView } from "../view";
@@ -118,8 +119,10 @@ export class AmbienceController implements Controller {
         };
       }
     }
-    return closest === null
-      ? null
-      : (AMBIENCE_BY_TYPE.get(closest.type) ?? null);
+    // A nearly inaudible ocean bed only when the optional visual profile is
+    // selected and the camera is centered on water. Structures take priority.
+    // The existing mixer, zoom envelope and mute controls remain authoritative.
+    if (closest !== null) return AMBIENCE_BY_TYPE.get(closest.type) ?? null;
+    return enhancedVisualsEnabled() && this.game.isWater(tile) ? "sea" : null;
   }
 }
