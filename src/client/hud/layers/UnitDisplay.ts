@@ -464,6 +464,11 @@ export class UnitDisplay extends LitElement implements Controller {
 
   private canBuild(item: UnitType): boolean {
     if (this.game?.config().isUnitDisabled(item)) return false;
+    // High-cost Geopolitics defenses must not look free while the async
+    // economy/buildables snapshot is still loading. cost() historically
+    // returned 0n for unknown entries, enabling an unbuyable Dome for a tick.
+    if ((item === UnitType.Castle || item === UnitType.IronDome) &&
+        !this.playerBuildables?.some((bu) => bu.type === item)) return false;
     const player = this.game?.myPlayer();
     switch (item) {
       case UnitType.AtomBomb:
