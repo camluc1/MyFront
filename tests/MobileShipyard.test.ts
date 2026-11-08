@@ -1,5 +1,6 @@
 import { PlayerInfo, PlayerType, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { MoveWarshipExecution } from "@openfront/engine/execution/MoveWarshipExecution";
+import { ShellExecution } from "@openfront/engine/execution/ShellExecution";
 import {
   SUPPORT_SHIP_CAPACITY,
   SUPPORT_SHIP_COST,
@@ -93,6 +94,46 @@ describe("Geopolitics mobile shipyard", () => {
 
     expect(ship.warshipState().retreatSupportID).toBe(workshop.id());
     expect(["docked", "retreating"]).toContain(ship.warshipState().state);
+  });
+
+  test("enemy gunfire damages and can sink the support ship", () => {
+    // Exercise the actual projectile damage pipeline rather than deleting
+    // the unit directly. The workshop is a vulnerable naval target.
+    const gunner = enemy.buildUnit(UnitType.Warship, game.ref(11, 10), {
+      patrolTile: game.ref(11, 10),
+    });
+    const before = workshop.health();
+    game.addExecution(new ShellExecution(gunner.tile(), enemy, gunner, workshop));
+    executeTicks(game, 15);
+    expect(workshop.health()).toBeLessThan(before);
+    // A second projectile can finish an already heavily damaged workshop.
+    workshop.modifyHealth(1 - workshop.health());
+    game.addExecution(new ShellExecution(gunner.tile(), enemy, gunner, workshop));
+    executeTicks(game, 15);
+    expect(workshop.isActive()).toBe(false);
+  });
+
+  test("retreating ships abandon a destroyed mobile dock", () => {
+    const ship = owner.buildUnit(UnitType.Warship, game.ref(13, 11), {
+      patrolTile: game.ref(13, 11),
+    });
+    game.addExecution(new WarshipExecution(ship));
+    executeTicks(game, 51);
+    ship.modifyHealth(-400);
+    executeTicks(game, 3);
+    expect(ship.warshipState().retreatSupportID).toBe(workshop.id());
+    workshop.modifyHealth(-workshop.health(), enemy);
+    executeTicks(game, 2);
+    expect(ship.warshipState().retreatSupportID).toBeUndefined();
+    expect(ship.warshipState().state).toBe("patrolling");
+  });
+
+  test("rejects movement commands to land without changing course", () => {
+    const original = workshop.warshipState().patrolTile;
+    const land = game.ref(2, 10);
+    expect(game.isWater(land)).toBe(false);
+    new MoveWarshipExecution(owner, [workshop.id()], land).init(game, 0);
+    expect(workshop.warshipState().patrolTile).toBe(original);
   });
 
   test("support ship never targets an enemy or fires shells", () => {
