@@ -2358,6 +2358,12 @@
     "youtube_tutorial": "¿Necesitas ayuda?"
   },
   "geopolitics": {
+    "deal_trust_meter": "Confianza diplomática",
+    "deal_trust_low": "Relación frágil",
+    "deal_trust_high": "Relación confiable",
+    "deal_last_reaction": "Última reacción",
+    "deal_memory_ports": "Puertos negociados",
+    "deal_memory_rejections": "Rechazos registrados",
     "deal_no_land": "Sin cambio de terreno",
     "deal_others": "Balance entre los firmantes",
     "reason_alternative_port": "Ofrecemos otro puerto para conservar nuestra salida más importante.",
