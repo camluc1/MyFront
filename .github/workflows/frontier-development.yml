@@ -1,0 +1,49 @@
+name: Frontier Development | Quality Gate
+
+# Development is intentionally never pushed straight to main. The normal
+# upstream CI only runs on main and pull requests, leaving this branch's
+# engine/client graphics changes unvalidated by GitHub Actions.
+on:
+  push:
+    branches:
+      - frontier/development
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontier-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontier:
+    name: Engine + HUD + Cinematic checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout development code
+        uses: actions/checkout@v4
+      - name: Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: npm 12
+        run: npm install --global --ignore-scripts npm@12.1.0
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Check every TypeScript package
+        run: npm run typecheck
+      - name: Check defense gameplay, build shortcuts, HUD and GPU regressions
+        run: |
+          npx vitest run --project client --project node \
+            tests/GeopoliticsAdvancedDefenses.test.ts \
+            tests/client/DlcBuildShortcuts.test.ts \
+            tests/client/UnitDisplay.test.ts \
+            tests/client/controllers/BuildPreviewController.test.ts \
+            tests/client/render/gl/IronDomeVisibility.test.ts \
+            tests/client/render/gl/DefenseCoveragePerf.test.ts \
+            tests/CinematicFxVisibility.test.ts
+      - name: Build the development client
+        run: npm run build-dev
