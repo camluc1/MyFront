@@ -3013,6 +3013,8 @@
     "contain_detail": "Seek partners against a threatening neighbor; attack only when relative strength permits."
   },
   "geopolitics": {
+    "deal_no_land": "No territorial change",
+    "deal_others": "Balance between signatories",
     "reason_alternative_port": "We offer a different port to keep our most strategically important harbor.",
     "reason_military_pressure": "Military pressure requires concessions, but we must preserve our defensive capability.",
     "reason_survival_peace": "We need time to rebuild our defenses and propose a longer peace.",
