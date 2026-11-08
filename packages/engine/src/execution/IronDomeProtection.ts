@@ -24,3 +24,38 @@ export function protectedByIronDome(
       owner.id(),
     );
 }
+
+/**
+ * Build one immutable blast-local coverage view. Calling hasUnitNearby() once
+ * for every destroyed tile can scan several 100-tile grid buckets thousands
+ * of times during a hydrogen strike. Instead snapshot active domes just once
+ * when a blast starts; normal projectile checks retain the fast grid query.
+ */
+export function createBlastIronDomeCoverage(
+  game: Game,
+): (tile: TileRef, owner: Player) => boolean {
+  if (game.config().gameConfig().geopolitics !== true ||
+      game.unitCount(UnitType.IronDome) === 0) {
+    return () => false;
+  }
+  const rangeSq = game.config().ironDomeRange() ** 2;
+  const domes = new Map<number, { x: number; y: number }[]>();
+  for (const dome of game.units(UnitType.IronDome)) {
+    if (!dome.isActive() || dome.isUnderConstruction()) continue;
+    const id = dome.owner().smallID();
+    const arr = domes.get(id);
+    const pos = { x: game.x(dome.tile()), y: game.y(dome.tile()) };
+    if (arr) arr.push(pos);
+    else domes.set(id, [pos]);
+  }
+  return (tile: TileRef, owner: Player): boolean => {
+    const entries = domes.get(owner.smallID());
+    if (!entries) return false;
+    const x = game.x(tile), y = game.y(tile);
+    for (const dome of entries) {
+      const dx = x - dome.x, dy = y - dome.y;
+      if (dx * dx + dy * dy <= rangeSq) return true;
+    }
+    return false;
+  };
+}

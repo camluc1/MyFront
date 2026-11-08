@@ -20,7 +20,10 @@ import {
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
 import { Execution, Game, isUnit, Player, Unit } from "../game/Game";
-import { protectedByIronDome } from "./IronDomeProtection";
+import {
+  createBlastIronDomeCoverage,
+  protectedByIronDome,
+} from "./IronDomeProtection";
 import { UniversalPathFinding } from "../pathfinding/PathFinder";
 import { ParabolaUniversalPathFinder } from "../pathfinding/PathFinder.Parabola";
 import { PathStatus } from "../pathfinding/types";
@@ -401,13 +404,14 @@ export class NukeExecution implements Execution {
 
     const magnitude = config.nukeMagnitudes(this.nuke.type());
     const toDestroy = this.tilesToDestroy();
+    const coveredByDome = createBlastIronDomeCoverage(mg);
 
     // Retrieve all impacted players and the number of tiles
     const tilesPerPlayers = new Map<Player, number>();
     for (const tile of toDestroy) {
       const owner = mg.owner(tile);
       // The shield blocks even the fringe of a blast centred OUTSIDE it.
-      if (owner.isPlayer() && protectedByIronDome(mg, tile, owner))
+      if (owner.isPlayer() && coveredByDome(tile, owner))
         continue;
       if (owner.isPlayer()) {
         owner.relinquish(tile);
@@ -485,7 +489,7 @@ export class NukeExecution implements Execution {
         continue;
       }
       if (mg.euclideanDistSquared(dst, unit.tile()) < outer2) {
-        if (protectedByIronDome(mg, unit.tile(), unit.owner())) continue;
+        if (coveredByDome(unit.tile(), unit.owner())) continue;
         // treatAFKFriendly matches warship targeting: a disconnected
         // teammate's or ally's units are still not kills.
         const friendly = this.player.isFriendly(unit.owner(), true);
