@@ -1101,6 +1101,7 @@ export class Geopolitics {
     let kind: DiplomaticOffer["kind"] = "nonaggression";
     let threat = "";
     let ultimatum = false;
+    let proposalReason = "balanced";
     const give = emptyAssets();
     const receive = emptyAssets();
     const personality = this.personality(a);
@@ -1109,6 +1110,7 @@ export class Geopolitics {
       // Negotiate with the country actually attacking, not an arbitrary border neighbor.
       target = activeAttackers[0];
       kind = "peace";
+      proposalReason = "survival_peace";
       give.gold = Math.min(Number(a.gold()), Math.max(0, Math.trunc(Number(a.gold()) / 12)));
       give.troops = Math.min(a.troops(), Math.trunc(a.troops() / 30));
       // When defeat is imminent, a nation can proactively offer a less vital
@@ -1152,6 +1154,7 @@ export class Geopolitics {
         if (port && weaker.numTilesOwned() > 1) {
           target = weaker;
           kind = "peace";
+          proposalReason = "military_pressure";
           receive.tiles = [port.tile()];
           receive.buildings = [port.id()];
         }
@@ -1166,6 +1169,7 @@ export class Geopolitics {
         if (partners.length > 0) {
           target = partners[0];
           kind = "coalition";
+          proposalReason = "common_threat";
           threat = commonThreat.id();
         }
       }
@@ -1178,6 +1182,7 @@ export class Geopolitics {
             (this.state.cooldowns[`ultimatum:${a.id()}`] ?? 0) <= tick) {
           target = vulnerable;
           kind = "peace";
+          proposalReason = "military_pressure";
           ultimatum = true;
           receive.gold = Math.min(Number(target.gold()), Math.max(1000, Math.trunc(Number(target.gold()) / 12)));
           receive.troops = Math.min(target.troops(), Math.trunc(target.troops() / 20));
@@ -1202,6 +1207,7 @@ export class Geopolitics {
         if (strongest) {
           target = strongest;
           kind = "alliance";
+          proposalReason = "common_threat";
           give.gold = Math.min(Number(a.gold()), Math.trunc(Number(a.gold()) / 30));
           give.troops = Math.trunc(a.troops() / 40);
         }
@@ -1239,6 +1245,7 @@ export class Geopolitics {
     });
     this.state.cooldowns[initiativeKey] = tick + (this.state.offers.length > before ? 300 : 120);
     if (this.state.offers.length > before) {
+      this.state.offers[this.state.offers.length - 1].reason = proposalReason;
       // A non-rejected AI offer also needs room to breathe. Backoff after
       // rejection is handled above and takes precedence for this pair.
       this.state.cooldowns[`ai:pair:${a.id()}:${target.id()}`] = tick + 900;
