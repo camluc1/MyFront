@@ -37,6 +37,12 @@ jobs:
         run: npm run typecheck
       - name: Build the development client
         run: npm run build-dev
+      - name: Check Geopolitics defense construction and wire encoding
+        run: |
+          npx vitest run --project node \
+            tests/core/game/PackedUnitUpdates.test.ts \
+            tests/GeopoliticsDefenseWire.test.ts \
+            tests/GeopoliticsAdvancedDefenses.test.ts
       - name: Check responsive HUD regression tests
         run: |
           npx vitest run --project client \
