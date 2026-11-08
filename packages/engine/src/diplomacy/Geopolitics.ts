@@ -141,6 +141,18 @@ export class Geopolitics {
     return threatTier * 100 + counterTier * 10 + balanceTier;
   }
   private canInitiateTo(actor: Player, target: Player, tick: number): boolean {
+    // There may be many AI nations: avoid an overwhelming stream of unrelated
+    // diplomatic notices to the same human. A genuinely severe military crisis
+    // can reopen a channel early, but never every few seconds.
+    if (target.type() === PlayerType.Human) {
+      const next = this.state.cooldowns["ai:human:inbox:" + target.id()] ?? 0;
+      if (next > tick) {
+        const pressure = Math.max(this.militaryPressure(target, actor),
+          this.militaryPressure(actor, target));
+        const last = this.state.cooldowns["ai:human:last:" + target.id()] ?? tick;
+        if (pressure < 25 || tick - last < 180) return false;
+      }
+    }
     const pair = `ai:pair:${actor.id()}:${target.id()}`;
     if ((this.state.cooldowns[pair] ?? 0) <= tick) return true;
     // A genuinely new severe offensive can reopen peace talks early, but
@@ -1224,6 +1236,10 @@ export class Geopolitics {
       this.state.cooldowns[`ai:context:${a.id()}:${target.id()}`] =
         this.diplomaticContext(a, target);
       this.state.cooldowns[`ai:sent:${a.id()}:${target.id()}`] = tick;
+      if (target.type() === PlayerType.Human) {
+        this.state.cooldowns["ai:human:inbox:" + target.id()] = tick + 600;
+        this.state.cooldowns["ai:human:last:" + target.id()] = tick;
+      }
     }
     if (ultimatum && this.state.offers.length > before)
       this.state.cooldowns[`ultimatum:${a.id()}`] = tick + 1800;
