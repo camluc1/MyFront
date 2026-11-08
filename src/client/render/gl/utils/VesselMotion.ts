@@ -11,6 +11,8 @@ export class VesselMotion {
   private targetY: number;
   private vx = 0;
   private vy = 0;
+  /** Visual angular velocity (rad/s), independent of simulation heading. */
+  private turnVelocity = 0;
   private history: number[];
   private lastInputX: number;
   private lastInputY: number;
@@ -59,6 +61,18 @@ export class VesselMotion {
 
   setRoute(route: SailingRoute | undefined, tick: number, now: number) {
     const changed = this.route !== route;
+    // When a planned journey ends, coast the remaining visual offset into the
+    // actual destination. The recent grid history must not tug the hull back.
+    if (this.route && !route) {
+      this.targetX = this.lastInputX;
+      this.targetY = this.lastInputY;
+      this.history = [
+        this.targetX, this.targetY, this.targetX, this.targetY,
+        this.targetX, this.targetY, this.targetX, this.targetY,
+      ];
+      this.vx = 0;
+      this.vy = 0;
+    }
     this.route = route;
     if (
       changed ||
@@ -148,23 +162,37 @@ export class VesselMotion {
       const step =
         (this.routeTick + fraction - this.route.startTick) /
         Math.max(1, this.route.ticksPerStep);
-      this.routeSpeed = sampleSailingRoute(this.route, step, this);
+      // Ease into and out of a voyage over its first/last few route steps.
+      // This only warps visual progress on the same safe water centerline:
+      // it neither changes engine movement nor cuts across land.
+      const lastStep = this.route.lastStep;
+      const ramp = Math.min(4, lastStep / 4);
+      let visualStep = step;
+      let speedFactor = 1;
+      if (step <= 0 || step >= lastStep) {
+        visualStep = Math.max(0, Math.min(lastStep, step));
+        speedFactor = 0;
+      } else if (ramp > 0 && step < ramp) {
+        const u = step / ramp;
+        visualStep = ramp * u * u * (2 - u);
+        speedFactor = u * (4 - 3 * u);
+      } else if (ramp > 0 && step > lastStep - ramp) {
+        const u = (lastStep - step) / ramp;
+        visualStep = lastStep - ramp * u * u * (2 - u);
+        speedFactor = u * (4 - 3 * u);
+      }
+      this.routeSpeed =
+        sampleSailingRoute(this.route, visualStep, this) * speedFactor;
       const desired = this.angle;
-      // The sailing centerline remains authoritative, but the ship itself
-      // turns with bounded angular velocity rather than visibly snapping
-      // between control points on long or stair-stepped naval routes.
-      const delta = Math.atan2(
-        Math.sin(desired - lastHeading), Math.cos(desired - lastHeading));
-      // A heavy ship should not face backwards for seconds after a U-turn.
-      // Give large course changes a faster (still bounded) rotation and
-      // retain the existing stabilization for small tile-stair corrections.
-      const maxTurn = Math.PI * (this.cinematicSteering
-        ? Math.abs(delta) > 1.35 ? 0.86 : 0.44 : 0.62) * dt;
-      const eased = delta * (1.0-Math.exp(
-        -(this.cinematicSteering ? Math.abs(delta) > 1.35 ? 5.2 : 3.6 : 7.0)*dt));
-      this.angle = !this.routeHeadingInitialized ? desired :
-        lastHeading + Math.max(-maxTurn, Math.min(maxTurn,
-          this.cinematicSteering && Math.abs(delta)<0.022 ? 0 : eased));
+      // Path tangents are instant, but a vessel's bow has angular inertia:
+      // its rotational speed accelerates and brakes instead of snapping.
+      this.angle = lastHeading;
+      if (!this.routeHeadingInitialized) {
+        this.angle = desired;
+        this.turnVelocity = 0;
+      } else {
+        this.steerToward(desired, dt);
+      }
       this.routeHeadingInitialized = true;
       this.sampledAt = now;
       return;
@@ -188,15 +216,40 @@ export class VesselMotion {
       now - this.changedAt <= this.duration * 2 &&
       Math.hypot(this.vx, this.vy) > 0.001
     ) {
-      const delta = Math.atan2(
-        Math.sin(this.courseAngle - this.angle),
-        Math.cos(this.courseAngle - this.angle),
-      );
-      const step = delta * (1 - Math.exp(-5 * dt));
-      const turnLimit = Math.PI * (this.cinematicSteering
-        ? Math.abs(delta) > 1.35 ? 0.86 : 0.44 : 0.5) * dt;
-      this.angle += Math.max(-turnLimit, Math.min(turnLimit,
-        this.cinematicSteering && Math.abs(delta)<0.022 ? 0 : step));
+      this.steerToward(this.courseAngle, Math.min(0.1, dt));
+    }
+  }
+
+  /**
+   * Render-only critically responsive steering with bounded angular
+   * acceleration. Holding turn velocity across frames avoids the mechanical
+   * instant-speed changes seen when a ship enters a new course.
+   */
+  private steerToward(desired: number, dt: number): void {
+    if (dt <= 0) return;
+    const delta = Math.atan2(
+      Math.sin(desired - this.angle),
+      Math.cos(desired - this.angle),
+    );
+    const maxRate = this.cinematicSteering
+      ? Math.abs(delta) > 1.35 ? 1.7 : 1.15
+      : 1.45;
+    const response = this.cinematicSteering ? 3.4 : 5;
+    const acceleration = this.cinematicSteering ? 4.5 : 7;
+    const targetRate = Math.max(-maxRate, Math.min(maxRate, delta * response));
+    const change = Math.max(
+      -acceleration * dt,
+      Math.min(acceleration * dt, targetRate - this.turnVelocity),
+    );
+    this.turnVelocity += change;
+    const step = this.turnVelocity * dt;
+    // Never cross the target angle due to stored rotational momentum.
+    if ((delta >= 0 && step >= delta) ||
+        (delta <= 0 && step <= delta)) {
+      this.angle += delta;
+      this.turnVelocity = 0;
+    } else {
+      this.angle += step;
     }
   }
 
