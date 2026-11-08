@@ -212,6 +212,18 @@ export class GeopoliticsPanel extends LitElement {
     .country-dossier .row { gap:12px; align-items:baseline; padding:5px 0; }
     .country-dossier strong { color:#d9e9e9; }
     .country-dossier .muted { font-size:13px; }
+    .diplomatic-brief { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:14px 0 0; }
+    .brief-tile { min-width:0; padding:13px 14px; background:linear-gradient(150deg,#1d3a44,#172d39); border:1px solid #375c69; border-radius:12px; }
+    .brief-tile.emphasis { border-color:#ad9270; background:linear-gradient(150deg,#383c3a,#293b3c); }
+    .brief-eyebrow { text-transform:uppercase; letter-spacing:.09em; color:#98bccc; font-size:10px; font-weight:850; margin-bottom:6px; }
+    .brief-metric { color:#f2ead8; font-size:21px; font-weight:850; font-variant-numeric:tabular-nums; }
+    .brief-text { color:#cbdde2; font-size:12px; margin:6px 0 0; }
+    .brief-reason { font-size:14px; line-height:1.5; color:#dcecf0; border-left:3px solid #d7b980; margin:12px 0 0; padding:10px 12px; background:#172f3a; border-radius:0 9px 9px 0; }
+    .deal-clock { margin:12px 0 0; font-size:12px; color:#b9cbd5; }
+    .deal-clock-track { background:#233c49; height:6px; border-radius:12px; overflow:hidden; margin-top:5px; }
+    .deal-clock-track > span { display:block; background:#d7b980; height:100%; transition:width 1s linear; }
+    .offer-summary { animation:moment-in .22s ease-out; }
+    .offer-summary .decision-buttons button.primary { box-shadow:0 2px 24px #8cc8ad25; }
     .decision-buttons { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
     .decision-buttons button { flex:1; min-width:140px; padding:11px; font-weight:750; }
     .review .danger { color:#ff9d91; }
@@ -405,6 +417,7 @@ export class GeopoliticsPanel extends LitElement {
         grid-template-columns: 1fr;
       }
       .offer-summary { padding:12px; }
+      .diplomatic-brief { grid-template-columns:1fr; }
       .deal-title { font-size:19px; }
       .decision-buttons button { min-width:120px; }
       .panel { max-height:calc(100dvh - 155px); }
@@ -1000,6 +1013,73 @@ export class GeopoliticsPanel extends LitElement {
     </div>`;
   }
 
+  /** A decision-oriented summary of outcomes without pretending to predict
+   * battlefield victories or an AI acceptance percentage. */
+  private renderStrategicBrief(
+    o: DiplomaticOffer | null,
+    incoming: typeof this.receive,
+    outgoing: typeof this.give,
+    outgoingOwner: string,
+  ) {
+    const ports = (ids: readonly number[]) => ids.filter((id) =>
+      this.game.unit(id)?.type() === UnitType.Port).length;
+    const industries = new Set([
+      UnitType.Factory, UnitType.Farm, UnitType.Mine,
+      UnitType.OilWell, UnitType.GasPlant,
+    ]);
+    const industryCount = (ids: readonly number[]) => ids.filter((id) =>
+      industries.has(this.game.unit(id)?.type() ?? UnitType.City)).length;
+    const portIn = ports(incoming.buildings), portOut = ports(outgoing.buildings);
+    const landIn = incoming.tiles.length, landOut = outgoing.tiles.length;
+    const risk = this.criticalAssetWarnings(outgoing, outgoingOwner);
+    const pending = o?.status === "pending";
+    const timeLeft = pending ? Math.max(0,
+      Math.ceil((o.expires - this.game.ticks()) / 10)) : 0;
+    const completion = pending ? Math.max(0, Math.min(100,
+      100 * (o.expires - this.game.ticks()) /
+        Math.max(1, o.expires - o.created))) : 0;
+    const reason = !o || o.reason === "proposal"
+      ? t("deal_brief_pending") : t("reason_" + o.reason);
+    return html`<div class="diplomatic-brief" aria-label=${t("deal_outcomes")}>
+      <div class="brief-tile">
+        <div class="brief-eyebrow">${t("deal_outcomes")}</div>
+        <div class="brief-metric">
+          ${landIn > 0 ? "+" : ""}${landIn - landOut} ${t("deal_tiles")}
+        </div>
+        <div class="brief-text">
+          ${portIn > 0 ? html`+${portIn} ${t("deal_gain_port")}` : nothing}
+          ${portOut > 0 ? html` · −${portOut} ${t("deal_lose_port")}` : nothing}
+          ${portIn + portOut === 0 && industryCount(incoming.buildings) +
+            industryCount(outgoing.buildings) > 0
+            ? t("deal_industry_transfer") : nothing}
+          ${landIn + landOut === 0 && portIn + portOut === 0 &&
+            industryCount(incoming.buildings) +
+            industryCount(outgoing.buildings) === 0
+            ? t("deal_land_transfer") : nothing}
+        </div>
+      </div>
+      <div class="brief-tile ${risk.length ? "emphasis" : ""}">
+        <div class="brief-eyebrow">${risk.length ? t("deal_risk") : t("deal_brief")}</div>
+        <div class="brief-text">
+          ${risk.length ? risk.slice(0, 2).join(" · ") : reason}
+        </div>
+      </div>
+    </div>
+    ${o?.status === "pending" ? html`<div class="deal-clock">
+      ${t("deal_offer_expiry")}: <strong>${timeLeft} ${t("deal_time_left")}</strong>
+      <div class="deal-clock-track" aria-hidden="true">
+        <span style="width:${completion}%"></span>
+      </div>
+    </div>` : nothing}
+    ${!risk.length && o && o.reason !== "proposal" ? html`
+      <p class="brief-reason">${t("deal_brief")}: ${reason}</p>
+    ` : nothing}
+    ${landIn > 0 || landOut > 0 ? html`
+      <p class="muted" style="margin-top:10px">${t("deal_border_reaction")}</p>
+    ` : nothing}
+    `;
+  }
+
   /** Diplomacy must read from the current player's perspective, including coalition votes. */
   private renderDealOverview(o: DiplomaticOffer | null) {
     const myID = this.mine()?.id() ?? "";
@@ -1065,6 +1145,7 @@ export class GeopoliticsPanel extends LitElement {
           <span>${t("deal_reserves_yours")}: ${Math.floor(ours).toLocaleString()}</span>
           <span>${t("deal_reserves_rival")}: ${Math.floor(theirs).toLocaleString()}</span>
         </div>
+        <div class="muted" style="margin-top:6px">${t("deal_war_context_help")}</div>
       </div>
       <div class="columns">
         <div class="asset receive">
@@ -1078,6 +1159,7 @@ export class GeopoliticsPanel extends LitElement {
           ${this.renderRegionImpact(outgoing, outgoingOwner)}
         </div>
       </div>
+      ${this.renderStrategicBrief(o, incoming, outgoing, outgoingOwner)}
       <p class="muted" style="margin-top:8px">${t("deal_pct_explainer")}</p>
       ${(o?.kind ?? this.kind) === "peace" ? html`<div class="treaty-note">
         ${t("deal_peace_effect")}
