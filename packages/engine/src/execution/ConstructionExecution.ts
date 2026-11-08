@@ -38,6 +38,7 @@ export class ConstructionExecution implements Execution {
     private tile: TileRef,
     private rocketDirectionUp?: boolean,
     private amount?: number,
+    private supportShip?: boolean,
   ) {}
 
   init(mg: Game, ticks: number): void {
@@ -141,8 +142,9 @@ export class ConstructionExecution implements Execution {
         this.mg.addExecution(new MirvExecution(player, this.tile));
         break;
       case UnitType.Warship:
+        if (this.supportShip && this.mg.config().gameConfig().geopolitics !== true) break;
         this.mg.addExecution(
-          new WarshipExecution({ owner: player, patrolTile: this.tile }),
+          new WarshipExecution({ owner: player, patrolTile: this.tile, supportShip: this.supportShip }),
         );
         break;
       case UnitType.Port:
@@ -220,6 +222,7 @@ export class ConstructionExecution implements Execution {
       tile: this.tile,
       rocketDirectionUp: this.rocketDirectionUp,
       amount: this.amount,
+      supportShip: this.supportShip,
       structure: w.unitOrNull(this.structure),
       ticksUntilComplete: this.ticksUntilComplete,
     });
@@ -233,6 +236,7 @@ export class ConstructionExecution implements Execution {
     this.tile = s.tile;
     this.rocketDirectionUp = s.rocketDirectionUp;
     this.amount = s.amount;
+    this.supportShip = s.supportShip;
     this.structure = r.unitOrNull(s.structure);
     this.ticksUntilComplete = s.ticksUntilComplete as Tick;
   }
@@ -247,6 +251,7 @@ const ConstructionStateSchema = z.object({
   tile: zInt(),
   rocketDirectionUp: z.boolean().optional(),
   amount: zInt().optional(),
+  supportShip: z.boolean().optional(),
   structure: zRef().nullable(),
   // Unset until a structure with a build time is placed.
   ticksUntilComplete: zInt().optional(),
