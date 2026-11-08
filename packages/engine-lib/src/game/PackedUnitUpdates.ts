@@ -29,7 +29,7 @@ export const OFFSET_PACKED_B = 19;
 export const OFFSET_LEVEL = 20;
 
 // unitType mapping
-export const PACKED_UNIT_TYPES: readonly UnitType[] = [
+export const PACKED_UNIT_TYPES = [
   UnitType.TransportShip, // 1
   UnitType.Warship, // 2
   UnitType.Shell, // 3
@@ -54,7 +54,14 @@ export const PACKED_UNIT_TYPES: readonly UnitType[] = [
   // DLC Geopolitics defenses. Do not change IDs 1-20: old replays depend on them.
   UnitType.Castle, // 21
   UnitType.IronDome, // 22
-] as const;
+] as const satisfies readonly UnitType[];
+
+// Enforce exhaustiveness at compile time, not only in tests: adding a unit to
+// the engine without a packed ID must fail typecheck before it can crash a match.
+type AssertComplete<T extends true> = T;
+export type PackedUnitTypeCoverage = AssertComplete<
+  Exclude<UnitType, (typeof PACKED_UNIT_TYPES)[number]> extends never ? true : false
+>;
 
 const UNIT_TYPE_TO_INT = new Map<UnitType, number>(
   PACKED_UNIT_TYPES.map((t, idx) => [t, idx + 1]),
