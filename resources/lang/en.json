@@ -1841,6 +1841,7 @@
     "to_win": "Hold > {pct}% to win"
   },
   "performance_overlay": {
+    "toggle_compact": "Show monitor",
     "avg_60s": "Avg (60s):",
     "collapse": "Collapse",
     "copy_clipboard": "Copy JSON",
