@@ -213,7 +213,15 @@ void main() {
       float glow = exp(-r*r*5.0) * (0.22+0.25*breath);
       float edgeFade = 1.0-smoothstep(0.86,1.0,r);
       float strength = warship ? uNavalPulse.x : uNavalPulse.y;
+#ifdef FRONTIER_CINEMATIC
+      // Replace the distracting red sonar halo with a subdued blue-gray
+      // pressure ripple. Preserve its tactical presence, position and period.
+      // This does not create a new quad or expand the effect bounds.
+      float soft = (ring*0.26 + glow*0.17)*edgeFade*strength;
+      waterEffect = vec4(vec3(0.58, 0.79, 0.83), min(0.22, soft));
+#else
       waterEffect = vec4(1.0, 0.12, 0.08, (ring+glow)*edgeFade*strength);
+#endif
     }
 #ifdef FRONTIER_CINEMATIC
     // Opt-in wake stays inside the existing vessel quad: constant work per
@@ -237,7 +245,9 @@ void main() {
         float edges = 1.0-smoothstep(0.01,0.03+aa,abs(abs(q.y)-spread));
         float churn = exp(-q.y*q.y/max(0.008,0.008+behind*0.07));
         float bands = 0.72+0.28*sin(behind*38.0-time*2.5+vOwnerID*0.6);
-        float trail = (edges*0.60+churn*0.30)*sternMask*bands;
+        // A light turquoise wake reads against both deep and shallow water.
+        // Keep it short-lived and contained within each already instanced hull.
+        float trail = (edges*0.52+churn*0.33)*sternMask*bands;
         // Soft bow pressure arc and a short side wash, never a full halo.
         vec2 front = (q-vec2(bow-0.04,0.0))/vec2(0.16,0.20);
         float bowArc = (1.0-smoothstep(0.07,0.14+aa*4.0,abs(length(front)-1.0)))*step(bow-0.02,q.x);
