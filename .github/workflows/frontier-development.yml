@@ -37,6 +37,15 @@ jobs:
         run: npm run typecheck
       - name: Build the development client
         run: npm run build-dev
+      - name: Check carrier rendering and pre-game player colors
+        run: |
+          npx vitest run --project node --project client \
+            tests/Privilege.test.ts \
+            tests/UserSettings.test.ts \
+            tests/client/PlayerColors.test.ts \
+            tests/client/UsernameInputValidation.test.ts \
+            tests/client/CosmeticsFetchTimeout.test.ts \
+            tests/client/render/gl/UnitPassFleet.test.ts
       - name: Check Geopolitics defense construction and wire encoding
         run: |
           npx vitest run --project node \
