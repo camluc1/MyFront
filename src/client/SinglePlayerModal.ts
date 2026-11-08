@@ -1286,9 +1286,13 @@ export class SinglePlayerModal extends BaseModal {
           "Start preparation exceeded its deadline; starting on defaults",
         );
         const resolvedName = nameNow();
+        const color = new UserSettings().getPreferredGameColor();
         return {
           resolvedName,
-          cosmetics: resolvedName.verified ? { verified: true } : {},
+          cosmetics: {
+            ...(resolvedName.verified ? { verified: true } : {}),
+            ...(color !== null ? { color: { color } } : {}),
+          },
         };
       },
     );
