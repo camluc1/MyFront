@@ -3,6 +3,7 @@ import {
   ACTIVE_LOADOUT_KEY,
   CROWN_KEY,
   EFFECTS_KEY,
+  GAME_COLOR_KEY,
   FAVORITE_EMOJIS_KEY,
   FLAG_KEY,
   LOADOUTS_KEY,
@@ -753,5 +754,44 @@ describe("UserSettings keybinds with new defaults", () => {
     expect(new UserSettings().keybinds(false).emojiMenuModifier).toBe(
       "AltLeft",
     );
+  });
+});
+
+describe("pre-game territory color setting", () => {
+  beforeEach(resetUserSettingsState);
+
+  it("defaults to automatic, saves a valid game color, and clears it", () => {
+    const settings = new UserSettings();
+    expect(settings.getPreferredGameColor()).toBeNull();
+    settings.setPreferredGameColor("#3B82F6");
+    expect(settings.getPreferredGameColor()).toBe("#3b82f6");
+    expect(localStorage.getItem(GAME_COLOR_KEY)).toBe("#3b82f6");
+    settings.setPreferredGameColor(null);
+    expect(settings.getPreferredGameColor()).toBeNull();
+    expect(localStorage.getItem(GAME_COLOR_KEY)).toBeNull();
+  });
+
+  it("rejects unsupported colors and isolates player preferences", () => {
+    const settings = new UserSettings();
+    settings.setPreferredGameColor("#001122");
+    expect(settings.getPreferredGameColor()).toBeNull();
+    UserSettings.setPlayerId("player-a");
+    settings.setPreferredGameColor("#ef4444");
+    UserSettings.setPlayerId("player-b");
+    expect(settings.getPreferredGameColor()).toBeNull();
+    settings.setPreferredGameColor("#22c55e");
+    UserSettings.setPlayerId("player-a");
+    expect(settings.getPreferredGameColor()).toBe("#ef4444");
+    UserSettings.setPlayerId("player-b");
+    expect(settings.getPreferredGameColor()).toBe("#22c55e");
+  });
+
+  it("migrates a selection made before the player account loads", () => {
+    const settings = new UserSettings();
+    settings.setPreferredGameColor("#f97316");
+    UserSettings.setPlayerId("new-account");
+    expect(settings.getPreferredGameColor()).toBe("#f97316");
+    expect(localStorage.getItem(GAME_COLOR_KEY)).toBeNull();
+    expect(localStorage.getItem(GAME_COLOR_KEY + ":new-account")).toBe("#f97316");
   });
 });
