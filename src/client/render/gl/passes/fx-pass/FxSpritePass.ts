@@ -33,6 +33,7 @@ const cinematicImpactAtlasUrl = assetUrl("sprites/cinematic-impact-atlas.svg");
 const CINEMATIC_NUKE_LIFETIME_MS = 3_200;
 const MAX_CINEMATIC_NUKES = 10;
 const MAX_CINEMATIC_DEBRIS_PER_TYPE = 12;
+const MAX_CINEMATIC_FX_INSTANCES = 640;
 
 // ---------------------------------------------------------------------------
 // FX type indices (atlas row)
@@ -558,6 +559,20 @@ export class FxSpritePass {
   tick(): void {
     if (this.activeFx.length === 0) return;
     const now = this.timeFn();
+    if (this.cinematic &&
+      this.activeFx.length > MAX_CINEMATIC_FX_INSTANCES) {
+      // Cosmetic smoke and embers yield to actual weapon impacts on a MIRV
+      // barrage; cap the single instanced draw even in gigantic battles.
+      const essential = (fx: ActiveFx) => fx.fxType <= FX_MINI_EXPLOSION;
+      const priority = this.activeFx
+        .filter(essential).sort((a, b) => b.startMs - a.startMs);
+      const incidental = this.activeFx
+        .filter((fx) => !essential(fx))
+        .sort((a, b) => b.startMs - a.startMs);
+      const safeEssential = priority.slice(0, MAX_CINEMATIC_FX_INSTANCES);
+      this.activeFx = safeEssential.concat(incidental.slice(
+        0, MAX_CINEMATIC_FX_INSTANCES-safeEssential.length));
+    }
 
     for (let i = this.activeFx.length - 1; i >= 0; i--) {
       if (now - this.activeFx[i].startMs >= this.activeFx[i].lifetimeMs) {
