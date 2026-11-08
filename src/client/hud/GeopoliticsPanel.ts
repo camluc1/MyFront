@@ -1,4 +1,4 @@
-import { Cell, UnitType } from "@openfront/engine-api/game/GameTypes";
+import { Cell, GameType, UnitType } from "@openfront/engine-api/game/GameTypes";
 import {
   diplomaticPersonality,
   DiplomacyAction,
@@ -1900,7 +1900,8 @@ export function mountGeopolitics(
   bus: EventBus,
   transform: TransformHandler,
 ) {
-  if (!game.config().gameConfig().geopolitics) return () => {};
+  if (!game.config().gameConfig().geopolitics ||
+    game.config().gameConfig().gameType !== GameType.Singleplayer) return () => {};
   const panel = document.createElement("geopolitics-panel") as GeopoliticsPanel;
   panel.game = game;
   panel.bus = bus;
