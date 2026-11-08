@@ -523,21 +523,22 @@ export class UnitDisplay extends LitElement implements Controller {
     }
     return html`
       <div
-        class="unit-display-root relative border-t border-white/10 p-0.5 w-full
+        class="unit-display-root relative w-full rounded-xl border border-sky-200/15 bg-slate-950/90 p-2 shadow-[0_12px_28px_rgba(0,0,0,0.30)]
           ${this.moreActionsLeft ? "unit-display-more-left" : ""}
           ${this.moreActionsRight ? "unit-display-more-right" : ""}"
         data-radial-click-through
         @contextmenu=${(event: Event) => event.preventDefault()}
       >
         ${this.resourceEconomy ? html`<div class="absolute bottom-full left-0 mb-2 w-72 max-w-[90vw] pointer-events-none">${renderResourceEconomy(this.resourceEconomy)}</div>` : null}
-        <div class="flex justify-end px-1 pb-1">
+        <div class="flex items-center justify-between gap-3 px-1 pb-2">
+          <span class="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Construcción rápida</span>
           <button
             type="button"
             data-frontier-resources-toggle
             data-radial-click-through
             aria-pressed=${this.resourcesVisible}
             title=${this.resourcesVisible ? "Ocultar recursos naturales" : "Mostrar recursos naturales"}
-            class="shrink-0 rounded-md border border-sky-400/70 bg-slate-900/90 px-3 py-1 text-xs font-semibold text-white
+            class="shrink-0 rounded-md border border-sky-400/40 bg-sky-950/80 px-3 py-1.5 text-xs font-semibold text-sky-100
               pointer-fine:hover:bg-slate-700 active:bg-slate-600"
             @click=${(event: MouseEvent) => {
               event.stopPropagation();
@@ -548,11 +549,11 @@ export class UnitDisplay extends LitElement implements Controller {
           </button>
         </div>
         <div
-          class="unit-display-scroll w-full overflow-x-auto overflow-y-hidden overscroll-x-contain touch-pan-x lg:overflow-visible"
+          class="unit-display-scroll w-full overflow-x-auto overflow-y-hidden overscroll-x-contain touch-pan-x pb-1.5"
           @scroll=${this.onScroll}
         >
           <div
-            class="unit-display-grid grid grid-cols-[repeat(var(--unit-display-columns),minmax(0,1fr))] gap-0.5 w-full mx-auto lg:grid-rows-1 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-max lg:w-fit max-lg:landscape:grid-rows-1 max-lg:landscape:grid-flow-col max-lg:landscape:grid-cols-none max-lg:landscape:auto-cols-[47px] max-lg:landscape:w-max max-[360px]:grid-cols-none max-[360px]:grid-flow-col max-[360px]:auto-cols-[44px] max-[360px]:w-max"
+            class="unit-display-grid grid grid-cols-[repeat(var(--unit-display-columns),minmax(0,1fr))] gap-1.5 w-full mx-auto lg:grid-rows-1 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-[62px] lg:w-max max-lg:landscape:grid-rows-1 max-lg:landscape:grid-flow-col max-lg:landscape:grid-cols-none max-lg:landscape:auto-cols-[52px] max-lg:landscape:w-max max-[360px]:grid-cols-none max-[360px]:grid-flow-col max-[360px]:auto-cols-[46px] max-[360px]:w-max"
             style=${`--unit-display-columns: ${this.enabledUnitCount}`}
           >
             ${this.renderUnitItem(
@@ -575,34 +576,6 @@ export class UnitDisplay extends LitElement implements Controller {
               UnitType.Port,
               "port",
               this.getHotkey("buildPort", "Digit3"),
-            )}
-            ${this.renderUnitItem(
-              farmIcon,
-              this._farms,
-              UnitType.Farm,
-              "farm",
-              "",
-            )}
-            ${this.renderUnitItem(
-              mineIcon,
-              this._mines,
-              UnitType.Mine,
-              "mine",
-              "",
-            )}
-            ${this.renderUnitItem(
-              oilWellIcon,
-              this._oilWells,
-              UnitType.OilWell,
-              "oil_well",
-              "",
-            )}
-            ${this.renderUnitItem(
-              gasPlantIcon,
-              this._gasPlants,
-              UnitType.GasPlant,
-              "gas_plant",
-              "",
             )}
             ${this.renderUnitItem(
               defensePostIcon,
@@ -652,6 +625,34 @@ export class UnitDisplay extends LitElement implements Controller {
               UnitType.MIRV,
               "mirv",
               this.getHotkey("buildMIRV", "Digit0"),
+            )}
+            ${this.renderUnitItem(
+              farmIcon,
+              this._farms,
+              UnitType.Farm,
+              "farm",
+              this.getHotkey("buildFarm", ""),
+            )}
+            ${this.renderUnitItem(
+              mineIcon,
+              this._mines,
+              UnitType.Mine,
+              "mine",
+              this.getHotkey("buildMine", ""),
+            )}
+            ${this.renderUnitItem(
+              oilWellIcon,
+              this._oilWells,
+              UnitType.OilWell,
+              "oil_well",
+              this.getHotkey("buildOilWell", ""),
+            )}
+            ${this.renderUnitItem(
+              gasPlantIcon,
+              this._gasPlants,
+              UnitType.GasPlant,
+              "gas_plant",
+              this.getHotkey("buildGasPlant", ""),
             )}
           </div>
         </div>
@@ -713,17 +714,17 @@ export class UnitDisplay extends LitElement implements Controller {
           this.startPeek(event, unitType, structureKey, hotkey)}
       >
         <div
-          class="${this.canBuild(unitType) ? "" : "opacity-40"} border ${
+          class="${this.canBuild(unitType) ? "" : "opacity-55"} relative border ${
             naturalResource
-              ? "border-emerald-400/60 rounded-xl bg-slate-800/50"
-              : "border-slate-500 rounded-sm"
-          } min-h-11 w-full px-1 pb-0.5 flex items-center justify-center gap-0.5 cursor-pointer lg:min-h-0 lg:px-0.5 lg:justify-start landscape:px-0.5
+              ? "border-emerald-400/25 rounded-lg bg-emerald-400/5"
+              : "border-slate-500/30 rounded-lg bg-slate-900/85"
+          } min-h-13 w-full px-1 pb-1 flex items-center justify-center gap-1 cursor-pointer lg:min-h-14 lg:px-1.5 lg:justify-center landscape:px-0.5
              ${
             selected
-              ? "pointer-fine:hover:bg-gray-400/10"
-              : "pointer-fine:hover:bg-gray-800"
+              ? "pointer-fine:hover:bg-cyan-300/10"
+              : "pointer-fine:hover:bg-sky-300/10"
           }
-             text-white ${selected ? "bg-slate-400/20" : ""}
+             text-white transition-colors ${selected ? "bg-cyan-500/15 ring-1 ring-inset ring-cyan-300/70" : ""}
              ${this.tutorialHighlight === unitType ? "tutorial-highlight" : ""}"
           @click=${(event: Event) => {
             const item = (event.currentTarget as HTMLElement).closest(
@@ -780,23 +781,23 @@ export class UnitDisplay extends LitElement implements Controller {
           ${
             hotkey
               ? html`<div
-                  class="unit-display-hotkey ml-0.5 text-[10px] relative -top-1 text-gray-400"
+                  class="unit-display-hotkey absolute left-1 top-1 rounded border border-white/10 bg-slate-950/90 px-1 text-[10px] font-bold leading-tight text-cyan-200"
                 >
                   ${displayHotkey}
                 </div>`
               : nothing
           }
           <div
-            class="flex flex-col items-center gap-0 pt-0.5 lg:flex-row lg:gap-0.5 max-lg:landscape:flex-row max-lg:landscape:gap-0.5"
+            class="flex flex-col items-center justify-center gap-1 pt-2 lg:pt-2"
           >
             <img
               src=${icon}
               alt=${translateText("unit_type." + structureKey)}
-              class="align-middle size-7 lg:size-5 max-lg:landscape:size-6"
+              class="align-middle size-7 lg:size-7 max-lg:landscape:size-6 drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]"
             />
             ${
               number !== null
-                ? html`<span class="text-[10px] leading-none lg:text-xs"
+                ? html`<span class="text-[10px] font-semibold leading-none text-slate-200 tabular-nums lg:text-[11px]"
                     >${renderNumber(number)}</span
                   >`
                 : null
