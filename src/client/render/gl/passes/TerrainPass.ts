@@ -78,7 +78,7 @@ export class TerrainPass {
     try {
       this.program = createProgram(gl, vertex, terrainFragSrc, "TerrainPass");
     } catch (error) {
-      if (!this.cinematic || gl.isContextLost()) throw error;
+      if (!this.cinematic || gl.isContextLost?.()) throw error;
       // The ocean is optional. A problematic GPU/driver must still be able
       // to render the normal game terrain instead of losing the entire map.
       console.warn("Cinematic ocean shader unavailable; using classic sea", error);
