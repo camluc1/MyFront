@@ -781,18 +781,17 @@ export class UnitDisplay extends LitElement implements Controller {
           this.startPeek(event, unitType, structureKey, hotkey)}
       >
         <div
-          class="${this.canBuild(unitType) ? "" : "opacity-55"} relative border ${
-            naturalResource
-              ? "border-emerald-400/25 rounded-lg bg-emerald-400/5"
-              : "border-slate-500/30 rounded-lg bg-slate-900/85"
-          } min-h-13 w-full px-1 pb-1 flex items-center justify-center gap-1 cursor-pointer lg:min-h-14 lg:px-1.5 lg:justify-center landscape:px-0.5
-             ${
-            selected
-              ? "pointer-fine:hover:bg-cyan-300/10"
-              : "pointer-fine:hover:bg-sky-300/10"
-          }
-             text-white transition-colors ${selected ? "bg-cyan-500/15 ring-1 ring-inset ring-cyan-300/70" : ""}
-             ${this.tutorialHighlight === unitType ? "tutorial-highlight" : ""}"
+          role="button" tabindex="0"
+          aria-label=${translateText("unit_type." + structureKey)}
+          aria-pressed=${selected}
+          aria-disabled=${!this.canBuild(unitType)}
+          class="unit-display-action ${naturalResource ? "is-resource" : ""} ${selected ? "is-selected" : ""} ${!this.canBuild(unitType) ? "is-unavailable" : ""} ${this.tutorialHighlight === unitType ? "tutorial-highlight" : ""}"
+          title=${translateText("unit_type." + structureKey) + (!this.canBuild(unitType) ? " · " + this.buildUnavailableReason(unitType) : "")}
+          @keydown=${(event: KeyboardEvent) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            (event.currentTarget as HTMLElement).click();
+          }}
           @click=${(event: Event) => {
             const item = (event.currentTarget as HTMLElement).closest(
               ".unit-display-grid > div",
@@ -865,26 +864,29 @@ export class UnitDisplay extends LitElement implements Controller {
                 title="Cantidad de mejoras según el oro disponible"
               >×${bulkBadge}</span>`
             : nothing}
-          <div
-            class="flex flex-col items-center justify-center gap-1 pt-2 lg:pt-2"
-          >
-            <img
-              src=${icon}
-              alt=${translateText("unit_type." + structureKey)}
-              class="align-middle size-7 lg:size-7 max-lg:landscape:size-6 drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]"
-            />
-            ${
-              number !== null
-                ? html`<span class="text-[10px] font-semibold leading-none text-slate-200 tabular-nums lg:text-[11px]"
-                    >${renderNumber(number)}</span
-                  >`
-                : null
-            }
+          <div class="unit-display-action-content">
+            <img src=${icon} alt="" aria-hidden="true" class="unit-display-action-image" />
+            <span class="unit-display-action-count" translate="no">${renderNumber(number ?? (this.game.myPlayer()?.units(unitType).length ?? 0))}</span>
+            <span class="unit-display-action-cost ${this.cost(unitType) > (playerGold ?? 0n) && !this.game.config().gameConfig().infiniteGold ? "is-unaffordable" : ""}" translate="no">
+              ${this.playerBuildables?.some((b) => b.type === unitType) ? renderNumber(this.cost(unitType)) : "—"}
+              <img src=${goldCoinIcon} alt="" aria-hidden="true" width="11" height="11" />
+            </span>
           </div>
         </div>
-        ${label ? html`<span class="text-[10px] font-semibold leading-tight text-center mt-1 text-slate-200">${label}</span>` : nothing}
+        ${label ? html`<span class="unit-display-action-label">${label}</span>` : nothing}
       </div>
     `;
+  }
+
+  private buildUnavailableReason(unitType: PlayerBuildableUnitType): string {
+    if (!this.playerBuildables) return "Cargando costos";
+    const player = this.game.myPlayer();
+    if (!player) return "No disponible";
+    if ((unitType === UnitType.AtomBomb || unitType === UnitType.HydrogenBomb || unitType === UnitType.MIRV) &&
+        player.units(UnitType.MissileSilo).length === 0) return "Requiere silo";
+    if (unitType === UnitType.Warship && player.units(UnitType.Port).length === 0) return "Requiere puerto";
+    if (this.cost(unitType) > player.gold() && !this.game.config().gameConfig().infiniteGold) return "Oro insuficiente";
+    return "No disponible en este momento";
   }
 
   private renderUnitTooltip() {
@@ -924,6 +926,7 @@ export class UnitDisplay extends LitElement implements Controller {
         <div class="p-2">
           ${translateText("build_menu.desc." + tooltip.structureKey)}
         </div>
+        ${!this.canBuild(tooltip.unitType) ? html`<div class="unit-display-disabled-reason">${this.buildUnavailableReason(tooltip.unitType)}</div>` : nothing}
         ${
           tooltip.unitType === UnitType.Warship && Platform.hasKeyboard
             ? html`<div
