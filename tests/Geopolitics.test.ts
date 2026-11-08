@@ -522,3 +522,49 @@ it("keeps geopolitical reaction history and memory across saved games", async ()
   expect(restored.diplomacy.state.log).toEqual(game.diplomacy.state.log);
   expect(restored.diplomacy.state.memory).toEqual(game.diplomacy.state.memory);
 });
+
+it("preserves a nation's concrete diplomatic objection after rejecting a treaty", () => {
+  const treaty = offer(a, b, "peace");
+  treaty.reason = "strategic_assets";
+  // The AI assessment is recorded before the decision; declining must not
+  // erase the explanation that the UI needs to show to the player.
+  treaty.decisionReason = "strategic_assets";
+  game.diplomacy.act(b, {
+    action: "reject", target: a.id(), offerID: treaty.id,
+  });
+  expect(treaty.status).toBe("rejected");
+  expect(treaty.decisionReason).toBe("strategic_assets");
+  expect(treaty.reason).toBe("declined");
+});
+
+it("lets diplomatic style affect the ranking of alternative concessions without changing cash or resources", () => {
+  const port = b.buildUnit(UnitType.Port, game.ref(2, 1), {});
+  const proposal = offer(a, b, "peace", {
+    receive: { ...emptyAssets(), tiles: [port.tile()], buildings: [port.id()] },
+  });
+  const beforeGold = b.gold(), beforeOwner = game.owner(port.tile());
+  const choice = (game.diplomacy as unknown as {
+    chooseCounteroffer: (o: typeof proposal, owner: Player) =>
+      { give: ReturnType<typeof emptyAssets> } | null;
+  }).chooseCounteroffer(proposal, b);
+  expect(choice).not.toBeNull();
+  expect(b.gold()).toBe(beforeGold);
+  expect(game.owner(port.tile())).toBe(beforeOwner);
+  expect(proposal.status).toBe("pending");
+});
+
+it("does not modify Classic diplomacy when an ordinary treaty-like action is attempted", async () => {
+  const classic = await setup("plains", {}, [
+    new PlayerInfo("alpha", PlayerType.Human, "aaaa1111", "alpha"),
+    new PlayerInfo("beta", PlayerType.Human, "bbbb1111", "beta"),
+  ]);
+  const alpha = classic.player("alpha"), beta = classic.player("beta");
+  alpha.conquer(classic.ref(0, 0));
+  beta.conquer(classic.ref(1, 0));
+  classic.diplomacy.act(alpha, {
+    action: "offer", target: beta.id(), kind: "peace",
+    give: emptyAssets(), receive: emptyAssets(),
+  });
+  expect(classic.diplomacy.state.log).toEqual([]);
+  expect(classic.diplomacy.state.memory).toEqual([]);
+});
