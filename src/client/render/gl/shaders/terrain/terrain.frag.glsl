@@ -38,6 +38,51 @@ vec3 cinematicOcean(vec3 base, vec2 world, int terrain, float footprint) {
   float time = uTime;
 #endif
   float quality = clamp(uWaterQuality, 0.0, 1.0);
+  // Pixel-footprint LOD prevents subpixel waves from flickering at world zoom.
+  float close = 1.0-smoothstep(0.65,2.25,footprint);
+  float mid = 1.0-smoothstep(2.5,7.0,footprint);
+  bool coast = (terrain&64)!=0;
+  // Cohesive wind-driven swells instead of random moving noise. Broad water
+  // remains readable at all zoom levels, even during adaptive degradation.
+  vec2 wind = vec2(0.894,0.447);
+  float waveA = dot(world,wind)*0.055-time*0.22;
+  float swell = sin(waveA);
+  float cross = sin(dot(world,vec2(-0.35,0.94))*0.034-time*0.115);
+  vec3 sea = base*(0.945+0.052*swell*mid+0.024*cross*mid);
+  // Balanced deep-water blue and slightly brighter coastal teal. The map's
+  // own terrain color is never replaced, only modulated.
+  sea += (coast ? vec3(0.015,0.038,0.047) : vec3(0.008,0.020,0.034))*mid;
+  if (close < 0.04 || quality < 0.08) return sea;
+  // Fast fallback with one coherent thin wave crest: no noise texture, no
+  // extra pass, no derivative-based specular when frame pacing drops.
+  float crestPhase = dot(world,wind)*0.175-time*0.65+cross*0.62;
+  float crest = max(0.0,sin(crestPhase));
+  float ribbon = pow(crest,10.0)*close;
+  float multiplier = quality <= 0.35 ? 0.55 : 1.0;
+  sea += vec3(0.21,0.40,0.48)*ribbon*0.18*multiplier;
+  if (quality <= 0.35) return sea;
+  // A cross-wind interference pattern breaks up the crests at close zoom.
+  // Only high detail uses one stable grain and a broad directional normal.
+  float breakup = grain(world*0.045+vec2(time*0.010,-time*0.004));
+  float ripple = sin(dot(world,vec2(-0.16,0.23))-time*0.52+breakup*1.3);
+  float spark = pow(max(0.0,0.62*crest+0.38*ripple),8.0);
+  float glint = spark*close*quality*(0.075+0.06*breakup);
+  sea += vec3(0.49,0.72,0.85)*glint;
+  if (coast) {
+    // White surf on shoreline tiles, held in thin moving streaks, not a
+    // uniform green/white checkerboard overlay on every water tile.
+    float surf = pow(max(0.0,sin(crestPhase*0.65-time*0.10)),6.0);
+    surf *= smoothstep(0.28,0.72,breakup)*close*quality;
+    sea += vec3(0.48,0.71,0.74)*surf*0.22;
+    if (quality > 0.65 && footprint < 1.0) {
+      float caustic = pow(max(0.0,sin(crestPhase*1.5+cross*0.75)),12.0);
+      sea += vec3(0.22,0.36,0.40)*caustic*0.025*close;
+    }
+  }
+  return sea;
+}
+#endif
+  float quality = clamp(uWaterQuality, 0.0, 1.0);
   float detail = (1.0-smoothstep(0.7,2.2,footprint))*quality;
   float swellPhase = dot(world,vec2(0.029,0.018))-time*0.21;
   float swell = sin(swellPhase);
@@ -140,6 +185,12 @@ void main() {
       // contrast on rocky slopes separates ridges from valleys.
       color*=1.0+(relief*uSurface.z*mix(1.0,1.12,rocky)
         +(textureGrain*materialContrast+broad)*uSurface.w)*detail;
+#ifdef FRONTIER_CINEMATIC
+      // Additional aerial ridge separation only when terrain can be seen;
+      // narrow amplitude keeps strategic ownership colors intact.
+      float ridge = max(0.0, relief)*rocky*closeDetail;
+      color *= 1.0 + min(0.055,ridge*0.055);
+#endif
     }
     fragColor = vec4(color, 1.0);
     return;
