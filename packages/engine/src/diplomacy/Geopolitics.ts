@@ -1066,6 +1066,8 @@ export class Geopolitics {
               if (this.state.offers.length > countBefore) {
                 this.state.offers[this.state.offers.length - 1].reason =
                   plan.reason;
+                this.state.offers[this.state.offers.length - 1].decisionReason =
+                  plan.reason;
                 this.state.cooldowns["ai:counter:" + id + ":" + o.from] =
                   tick + Math.max(400,
                     Math.min(1800, 450 + (o.round ?? 0) * 300));
@@ -1277,6 +1279,7 @@ export class Geopolitics {
     this.state.cooldowns[initiativeKey] = tick + (this.state.offers.length > before ? 300 : 120);
     if (this.state.offers.length > before) {
       this.state.offers[this.state.offers.length - 1].reason = proposalReason;
+      this.state.offers[this.state.offers.length - 1].decisionReason = proposalReason;
       // A non-rejected AI offer also needs room to breathe. Backoff after
       // rejection is handled above and takes precedence for this pair.
       this.state.cooldowns[`ai:pair:${a.id()}:${target.id()}`] = tick + 900;
