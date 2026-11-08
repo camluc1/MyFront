@@ -578,7 +578,7 @@ export class UnitDisplay extends LitElement implements Controller {
           </button>
         </div>
         <!-- Keep nuclear weapons immediately above the missile-silo build row. -->
-        ${!this.tutorialMode && [UnitType.AtomBomb, UnitType.HydrogenBomb, UnitType.MIRV]
+        ${[UnitType.AtomBomb, UnitType.HydrogenBomb, UnitType.MIRV]
           .some((type) => this.isUnitDisplayed(type)) ? html`
           <div class="flex flex-wrap items-center gap-2 px-1 pb-2">
             <span class="text-[10px] font-bold uppercase tracking-[0.12em] text-amber-200/80">Arsenal nuclear</span>
