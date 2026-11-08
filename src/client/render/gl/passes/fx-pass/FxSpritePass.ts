@@ -20,7 +20,7 @@ import { createProgram, shaderSrc } from "../../utils/GlUtils";
 import { nukeExplosionRadius } from "./FxSettings";
 
 import { assetUrl } from "@openfront/shared/AssetUrls";
-import { enhancedVisualsEnabled } from "../../EnhancedVisuals";
+import { enhancedVisualsEnabled, ENHANCED_SHADER_MARKER } from "../../EnhancedVisuals";
 import fxAtlasMeta from "resources/atlases/fx-atlas-meta.json";
 
 import spriteFragSrc from "../../shaders/fx/sprite.frag.glsl?raw";
@@ -197,7 +197,7 @@ export class FxSpritePass {
   private spriteCount = 0;
   private atlasTex: WebGLTexture;
   private atlasReady = false;
-  private readonly cinematic = enhancedVisualsEnabled();
+  private cinematic = enhancedVisualsEnabled();
   private cinematicNukeTex: WebGLTexture | null = null;
   private cinematicNukeReady = false;
   private uCinematicNukeReady: WebGLUniformLocation | null = null;
@@ -218,12 +218,20 @@ export class FxSpritePass {
     this.mapW = header.mapWidth;
     this.settings = settings;
 
-    this.program = createProgram(
-      gl,
-      shaderSrc(spriteVertSrc, { FX_TYPE_COUNT }),
-      spriteFragSrc,
-      "FxSpritePass",
-    );
+    const vertex = shaderSrc(spriteVertSrc, { FX_TYPE_COUNT });
+    try {
+      this.program = createProgram(gl, vertex, spriteFragSrc, "FxSpritePass");
+    } catch (error) {
+      if (!this.cinematic || gl.isContextLost?.()) throw error;
+      // An SVG atlas or its sampler shader must never make all explosion
+      // effects disappear on mobile Adreno/Mali drivers.
+      console.warn("Cinematic blast shader unavailable; using classic FX", error);
+      this.cinematic = false;
+      this.program = createProgram(gl,
+        vertex.replace(ENHANCED_SHADER_MARKER, ""),
+        spriteFragSrc.replace(ENHANCED_SHADER_MARKER, ""),
+        "FxSpritePass fallback");
+    }
     this.uCamera = gl.getUniformLocation(this.program, "uCamera")!;
     this.uFxUV = gl.getUniformLocation(this.program, "uFxUV")!;
     this.uFxWorld = gl.getUniformLocation(this.program, "uFxWorld")!;
