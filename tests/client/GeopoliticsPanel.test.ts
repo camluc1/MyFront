@@ -356,3 +356,64 @@ it("shows coalition votes from a third member's perspective without claiming pay
   expect(summary.textContent).not.toContain(text("deal_get"));
   expect(summary.textContent).not.toContain(text("deal_give"));
 });
+
+it("shows a concise strategic brief and the actual AI reason rather than a generic rejection", async () => {
+  game.diplomacy.act(game.player("b"), {
+    action: "offer", target: "a", kind: "peace",
+    give: emptyAssets(), receive: { ...emptyAssets(), gold: 200 },
+  });
+  const proposal = game.diplomacy.state.offers[0];
+  proposal.status = "rejected";
+  proposal.reason = "declined";
+  proposal.decisionReason = "strategic_assets";
+  (panel as any).inspect(proposal);
+  await panel.updateComplete;
+  const brief = panel.shadowRoot!.querySelector(".offer-summary")!;
+  expect(brief.querySelector(".diplomatic-brief")).toBeTruthy();
+  expect(brief.textContent).toContain(text("reason_strategic_assets"));
+  expect(brief.textContent).toContain(text("deal_outcomes"));
+});
+
+it("shows an unobtrusive, accessible diplomatic milestone when a port is ceded", async () => {
+  const port = game.player("b").buildUnit(UnitType.Port, game.ref(3, 1), {});
+  game.diplomacy.act(game.player("b"), {
+    action: "offer", target: "a", kind: "peace",
+    give: { ...emptyAssets(), tiles: [port.tile()], buildings: [port.id()] },
+    receive: emptyAssets(),
+  });
+  const proposal = game.diplomacy.state.offers[0];
+  game.diplomacy.act(game.player("a"), {
+    action: "accept", target: "b", offerID: proposal.id,
+  });
+  (panel as any).checkDiplomaticMoments();
+  await panel.updateComplete;
+  const announcement = panel.shadowRoot!.querySelector(".moment-toast");
+  expect(announcement).toBeTruthy();
+  expect(announcement?.getAttribute("aria-live")).toBe("polite");
+  expect(announcement?.textContent).toContain(text("event_port_cession"));
+  expect(game.owner(port.tile())).toBe(game.player("a"));
+});
+
+it("does not replay historical notifications when the geopolitical panel mounts", async () => {
+  game.diplomacy.state.log.push({
+    actor: "b", target: "a", event: "agreement", tick: game.ticks(),
+  });
+  dispose();
+  const facade = Object.assign(game, { myPlayer: () => game.player("a") });
+  const view = new Proxy(facade, {
+    get(target, key) {
+      if (key === "diplomacy") return game.diplomacy.state;
+      if (key === "resourceSitesInTiles") return () => [];
+      const value = Reflect.get(target, key);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  }) as unknown as GameView;
+  const bus = new EventBus();
+  dispose = mountGeopolitics(view, bus, {
+    worldToScreenCoordinates: (c: {x:number;y:number}) => c,
+  } as unknown as TransformHandler);
+  panel = document.querySelector("geopolitics-panel")! as GeopoliticsPanel;
+  (panel as any).checkDiplomaticMoments();
+  await panel.updateComplete;
+  expect(panel.shadowRoot!.querySelector(".moment-toast")).toBeNull();
+});
