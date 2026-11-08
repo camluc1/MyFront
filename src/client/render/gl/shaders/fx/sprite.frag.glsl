@@ -33,6 +33,28 @@ vec4 cinematicSample(float frame,bool nuke) {
 #endif
 void main() {
 #ifdef FRONTIER_CINEMATIC
+  // A SAM intercept is an aerial, fast, blue-white event, never a ground fireball.
+  // It reuses this instanced sprite quad; no new particles or draw passes.
+  if (abs(vFxType-1.0)<0.5) {
+    vec2 p=(vLocalUV-.5)*2.0;
+    float r=length(p);
+    float t=clamp(vFxProgress,0.0,1.0);
+    float flash=exp(-18.0*r*r)*pow(1.0-t,5.0);
+    float ringRadius=.12+.70*t;
+    float ring=exp(-pow((r-ringRadius)*22.0,2.0))*(1.0-t);
+    float theta=atan(p.y,p.x);
+    float spokes=pow(max(0.0,cos(theta*9.0+t*2.0)),42.0)*
+      smoothstep(.13,.24,r)*(1.0-smoothstep(.57,.85,r))*pow(1.0-t,2.0);
+#ifdef FRONTIER_REDUCED_MOTION
+    flash*=.30;
+    spokes*=.50;
+#endif
+    float alpha=clamp(flash*.94+ring*.29+spokes*.22,0.0,.86)*vAlpha;
+    if(alpha<.008) discard;
+    vec3 col=mix(vec3(.27,.71,.89),vec3(.96,.98,1.0),clamp(flash+spokes,0.0,1.0));
+    fragColor=vec4(col,alpha);
+    return;
+  }
   bool newNuke=vCinematic>.5 && vFxType<.5 && uCinematicNukeReady>.5;
   bool newImpact=vCinematic>.5 && (abs(vFxType-2.0)<.5 || abs(vFxType-3.0)<.5 || abs(vFxType-4.0)<.5) && uCinematicImpactReady>.5;
   if(newNuke || newImpact) {
@@ -43,6 +65,12 @@ void main() {
 #endif
     if(art.a<.012) discard;
     vec3 color=art.rgb/max(art.a,.001);
+    // A sinking warship is a cooler metal/steam flash; conventional impacts
+    // retain their warm explosion. Same texture, same instance count.
+    if(!newNuke && abs(vFxType-3.0)<.5) {
+      float steam=smoothstep(.20,.82,vFxProgress);
+      color=mix(color,vec3(.43,.57,.63),steam*.48);
+    }
     float initial=pow(1.0-clamp(vFxProgress,0.0,1.0),8.0);
     vec3 warm=vec3(1.0,.63,.28)*initial*(newNuke ? .13 : .10);
 #ifdef FRONTIER_REDUCED_MOTION

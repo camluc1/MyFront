@@ -1,4 +1,5 @@
 #version 300 es
+// FRONTIER_CINEMATIC_VARIANT
 precision highp float;
 precision highp usampler2D;
 precision highp sampler2DArray;
@@ -137,6 +138,12 @@ void main() {
   }
 
   color.a = uTerritoryAlpha;
+#ifdef FRONTIER_CINEMATIC_ULTRA
+  // Let more of the existing relief show through political paint. This
+  // affects only ordinary ownership, not fallout, skin sampling or alt view;
+  // the user-selected opacity remains the upper bound.
+  color.a *= 0.88;
+#endif
 
   fragColor = color;
 }
