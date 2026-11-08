@@ -270,8 +270,9 @@ void main() {
   bool vessel = vAtlasCol < 2.5;
   bool train = vAtlasCol > 8.5;
   vec2 q = (vCellUV - 0.5) * 2.0;
+  // Reused by the post-palette Ultra contour after the sprite is sampled.
+  float hullSignedDistance = 1.0;
   if (vessel || train) {
-    float hullSignedDistance = 1.0;
     texel = vehicleSprite(q, vAtlasCol, hullSignedDistance);
     // Unit-local pulse, composed behind the hull in this same instance.
     // No terrain modification, accumulated stain, particles or extra draw call.
