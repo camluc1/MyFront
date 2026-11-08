@@ -184,21 +184,32 @@ export class WarshipExecution implements Execution {
   /** Sail toward the player-selected destination and remain stationary on arrival. */
   private moveSupportShip(): void {
     const destination = this.warship.warshipState().patrolTile;
-    if (destination === undefined || !this.mg.isValidRef(destination) ||
-        !this.mg.isWater(destination)) return;
+    if (destination === undefined || !this.mg.isValidRef(destination)) return;
+    if (!this.mg.isWater(destination)) {
+      this.warship.updateWarshipState({ patrolTile: this.warship.tile() });
+      this.warship.setTargetTile(undefined);
+      return;
+    }
     if (this.warship.tile() === destination) {
       this.warship.setTargetTile(undefined);
       return;
     }
     const component = this.mg.getWaterComponent(this.warship.tile());
-    if (component === null || !this.mg.hasWaterComponent(destination, component)) return;
+    if (component === null || !this.mg.hasWaterComponent(destination, component)) {
+      this.warship.updateWarshipState({ patrolTile: this.warship.tile() });
+      this.warship.setTargetTile(undefined);
+      return;
+    }
     this.warship.setTargetTile(destination);
     const next = this.pathfinder.next(this.warship.tile(), destination);
     if (next.status === PathStatus.COMPLETE || next.status === PathStatus.NEXT) {
       this.warship.move(next.node);
       if (next.node === destination) this.warship.setTargetTile(undefined);
     } else if (next.status === PathStatus.NOT_FOUND) {
+      // Stop expensive repeated path searches for an unreachable destination.
+      // A new player order can always select a different route.
       this.warship.setTargetTile(undefined);
+      this.warship.updateWarshipState({ patrolTile: this.warship.tile() });
     }
   }
 
