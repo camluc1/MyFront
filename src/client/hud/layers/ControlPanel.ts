@@ -60,6 +60,10 @@ export class ControlPanel extends LitElement implements Controller {
 
   @state()
   private _tutorialHighlight: TutorialHighlight | null = null;
+
+  private tutorialHighlightClass(target: TutorialHighlight): string {
+    return this._tutorialHighlight === target ? "tutorial-highlight" : "";
+  }
   /** The onboarding tutorial's low-troops warning is up: flash the bar. */
   @state()
   private _lowTroopsAlert = false;

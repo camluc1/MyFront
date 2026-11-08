@@ -1411,7 +1411,7 @@ export class GeopoliticsPanel extends LitElement {
       const i = (y * w + x) * 4;
       let hex = "#102f42";
       if (this.game.isLand(tile)) {
-        const id = this.game.owner(tile).id();
+        const id = this.game.owner(tile).id() ?? "";
         if (id === me) hex = "#b9dec2";
         else if (this.mapLayer === "blocs") hex = blocs.get(id) ?? "#55636d";
         else if (this.mapLayer === "relations") hex = relations.get(id) ?? "#55636d";
