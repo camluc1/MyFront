@@ -35,6 +35,14 @@ jobs:
         run: npm ci
       - name: Check every TypeScript package
         run: npm run typecheck
+      - name: Build the development client
+        run: npm run build-dev
+      - name: Check responsive HUD regression tests
+        run: |
+          npx vitest run --project client \
+            tests/client/DlcBuildShortcuts.test.ts \
+            tests/client/UnitDisplay.test.ts \
+            tests/client/FrontierHudLayout.test.ts
       - name: Check defense gameplay, build shortcuts, HUD and GPU regressions
         run: |
           npx vitest run --project client --project node \
@@ -46,5 +54,3 @@ jobs:
             tests/client/render/gl/IronDomeVisibility.test.ts \
             tests/client/render/gl/DefenseCoveragePerf.test.ts \
             tests/CinematicFxVisibility.test.ts
-      - name: Build the development client
-        run: npm run build-dev
