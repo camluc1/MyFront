@@ -56,6 +56,49 @@ describe("PackedUnitUpdates", () => {
       expect(unpackUnitUpdatesFn(packedUnitUpdates, packedMissileTimers)).toEqual([original]);
     }
   });
+  it("encodes Castle and Iron Dome as append-only IDs and round-trips construction, upgrades and transfers", () => {
+    const newDefenses = [
+      [UnitType.Castle, 21],
+      [UnitType.IronDome, 22],
+    ] as const;
+    expect(unitTypeToInt(UnitType.GasPlant)).toBe(20);
+    for (const [unitType, id] of newDefenses) {
+      expect(unitTypeToInt(unitType)).toBe(id);
+      expect(intToUnitType(id)).toBe(unitType);
+
+      for (const [underConstruction, level, lastOwnerID] of [
+        [true, 1, undefined],
+        [false, 5, 9],
+      ] as const) {
+        const original: UnitUpdate = {
+          type: GameUpdateType.Unit,
+          unitType,
+          id: id * 10 + level,
+          ownerID: 3,
+          lastOwnerID,
+          pos: 2345,
+          lastPos: 2345,
+          troops: 0,
+          isActive: true,
+          reachedTarget: false,
+          targetable: true,
+          markedForDeletion: false,
+          targetUnitId: undefined,
+          targetTile: undefined,
+          health: 1,
+          underConstruction,
+          level,
+          hasTrainStation: false,
+          trainType: undefined,
+          loaded: undefined,
+          missileTimerQueue: [],
+        };
+        const packed = packUnitUpdatesFn([original]);
+        expect(unpackUnitUpdatesFn(packed.packedUnitUpdates, packed.packedMissileTimers)).toEqual([original]);
+      }
+    }
+  });
+
   it("packs and unpacks a complex UnitUpdate without fidelity loss", () => {
     const original: UnitUpdate = {
       type: GameUpdateType.Unit,
