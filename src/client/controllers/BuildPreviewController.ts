@@ -1189,6 +1189,7 @@ export class BuildPreviewController implements Controller {
           targetTile,
           rocketDirectionUp,
           isNuke ? this.selectedUpgradeAmount(unit) : undefined,
+          unitType === UnitType.Warship && this.uiState.supportShipMode === true,
         ),
       );
       if (!shouldPreserveGhostAfterBuild(unitType)) {
@@ -1413,6 +1414,7 @@ export class BuildPreviewController implements Controller {
     this.touchPlacementMode = false;
     this.clearGhostStructure();
     this.uiState.ghostStructure = null;
+    this.uiState.supportShipMode = false;
     if (hadGhost) this.eventBus.emit(new ToggleStructureEvent(null));
   }
 

@@ -45,6 +45,7 @@ const float FLAG_TRADE_FRIENDLY = 3.0;
 const float FLAG_RETREATING     = 4.0;
 const float FLAG_FLICKER_UNTARGETABLE = 5.0; // nuke out of SAM range — dimmed
 const float FLAG_TRADE_SELF     = 6.0;
+const float FLAG_SUPPORT_SHIP   = 7.0;
 
 // Flicker hot colors: red → orange → yellow → white
 const vec3 FLICKER_COLORS[4] = vec3[4](
@@ -136,6 +137,13 @@ vec4 vehicleSprite(vec2 q, float col) {
       if(detail>.1 && q.x>-.20 && q.x<-.17 && abs(q.y)<.10)gray=.275;
       if(detail>.1 && q.x>.29 && q.x<.34 && abs(q.y)<.025)gray=.92;
     } else if(warship) {
+      if (abs(vFlags - FLAG_SUPPORT_SHIP) < 0.1) {
+        // High-contrast workshop deck and service crane; same instanced quad.
+        if (q.x > -0.40 && q.x < 0.35 && abs(q.y) < 0.13) gray = 0.87;
+        if (q.x > -0.12 && q.x < -0.02 && abs(q.y) < 0.16) gray = 0.27;
+        if (q.x > -0.24 && q.x < 0.23 && abs(q.y - 0.09) < 0.025) gray = 0.27;
+        if (length(q - vec2(0.19, 0.03)) < 0.05) gray = 1.0;
+      } else {
       if(q.x> -0.32 && q.x<0.30 && abs(q.y)<0.115)gray=0.51;
       if(q.x> -0.15 && q.x<0.12 && abs(q.y)<0.08)gray=0.92;
       if(detail>0.1) {
@@ -154,6 +162,7 @@ vec4 vehicleSprite(vec2 q, float col) {
         if(q.x> -0.36 && q.x< -0.31 && abs(q.y)<0.072) gray=0.275;
       }
 #endif
+      }
     } else {
       // Open troop well and full-width forward landing ramp.
       if(q.x> -0.15 && q.x<0.19 && abs(q.y)<0.12)gray=0.275;

@@ -133,7 +133,7 @@ export class Geopolitics {
       ? Math.min(8, (m.rejections ?? 0) + 1) : 1;
     m.lastRejection = this.game.ticks();
     m.tick = this.game.ticks();
-    const wait = Math.min(6000, 900 * 2 ** Math.min(3, m.rejections - 1));
+    const wait = Math.min(6000, 900 * (1 << Math.min(3, m.rejections - 1)));
     this.state.cooldowns[`ai:pair:${other}:${actor}`] = this.game.ticks() + wait;
   }
   /** Encodes meaningful changes in an ongoing war without reacting to every tick. */

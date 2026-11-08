@@ -34,6 +34,13 @@ import type {
 } from "../snapshot/SnapshotContext";
 import { ShellExecution } from "./ShellExecution";
 
+/** Mobile naval logistics use the existing vessel type and batched renderer. */
+export const SUPPORT_SHIP_COST = 5_000_000n;
+export const SUPPORT_SHIP_RADIUS = 90;
+export const SUPPORT_SHIP_CAPACITY = 3;
+const SUPPORT_DOCK_RADIUS = 75;
+const SUPPORT_COMBAT_COOLDOWN = 10;
+
 export class WarshipExecution implements Execution {
   private random: PseudoRandom;
   private warship: Unit;
@@ -45,6 +52,8 @@ export class WarshipExecution implements Execution {
   private lastObservedPatrolTile: TileRef | undefined;
   private activeHealingRemainder = 0;
   private lastEmittedCombat = false;
+  /** Persistent repair bays: three ships remain assigned until they leave or recover. */
+  private assignedRepairShipIDs: number[] = [];
 
   constructor(
     private input: (UnitParams<UnitType.Warship> & OwnerComp) | Unit,
@@ -57,6 +66,10 @@ export class WarshipExecution implements Execution {
     if (isUnit(this.input)) {
       this.warship = this.input;
     } else {
+      const support = this.input.supportShip === true;
+      if (support && (mg.config().gameConfig().geopolitics !== true ||
+          (!mg.config().infiniteGold() && this.input.owner.gold() < SUPPORT_SHIP_COST))) return;
+      const baseCost = mg.unitInfo(UnitType.Warship).cost(mg, this.input.owner);
       const spawn = this.input.owner.canBuild(
         UnitType.Warship,
         this.input.patrolTile,
@@ -72,6 +85,10 @@ export class WarshipExecution implements Execution {
         spawn,
         this.input,
       );
+      // buildUnit already charged the ordinary warship amount.
+      if (support && !mg.config().infiniteGold()) {
+        this.input.owner.removeGold(SUPPORT_SHIP_COST - baseCost);
+      }
     }
     this.lastObservedPatrolTile = this.warship.warshipState().patrolTile;
   }
@@ -88,6 +105,16 @@ export class WarshipExecution implements Execution {
     this.lastEmittedCombat = isInCombat;
     const healthBeforeHealing = this.warship.health();
 
+    if (this.warship.warshipState().supportShip) {
+      // Service ships do not shoot or random-patrol. Cost is one local scan/tick.
+      this.healWarship();
+      // Move first: a ship that travels this tick uses the slower underway
+      // repair rate, not the stationary rate from its previous position.
+      this.moveSupportShip();
+      this.repairSupportedShips();
+      return;
+    }
+
     this.healWarship();
     this.handleManualPatrolOverride();
 
@@ -102,8 +129,14 @@ export class WarshipExecution implements Execution {
     }
 
     if (this.warship.warshipState().state === "docked") {
-      if (this.currentRetreatPort() === undefined) {
+      if (this.currentRetreatPort() === undefined &&
+          this.currentRetreatSupport() === undefined) {
         this.cancelRepairRetreat();
+      }
+      const support = this.currentRetreatSupport();
+      if (support && this.mg.euclideanDistSquared(this.warship.tile(), support.tile()) >
+          SUPPORT_DOCK_RADIUS * SUPPORT_DOCK_RADIUS) {
+        this.warship.updateWarshipState({ state: "retreating" });
       }
       if (this.isFullyHealed()) {
         this.cancelRepairRetreat();
@@ -148,6 +181,125 @@ export class WarshipExecution implements Execution {
     }
 
     this.patrol();
+  }
+
+  /** Sail toward the player-selected destination and remain stationary on arrival. */
+  private moveSupportShip(): void {
+    const destination = this.warship.warshipState().patrolTile;
+    if (destination === undefined || !this.mg.isValidRef(destination)) return;
+    if (!this.mg.isWater(destination)) {
+      this.warship.updateWarshipState({ patrolTile: this.warship.tile() });
+      this.warship.setTargetTile(undefined);
+      return;
+    }
+    if (this.warship.tile() === destination) {
+      this.warship.setTargetTile(undefined);
+      return;
+    }
+    const component = this.mg.getWaterComponent(this.warship.tile());
+    if (component === null || !this.mg.hasWaterComponent(destination, component)) {
+      this.warship.updateWarshipState({ patrolTile: this.warship.tile() });
+      this.warship.setTargetTile(undefined);
+      return;
+    }
+    this.warship.setTargetTile(destination);
+    const next = this.pathfinder.next(this.warship.tile(), destination);
+    if (next.status === PathStatus.COMPLETE || next.status === PathStatus.NEXT) {
+      this.warship.move(next.node);
+      if (next.node === destination) this.warship.setTargetTile(undefined);
+    } else if (next.status === PathStatus.NOT_FOUND) {
+      // Stop expensive repeated path searches for an unreachable destination.
+      // A new player order can always select a different route.
+      this.warship.setTargetTile(undefined);
+      this.warship.updateWarshipState({ patrolTile: this.warship.tile() });
+    }
+  }
+
+  /** One nearby-unit lookup per dock and at most three repairs per tick. */
+  private repairSupportedShips(): void {
+    const owner = this.warship.owner();
+    if (owner.inDoomsdayClock() ||
+      this.mg.ticks() - this.warship.warshipState().lastCombatTick <= 3) return;
+    const component = this.mg.getWaterComponent(this.warship.tile());
+    if (component === null) return;
+    const radiusSquared = SUPPORT_SHIP_RADIUS * SUPPORT_SHIP_RADIUS;
+    const repairHP = this.warship.tile() === this.warship.warshipState().patrolTile ? 4 : 1;
+    const candidates = this.mg.nearbyUnits(
+      this.warship.tile(), SUPPORT_SHIP_RADIUS, [UnitType.Warship],
+    ).filter(({ unit, distSquared }) =>
+      unit !== this.warship && unit.owner() === owner && unit.isActive() &&
+      !unit.isMarkedForDeletion() && !unit.warshipState().supportShip &&
+      unit.health() > 0 && unit.health() < unit.maxHealth() &&
+      this.mg.ticks() - unit.warshipState().lastCombatTick > SUPPORT_COMBAT_COOLDOWN &&
+      distSquared <= radiusSquared && this.mg.hasWaterComponent(unit.tile(), component),
+    );
+    candidates.sort((a, b) =>
+      a.unit.health() * b.unit.maxHealth() - b.unit.health() * a.unit.maxHealth() ||
+      a.unit.id() - b.unit.id(),
+    );
+    // Inspect other service vessels only once for this tick. The normal
+    // owner.units() lookup stays memoized and does not allocate per candidate.
+    const otherDocks = owner.units(UnitType.Warship).filter((vessel) =>
+      vessel !== this.warship && vessel.warshipState().supportShip &&
+      vessel.isActive() && !vessel.isMarkedForDeletion() && vessel.health() > 0,
+    );
+    // Preserve the same three repair bays across ticks. Without sticky bays,
+    // ships with lower health replace those just repaired every tick, causing
+    // four or more different ships to heal despite a three-ship capacity.
+    const candidateByID = new Map(candidates.map((entry) => [entry.unit.id(), entry]));
+    const nextAssigned: number[] = [];
+    const tryAssign = ({ unit, distSquared }: { unit: Unit; distSquared: number }): void => {
+      if (nextAssigned.length >= SUPPORT_SHIP_CAPACITY) return;
+      // Overlapping docks must not double-heal the same hull.
+      let closestID = this.warship.id();
+      let closestDist = distSquared;
+      for (const vessel of otherDocks) {
+        const d = this.mg.euclideanDistSquared(vessel.tile(), unit.tile());
+        if (d <= radiusSquared &&
+            (d < closestDist || (d === closestDist && vessel.id() < closestID))) {
+          closestDist = d;
+          closestID = vessel.id();
+        }
+      }
+      if (closestID !== this.warship.id()) return;
+      nextAssigned.push(unit.id());
+      unit.modifyHealth(repairHP);
+    };
+    for (const id of this.assignedRepairShipIDs) {
+      const candidate = candidateByID.get(id);
+      if (!candidate) continue;
+      tryAssign(candidate);
+      candidateByID.delete(id);
+    }
+    for (const candidate of candidates) {
+      if (nextAssigned.length >= SUPPORT_SHIP_CAPACITY) break;
+      if (candidateByID.has(candidate.unit.id())) {
+        tryAssign(candidate);
+      }
+    }
+    this.assignedRepairShipIDs = nextAssigned;
+  }
+
+  /** The target moves, so store and resolve the support unit ID, never a static tile. */
+  private currentRetreatSupport(): Unit | undefined {
+    const id = this.warship.warshipState().retreatSupportID;
+    if (id === undefined) return undefined;
+    const unit = this.mg.unit(id);
+    return unit?.type() === UnitType.Warship && unit.owner() === this.warship.owner() &&
+      unit.warshipState().supportShip && unit.isActive() &&
+      !unit.isMarkedForDeletion() && unit.health() > 0 ? unit : undefined;
+  }
+
+  private findNearestSupport(): Unit | undefined {
+    const component = this.mg.getWaterComponent(this.warship.tile());
+    if (component === null) return undefined;
+    return findMinimumBy(
+      this.warship.owner().units(UnitType.Warship),
+      (candidate) => this.mg.euclideanDistSquared(this.warship.tile(), candidate.tile()),
+      (candidate) => candidate !== this.warship && candidate.warshipState().supportShip === true &&
+        candidate.isActive() && !candidate.isMarkedForDeletion() && candidate.health() > 0 &&
+        this.mg.hasWaterComponent(candidate.tile(), component),
+    ) ?? undefined;
   }
 
   private healWarship(): void {
@@ -219,7 +371,7 @@ export class WarshipExecution implements Execution {
       return false;
     }
     const ports = this.warship.owner().units(UnitType.Port);
-    return ports.length > 0;
+    return ports.length > 0 || this.findNearestSupport() !== undefined;
   }
 
   private findNearestPort(): TileRef | undefined {
@@ -355,11 +507,14 @@ export class WarshipExecution implements Execution {
 
   private startRepairRetreat(): void {
     const portTile = this.findNearestPort();
-    if (portTile === undefined) {
-      return;
-    }
+    const support = this.findNearestSupport();
+    const supportDist = support ? this.mg.euclideanDistSquared(this.warship.tile(), support.tile()) : Infinity;
+    const portDist = portTile === undefined ? Infinity : this.mg.euclideanDistSquared(this.warship.tile(), portTile);
+    if (portTile === undefined && support === undefined) return;
+    const useSupport = support !== undefined && supportDist <= portDist;
     this.warship.updateWarshipState({
-      retreatPort: portTile,
+      retreatPort: useSupport ? undefined : portTile,
+      retreatSupportID: useSupport ? support!.id() : undefined,
       state: "retreating",
     });
     this.activeHealingRemainder = 0;
@@ -371,6 +526,7 @@ export class WarshipExecution implements Execution {
     this.warship.updateWarshipState({
       state: "patrolling",
       retreatPort: undefined,
+      retreatSupportID: undefined,
     });
     if (clearTargetTile) {
       this.warship.setTargetTile(undefined);
@@ -403,6 +559,29 @@ export class WarshipExecution implements Execution {
       // Fall through — continue retreating toward port even while firing back.
     }
 
+    if (this.warship.warshipState().retreatSupportID !== undefined) {
+      const support = this.currentRetreatSupport();
+      if (support) {
+        if (!retreatAggroTarget) this.warship.setTargetUnit(undefined);
+        const destination = support.tile();
+        if (this.mg.euclideanDistSquared(this.warship.tile(), destination) <=
+            SUPPORT_DOCK_RADIUS * SUPPORT_DOCK_RADIUS) {
+          this.warship.setTargetTile(undefined);
+          this.warship.updateWarshipState({ state: "docked" });
+          return true;
+        }
+        this.warship.updateWarshipState({ state: "retreating" });
+        this.warship.setTargetTile(destination);
+        const step = this.pathfinder.next(this.warship.tile(), destination);
+        if (step.status === PathStatus.NEXT || step.status === PathStatus.COMPLETE) {
+          this.warship.move(step.node);
+        } else {
+          this.warship.updateWarshipState({ retreatSupportID: undefined, retreatPort: this.findNearestPort() });
+        }
+        return true;
+      }
+      this.warship.updateWarshipState({ retreatSupportID: undefined, retreatPort: this.findNearestPort(), state: "retreating" });
+    }
     if (!this.refreshRetreatPortTile()) {
       this.cancelRepairRetreat();
       return false;
@@ -847,6 +1026,7 @@ export class WarshipExecution implements Execution {
         : {
             owner: w.player(this.input.owner),
             patrolTile: this.input.patrolTile,
+            supportShip: this.input.supportShip,
           },
       initialized: this.mg !== undefined,
       random: this.random === undefined ? null : w.random(this.random),
@@ -861,6 +1041,10 @@ export class WarshipExecution implements Execution {
       lastObservedPatrolTile: this.lastObservedPatrolTile,
       activeHealingRemainder: this.activeHealingRemainder,
       lastEmittedCombat: this.lastEmittedCombat,
+      // Do not change normal/classic warship snapshot payloads.
+      assignedRepairShipIDs: this.warship?.warshipState().supportShip
+        ? [...this.assignedRepairShipIDs]
+        : undefined,
     });
   }
 
@@ -868,7 +1052,7 @@ export class WarshipExecution implements Execution {
     this.input =
       "unit" in s.input
         ? r.unit(s.input.unit)
-        : { owner: r.player(s.input.owner), patrolTile: s.input.patrolTile };
+        : { owner: r.player(s.input.owner), patrolTile: s.input.patrolTile, supportShip: s.input.supportShip };
     if (s.initialized) this.mg = r.game;
     if (s.random !== null) this.random = r.random(s.random);
     if (s.warship !== null) this.warship = r.unit(s.warship);
@@ -882,6 +1066,7 @@ export class WarshipExecution implements Execution {
     this.lastObservedPatrolTile = s.lastObservedPatrolTile;
     this.activeHealingRemainder = s.activeHealingRemainder;
     this.lastEmittedCombat = s.lastEmittedCombat;
+    this.assignedRepairShipIDs = s.assignedRepairShipIDs ?? [];
   }
 }
 
@@ -889,7 +1074,7 @@ const WarshipExecutionStateSchema = z.object({
   /** An existing warship, or the params to build one in init(). */
   input: z.union([
     z.object({ unit: zRef() }),
-    z.object({ owner: zPlayerRef(), patrolTile: zTile() }),
+    z.object({ owner: zPlayerRef(), patrolTile: zTile(), supportShip: z.boolean().optional() }),
   ]),
   initialized: z.boolean(),
   random: zRandom().nullable(),
@@ -903,6 +1088,7 @@ const WarshipExecutionStateSchema = z.object({
   lastObservedPatrolTile: zTile().optional(),
   activeHealingRemainder: zNum(),
   lastEmittedCombat: z.boolean(),
+  assignedRepairShipIDs: z.array(zInt()).optional(),
 });
 type WarshipExecutionState = z.infer<typeof WarshipExecutionStateSchema>;
 

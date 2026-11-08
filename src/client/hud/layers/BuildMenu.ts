@@ -516,6 +516,7 @@ export class BuildMenu extends LitElement implements Controller {
   }
 
   public sendBuildOrUpgrade(buildableUnit: BuildableUnit, tile: TileRef): void {
+    this.uiState.supportShipMode = false;
     if (buildableUnit.canUpgrade !== false && !this.uiState.preventStacking) {
       this.eventBus.emit(
         new SendUpgradeStructureIntentEvent(

@@ -1575,6 +1575,9 @@ export class InputHandler {
     source: "increase" | "decrease" | "GUIclick" | "hotkey" = "hotkey",
   ) {
     const previousGhostStructure = this.uiState.ghostStructure;
+    if (ghostStructure !== UnitType.Warship || source !== "GUIclick") {
+      this.uiState.supportShipMode = false;
+    }
     if (source === "GUIclick" && previousGhostStructure !== ghostStructure) {
       this.eventBus.emit(new CloseViewEvent());
     }
