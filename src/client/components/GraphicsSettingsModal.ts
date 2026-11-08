@@ -70,7 +70,7 @@ export class GraphicsSettingsModal extends BaseModal {
                 );
                 this.requestUpdate();
               }} />
-            ${translateText("user_setting.show")}
+            ${translateText("performance_overlay.toggle_compact")}
           </label>
         </div>
         <graphics-advanced-settings
