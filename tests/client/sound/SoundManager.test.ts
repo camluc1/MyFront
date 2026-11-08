@@ -570,6 +570,38 @@ describe("ambience", () => {
   });
 });
 
+describe("cinematic ocean ambience", () => {
+  it("does not synthesize or load sea audio at game startup", () => {
+    expect(howlInstances.filter((h) => h.src.startsWith("data:audio/wav;base64,")))
+      .toHaveLength(0);
+  });
+
+  it("generates just one tiny loop on demand and uses the existing ambience mixer", () => {
+    eventBus.emit(new SetAmbienceEvent("sea", 0.1));
+    const loops = howlInstances.filter((h) =>
+      h.src.startsWith("data:audio/wav;base64,"));
+    expect(loops).toHaveLength(1);
+    expect(loops[0].loop).toBe(true);
+    expect(loops[0].html5).toBe(false);
+    expect(loops[0].src.length).toBeLessThan(65_000);
+    expect(loops[0].fade).toHaveBeenCalled();
+    eventBus.emit(new SetAmbienceEvent("sea", 0.05));
+    expect(howlInstances.filter((h) =>
+      h.src.startsWith("data:audio/wav;base64,"))).toHaveLength(1);
+    settings.setAudioVolume("ambience", 0);
+    expect(mixer.volumeFor("ambience")).toBe(0);
+  });
+
+  it("crossfades from the sea to a nearby port's other ambience without stacking loops", () => {
+    eventBus.emit(new SetAmbienceEvent("sea", 0.1));
+    const ocean = howlInstances.find((h) =>
+      h.src.startsWith("data:audio/wav;base64,"));
+    eventBus.emit(new SetAmbienceEvent("city", 0.1));
+    expect(ocean.fade).toHaveBeenCalled();
+    expect(find("city.mp3")).toBeDefined();
+  });
+});
+
 describe("teardown", () => {
   it("stops and unloads everything it owns", () => {
     eventBus.emit(new SetAmbienceEvent("city", 0.1));
