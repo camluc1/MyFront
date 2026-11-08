@@ -609,20 +609,6 @@ export class UnitDisplay extends LitElement implements Controller {
               this.getHotkey("buildDefensePost", "Digit4"),
             )}
             ${this.renderUnitItem(
-              castleIcon,
-              this._castle,
-              UnitType.Castle,
-              "castle",
-              this.getHotkey("buildCastle", ""),
-            )}
-            ${this.renderUnitItem(
-              ironDomeIcon,
-              this._ironDome,
-              UnitType.IronDome,
-              "iron_dome",
-              this.getHotkey("buildIronDome", ""),
-            )}
-            ${this.renderUnitItem(
               missileSiloIcon,
               this._missileSilo,
               UnitType.MissileSilo,
@@ -663,6 +649,20 @@ export class UnitDisplay extends LitElement implements Controller {
               UnitType.MIRV,
               "mirv",
               this.getHotkey("buildMIRV", "Digit0"),
+            )}
+            ${this.renderUnitItem(
+              castleIcon,
+              this._castle,
+              UnitType.Castle,
+              "castle",
+              this.getHotkey("buildCastle", ""),
+            )}
+            ${this.renderUnitItem(
+              ironDomeIcon,
+              this._ironDome,
+              UnitType.IronDome,
+              "iron_dome",
+              this.getHotkey("buildIronDome", ""),
             )}
             ${this.renderUnitItem(
               farmIcon,
