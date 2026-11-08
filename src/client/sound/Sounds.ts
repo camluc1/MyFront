@@ -71,7 +71,7 @@ export const soundEffectUrls: ReadonlyMap<SoundEffect, string> = new Map([
   ["defeat", assetUrl("sounds/effects/defeat.mp3")],
 ]);
 
-export type AmbienceTrack = "city" | "factory" | "missile-silo" | "sam-silo";
+export type AmbienceTrack = "city" | "factory" | "missile-silo" | "sam-silo" | "sea";
 
 export const ambienceUrls: ReadonlyMap<AmbienceTrack, string> = new Map([
   ["city", assetUrl("sounds/ambience/city.mp3")],
@@ -133,7 +133,7 @@ const CUE_CATEGORY: Record<SoundEffect, Exclude<CueCategory, "ambience">> = {
 
 /** Channel of a cue. A pure function of the name — call sites never choose. */
 export function categoryOf(name: SoundEffect | AmbienceTrack): CueCategory {
-  return ambienceUrls.has(name as AmbienceTrack)
+  return name === "sea" || ambienceUrls.has(name as AmbienceTrack)
     ? "ambience"
     : CUE_CATEGORY[name as SoundEffect];
 }
