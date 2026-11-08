@@ -5,6 +5,7 @@ import {
   Cosmetics,
   findEffectForSlot,
 } from "@openfront/shared/CosmeticSchemas";
+import { normalizeGameColorChoice } from "@openfront/shared/GameColorChoices";
 import { decodePatternData } from "@openfront/shared/PatternDecoder";
 import {
   PlayerColor,
@@ -246,6 +247,10 @@ export class PrivilegeCheckerImpl implements PrivilegeChecker {
   }
 
   isColorAllowed(flares: string[], color: string): PlayerColor {
+    // The pre-game palette is free and deliberately finite. Other catalog
+    // colors retain their original entitlement checks.
+    const freeColor = normalizeGameColorChoice(color);
+    if (freeColor !== null) return { color: freeColor };
     const allowedColors = flares
       .filter((flare) => flare.startsWith("color:"))
       .map((flare) => flare.split(":")[1]);
@@ -263,7 +268,12 @@ export class FailOpenPrivilegeChecker implements PrivilegeChecker {
     // resolveVerifiedJoin decides it against the account at join.
     return {
       type: "allowed",
-      cosmetics: refs.verified === true ? { verified: true } : {},
+      cosmetics: {
+        ...(refs.verified === true ? { verified: true } : {}),
+        ...(normalizeGameColorChoice(refs.color) !== null
+          ? { color: { color: normalizeGameColorChoice(refs.color)! } }
+          : {}),
+      },
     };
   }
 
