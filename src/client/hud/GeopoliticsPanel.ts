@@ -1803,9 +1803,25 @@ export class GeopoliticsPanel extends LitElement {
     const a = this.assets();
     const flipped = !this.editing && this.selected?.to === this.mine()?.id();
     for (const side of ["give", "receive"] as const) {
-      ctx.fillStyle = (side === "give") !== flipped ? "#ffd17e" : "#69f0c9";
+      const gain = (side === "receive") !== flipped;
+      ctx.fillStyle = gain ? "#69f0c9" : "#ffd17e";
       for (const ref of a[side].tiles)
         ctx.fillRect(this.game.x(ref), this.game.y(ref), 1, 1);
+      // Operational harbors receive an extra ring: they are strategic access
+      // points, not an abstract exchange of identical map pixels.
+      const portIds = a[side].buildings.filter((id) =>
+        this.game.unit(id)?.type() === UnitType.Port);
+      ctx.strokeStyle = gain ? "#d8ffed" : "#fff1cd";
+      ctx.lineWidth = Math.max(2, this.game.width() / 250);
+      for (const id of portIds) {
+        const unit = this.game.unit(id);
+        if (!unit) continue;
+        ctx.beginPath();
+        ctx.arc(this.game.x(unit.tile()) + .5,
+          this.game.y(unit.tile()) + .5,
+          Math.max(4, this.game.width() / 125), 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
   }
   private drawOverlay() {
@@ -1821,18 +1837,29 @@ export class GeopoliticsPanel extends LitElement {
     if (!this.opened || this.tab !== "negotiate") return;
     const a = this.assets();
     const flipped = !this.editing && this.selected?.to === this.mine()?.id();
+    const phase = (performance.now() / 140) % 18;
+    ctx.setLineDash([8, 6]);
+    ctx.lineDashOffset = -phase;
     for (const side of ["give", "receive"] as const) {
-      ctx.fillStyle = (side === "give") !== flipped ? "#ffd17e99" : "#69f0c999";
-      for (const run of this.runs(a[side].tiles)) {
-        const x = run.x,
-          y = run.y,
-          p = this.transform.worldToScreenCoordinates(new Cell(x, y)),
-          q = this.transform.worldToScreenCoordinates(
-            new Cell(x + run.width, y + 1),
-          );
+      const gain = (side === "receive") !== flipped;
+      ctx.fillStyle = gain ? "#69f0c977" : "#ffd17e77";
+      ctx.strokeStyle = gain ? "#b5ffe4" : "#ffdb9b";
+      ctx.lineWidth = 1.5;
+      const runs = this.runs(a[side].tiles);
+      for (const run of runs) {
+        const p = this.transform.worldToScreenCoordinates(
+          new Cell(run.x, run.y));
+        const q = this.transform.worldToScreenCoordinates(
+          new Cell(run.x + run.width, run.y + 1));
         ctx.fillRect(p.x, p.y, q.x - p.x, q.y - p.y);
+        // Do not overwhelm rendering on very large territorial exchanges.
+        if (runs.length <= 400 &&
+          Math.abs(q.x - p.x) > 1 && Math.abs(q.y - p.y) > 1)
+          ctx.strokeRect(p.x, p.y, q.x - p.x, q.y - p.y);
       }
     }
+    ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
   }
 }
 export function mountGeopolitics(
