@@ -1125,39 +1125,39 @@ body.frontier-hud chat-display > div {
 }
 
 /* FRONTIER command dock v2 — responsive, constant-row build navigation. */
-body.frontier-hud [data-frontier-hud="bottom"] {
+body [data-frontier-hud="bottom"] {
   --command-width: clamp(44rem, 64vw, 74rem);
 }
 @media (min-width: 1024px) {
-  body.frontier-hud [data-frontier-hud="bottom"] {
+  body [data-frontier-hud="bottom"] {
     grid-template-columns: minmax(0, 1fr) minmax(0, var(--command-width)) minmax(0, 1fr);
     gap: clamp(.5rem, 1vw, 1rem);
   }
-  body.frontier-hud [data-frontier-hud="bottom"] > div:first-child {
+  body [data-frontier-hud="bottom"] > div:first-child {
     width: 100% !important;
     min-width: 0;
   }
 }
-body.frontier-hud [data-frontier-hud-panel="command"] { min-width: 0; }
-body.frontier-hud control-panel > div { padding: .4rem .65rem .25rem; }
-body.frontier-hud control-panel section[aria-label="Estado de la partida"] { padding: .5rem .6rem; }
-body.frontier-hud .unit-display-root {
+body [data-frontier-hud-panel="command"] { min-width: 0; }
+body control-panel > div { padding: .4rem .65rem .25rem; }
+body control-panel section[aria-label="Estado de la partida"] { padding: .5rem .6rem; }
+body .unit-display-root {
   padding: .45rem .65rem .5rem;
   border-top-color: var(--frontier-hud-border);
 }
-body.frontier-hud .unit-display-workspace {
+body .unit-display-workspace {
   display: flex;
   gap: clamp(.5rem, .9vw, .8rem);
   min-width: 0;
   align-items: stretch;
 }
-body.frontier-hud .unit-display-construction {
+body .unit-display-construction {
   display: flex;
   flex-direction: column;
   min-width: 0;
   gap: .4rem;
 }
-body.frontier-hud .unit-display-tabs {
+body .unit-display-tabs {
   display: flex;
   align-items: center;
   min-height: 1.7rem;
@@ -1166,17 +1166,17 @@ body.frontier-hud .unit-display-tabs {
   scrollbar-width: none;
   white-space: nowrap;
 }
-body.frontier-hud .unit-display-tabs::-webkit-scrollbar { display: none; }
-body.frontier-hud .unit-display-eyebrow,
-body.frontier-hud .unit-display-arsenal-heading {
+body .unit-display-tabs::-webkit-scrollbar { display: none; }
+body .unit-display-eyebrow,
+body .unit-display-arsenal-heading {
   flex-shrink: 0;
   font-size: .67rem;
   font-weight: 800;
   letter-spacing: .1em;
   color: #93a7bc;
 }
-body.frontier-hud .unit-display-tab,
-body.frontier-hud .unit-display-resources {
+body .unit-display-tab,
+body .unit-display-resources {
   flex-shrink: 0;
   padding: .32rem clamp(.45rem, .8vw, .7rem);
   border-radius: .4rem;
@@ -1189,27 +1189,27 @@ body.frontier-hud .unit-display-resources {
   cursor: pointer;
   transition: background 140ms, border-color 140ms, color 140ms;
 }
-body.frontier-hud .unit-display-tab:hover,
-body.frontier-hud .unit-display-resources:hover { background: rgba(125,211,252,.09); color: white; }
-body.frontier-hud .unit-display-tab.is-active {
+body .unit-display-tab:hover,
+body .unit-display-resources:hover { background: rgba(125,211,252,.09); color: white; }
+body .unit-display-tab.is-active {
   color: #b7f0ff;
   background: rgba(34,211,238,.13);
   border-color: rgba(103,232,249,.3);
 }
-body.frontier-hud .unit-display-tab-arsenal { color: #fbbf80; }
-body.frontier-hud .unit-display-resources {
+body .unit-display-tab-arsenal { color: #fbbf80; }
+body .unit-display-resources {
   margin-left: auto;
   color: #b9d9e7;
   border-color: rgba(56,189,248,.25);
   background: rgba(14,116,144,.12);
 }
-body.frontier-hud .unit-display-scroll {
+body .unit-display-scroll {
   overflow-x: auto;
   overflow-y: hidden;
   min-width: 0;
   overscroll-behavior-x: contain;
 }
-body.frontier-hud .unit-display-grid {
+body .unit-display-grid {
   display: flex;
   flex-wrap: nowrap;
   gap: clamp(.3rem,.5vw,.55rem);
@@ -1217,13 +1217,13 @@ body.frontier-hud .unit-display-grid {
   min-width: 100%;
   padding: .1rem 0 .15rem;
 }
-body.frontier-hud .unit-display-grid > div {
+body .unit-display-grid > div {
   flex: 1 0 clamp(3.6rem,4.4vw,4.8rem);
   min-width: 3.6rem;
   max-width: 6.2rem;
   min-height: 0;
 }
-body.frontier-hud .unit-display-action {
+body .unit-display-action {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1240,39 +1240,39 @@ body.frontier-hud .unit-display-action {
   outline-offset: 2px;
   transition: border-color 140ms, background 140ms, transform 140ms;
 }
-body.frontier-hud .unit-display-action:hover,
-body.frontier-hud .unit-display-action:focus-visible {
+body .unit-display-action:hover,
+body .unit-display-action:focus-visible {
   border-color: rgba(103,232,249,.65);
   background: rgba(22,78,99,.36);
 }
-body.frontier-hud .unit-display-action:active { transform: translateY(1px); }
-body.frontier-hud .unit-display-action.is-resource { border-color: rgba(52,211,153,.25); }
-body.frontier-hud .unit-display-action.is-selected {
+body .unit-display-action:active { transform: translateY(1px); }
+body .unit-display-action.is-resource { border-color: rgba(52,211,153,.25); }
+body .unit-display-action.is-selected {
   border-color: #67e8f9;
   box-shadow: inset 0 0 0 1px rgba(103,232,249,.5),0 0 11px rgba(6,182,212,.12);
   background: rgba(8,145,178,.16);
 }
-body.frontier-hud .unit-display-action.is-unavailable { opacity: .58; }
-body.frontier-hud .unit-display-action-content {
+body .unit-display-action.is-unavailable { opacity: .58; }
+body .unit-display-action-content {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: .08rem;
 }
-body.frontier-hud .unit-display-action-image {
+body .unit-display-action-image {
   width: clamp(1.2rem,2vw,1.65rem);
   height: clamp(1.2rem,2vw,1.65rem);
   object-fit: contain;
   filter: drop-shadow(0 1px 2px rgba(0,0,0,.6));
 }
-body.frontier-hud .unit-display-action-count {
+body .unit-display-action-count {
   font-size: .68rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
 }
-body.frontier-hud .unit-display-action-cost {
+body .unit-display-action-cost {
   display: flex;
   align-items: center;
   gap: .18rem;
@@ -1282,9 +1282,9 @@ body.frontier-hud .unit-display-action-cost {
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
 }
-body.frontier-hud .unit-display-action-cost.is-unaffordable,
-body.frontier-hud .unit-display-disabled-reason { color: #fca5a5; }
-body.frontier-hud .unit-display-hotkey {
+body .unit-display-action-cost.is-unaffordable,
+body .unit-display-disabled-reason { color: #fca5a5; }
+body .unit-display-hotkey {
   font-size: .7rem;
   border: 1px solid rgba(125,211,252,.3);
   border-radius: .25rem;
@@ -1292,7 +1292,7 @@ body.frontier-hud .unit-display-hotkey {
   text-align: center;
   z-index: 1;
 }
-body.frontier-hud .unit-display-action-label {
+body .unit-display-action-label {
   margin-top: .15rem;
   color: #cbd5e1;
   font-size: .64rem;
@@ -1300,7 +1300,7 @@ body.frontier-hud .unit-display-action-label {
   line-height: 1.1;
   text-align: center;
 }
-body.frontier-hud .unit-display-arsenal {
+body .unit-display-arsenal {
   flex: 0 0 auto;
   flex-direction: column;
   justify-content: center;
@@ -1310,70 +1310,70 @@ body.frontier-hud .unit-display-arsenal {
   border-radius: .65rem;
   background: linear-gradient(125deg,rgba(120,53,15,.15),rgba(16,21,34,.65));
 }
-body.frontier-hud .unit-display-arsenal-heading { color: #fdba74; }
-body.frontier-hud .unit-display-nuclear-grid { min-width: 0; }
-body.frontier-hud .unit-display-arsenal .unit-display-grid > div {
+body .unit-display-arsenal-heading { color: #fdba74; }
+body .unit-display-nuclear-grid { min-width: 0; }
+body .unit-display-arsenal .unit-display-grid > div {
   flex: 0 0 clamp(3.8rem,4.2vw,5rem);
 }
-body.frontier-hud .unit-display-arsenal .unit-display-action {
+body .unit-display-arsenal .unit-display-action {
   border-color: rgba(251,146,60,.22);
   background: rgba(100,47,25,.18);
 }
-body.frontier-hud .unit-display-arsenal .unit-display-action:hover { border-color: rgba(253,186,116,.75); }
-body.frontier-hud .unit-display-shipyard {
+body .unit-display-arsenal .unit-display-action:hover { border-color: rgba(253,186,116,.75); }
+body .unit-display-shipyard {
   padding-top: .5rem;
   border-color: rgba(34,211,238,.3);
 }
-body.frontier-hud .unit-display-shipyard:disabled { opacity: .5; cursor: not-allowed; }
-body.frontier-hud .unit-display-action-icon { font-size: 1.3rem; line-height: 1.4; }
+body .unit-display-shipyard:disabled { opacity: .5; cursor: not-allowed; }
+body .unit-display-action-icon { font-size: 1.3rem; line-height: 1.4; }
 @media (max-width: 1023px) {
-  body.frontier-hud .unit-display-grid > div { flex-basis: 4.4rem; }
+  body .unit-display-grid > div { flex-basis: 4.4rem; }
 }
 @media (max-width: 640px) {
-  body.frontier-hud .unit-display-root { padding: .35rem .4rem; }
-  body.frontier-hud .unit-display-workspace { display: block; }
-  body.frontier-hud .unit-display-grid > div { flex: 0 0 4rem; }
-  body.frontier-hud .unit-display-action { min-height: 3.8rem; }
-  body.frontier-hud .unit-display-tabs { gap: .1rem; }
+  body .unit-display-root { padding: .35rem .4rem; }
+  body .unit-display-workspace { display: block; }
+  body .unit-display-grid > div { flex: 0 0 4rem; }
+  body .unit-display-action { min-height: 3.8rem; }
+  body .unit-display-tabs { gap: .1rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  body.frontier-hud .unit-display-action,
-  body.frontier-hud .unit-display-tab { transition: none; }
+  body .unit-display-action,
+  body .unit-display-tab { transition: none; }
 }
 
 /* Override the legacy nested button rule at matching specificity. */
-body.frontier-hud .unit-display-grid > div > .unit-display-action:first-child {
+body .unit-display-grid > div > .unit-display-action:first-child {
   min-height: clamp(3.6rem,4.5vw,4.3rem);
   border-color: rgba(148,163,184,.24);
   border-radius: .55rem;
   background: rgba(22,38,55,.85);
 }
-body.frontier-hud .unit-display-grid > div > .unit-display-action.is-selected:first-child {
+body .unit-display-grid > div > .unit-display-action.is-selected:first-child {
   border-color: #67e8f9;
   background: rgba(8,145,178,.16);
 }
-body.frontier-hud .unit-display-grid > div > .unit-display-action.is-unavailable:first-child { opacity: .58; }
-body.frontier-hud .unit-display-grid > div > .unit-display-action.is-resource:first-child { border-color: rgba(52,211,153,.25); }
-body.frontier-hud .unit-display-grid > div > .unit-display-action:hover:first-child {
+body .unit-display-grid > div > .unit-display-action.is-unavailable:first-child { opacity: .58; }
+body .unit-display-grid > div > .unit-display-action.is-resource:first-child { border-color: rgba(52,211,153,.25); }
+body .unit-display-grid > div > .unit-display-action:hover:first-child {
   border-color: rgba(103,232,249,.65);
   background: rgba(22,78,99,.36);
 }
-body.frontier-hud .unit-display-arsenal .unit-display-grid > div > .unit-display-action:first-child {
+body .unit-display-arsenal .unit-display-grid > div > .unit-display-action:first-child {
   border-color: rgba(251,146,60,.33);
   background: rgba(100,47,25,.18);
 }
-body.frontier-hud .unit-display-arsenal .unit-display-grid > div > .unit-display-action:hover:first-child {
+body .unit-display-arsenal .unit-display-grid > div > .unit-display-action:hover:first-child {
   border-color: rgba(253,186,116,.75);
 }
-body.frontier-hud .unit-display-root::before,
-body.frontier-hud .unit-display-root::after { top: 2.5rem; }
-body.frontier-hud .unit-display-root::before { background: linear-gradient(to right,rgba(8,16,29,.95),transparent); }
-body.frontier-hud .unit-display-root::after { background: linear-gradient(to left,rgba(8,16,29,.95),transparent); }
-body.frontier-hud .frontier-attack-slider { min-height: 1rem; }
-body.frontier-hud .frontier-attack-slider::-webkit-slider-thumb { width: 1.15rem; height: 1.15rem; }
+body .unit-display-root::before,
+body .unit-display-root::after { top: 2.5rem; }
+body .unit-display-root::before { background: linear-gradient(to right,rgba(8,16,29,.95),transparent); }
+body .unit-display-root::after { background: linear-gradient(to left,rgba(8,16,29,.95),transparent); }
+body .frontier-attack-slider { min-height: 1rem; }
+body .frontier-attack-slider::-webkit-slider-thumb { width: 1.15rem; height: 1.15rem; }
 
 /* Unified right strategic dock. Trackers remain mounted, even in collapsed tabs. */
-body.frontier-hud .frontier-strategy-dock {
+body .frontier-strategy-dock {
   display: flex;
   width: min(100%, 20rem);
   flex-direction: column;
@@ -1382,7 +1382,7 @@ body.frontier-hud .frontier-strategy-dock {
   margin-bottom: .5rem;
   pointer-events: auto;
 }
-body.frontier-hud .frontier-strategy-nav {
+body .frontier-strategy-nav {
   display: flex;
   align-items: center;
   width: 100%;
@@ -1395,7 +1395,7 @@ body.frontier-hud .frontier-strategy-nav {
   box-shadow: var(--frontier-hud-shadow);
   backdrop-filter: blur(16px);
 }
-body.frontier-hud .frontier-strategy-nav button {
+body .frontier-strategy-nav button {
   flex: 1 1 0;
   min-width: 0;
   padding: .4rem .18rem;
@@ -1409,39 +1409,39 @@ body.frontier-hud .frontier-strategy-nav button {
   cursor: pointer;
   transition: background 140ms, color 140ms;
 }
-body.frontier-hud .frontier-strategy-nav button:hover { color: #fff; background: rgba(148,163,184,.1); }
-body.frontier-hud .frontier-strategy-nav button[aria-pressed="true"] {
+body .frontier-strategy-nav button:hover { color: #fff; background: rgba(148,163,184,.1); }
+body .frontier-strategy-nav button[aria-pressed="true"] {
   color: #c0f1ff;
   border-color: rgba(56,189,248,.25);
   background: rgba(8,145,178,.17);
 }
 body.frontier-hud:not(:has(geopolitics-panel)) .frontier-strategy-nav [data-strategy-tab="geopolitics"] { display: none; }
-body.frontier-hud .frontier-strategy-dock frontier-world-intelligence,
-body.frontier-hud .frontier-strategy-dock frontier-chronicle {
+body .frontier-strategy-dock frontier-world-intelligence,
+body .frontier-strategy-dock frontier-chronicle {
   width: 100%;
   display: flex;
   justify-content: flex-end;
 }
-body.frontier-hud .frontier-strategy-dock frontier-world-intelligence > section,
-body.frontier-hud .frontier-strategy-dock frontier-chronicle > section { margin: 0; }
-body.frontier-hud .frontier-strategy-dock:not([data-active="intelligence"]) frontier-world-intelligence > section,
-body.frontier-hud .frontier-strategy-dock:not([data-active="chronicle"]) frontier-chronicle > section { display: none; }
+body .frontier-strategy-dock frontier-world-intelligence > section,
+body .frontier-strategy-dock frontier-chronicle > section { margin: 0; }
+body .frontier-strategy-dock:not([data-active="intelligence"]) frontier-world-intelligence > section,
+body .frontier-strategy-dock:not([data-active="chronicle"]) frontier-chronicle > section { display: none; }
 @media (max-width: 640px) {
-  body.frontier-hud .frontier-strategy-dock { width: min(100%, 22rem); margin-bottom: .2rem; }
+  body .frontier-strategy-dock { width: min(100%, 22rem); margin-bottom: .2rem; }
 }
 
 /* Header: group infrastructure and armament without a wall of equally bright zeros. */
-body.frontier-hud player-info-overlay [data-unit-group] {
+body player-info-overlay [data-unit-group] {
   border-color: rgba(148,163,184,.24);
   background: rgba(15,23,42,.4);
   transition: opacity 150ms, border-color 150ms;
 }
-body.frontier-hud player-info-overlay [data-unit-group="military"]:first-of-type {
+body player-info-overlay [data-unit-group="military"]:first-of-type {
   border-left-color: rgba(125,211,252,.55);
 }
-body.frontier-hud player-info-overlay [data-zero-count="true"] { opacity: .46; }
-body.frontier-hud player-info-overlay [data-zero-count="true"]:hover { opacity: .88; }
-body.frontier-hud player-info-overlay [data-zero-count="false"] {
+body player-info-overlay [data-zero-count="true"] { opacity: .46; }
+body player-info-overlay [data-zero-count="true"]:hover { opacity: .88; }
+body player-info-overlay [data-zero-count="false"] {
   border-color: rgba(125,211,252,.35);
   color: #e3f5ff;
 }
