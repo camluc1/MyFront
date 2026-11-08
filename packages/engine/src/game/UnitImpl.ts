@@ -104,6 +104,7 @@ export class UnitImpl implements Unit {
       this._warshipState = {
         state: "patrolling",
         patrolTile: params.patrolTile,
+        supportShip: "supportShip" in params && params.supportShip === true,
         lastCombatTick: -100,
         veterancy: 0,
         veterancyProgress: 0,
@@ -471,13 +472,17 @@ export class UnitImpl implements Unit {
     if (
       merged.state === this._warshipState.state &&
       merged.patrolTile === this._warshipState.patrolTile &&
-      merged.retreatPort === this._warshipState.retreatPort
+      merged.retreatPort === this._warshipState.retreatPort &&
+      merged.retreatSupportID === this._warshipState.retreatSupportID &&
+      merged.supportShip === this._warshipState.supportShip
     )
       return;
     this._warshipState = {
       state: merged.state,
       patrolTile: merged.patrolTile,
       retreatPort: merged.retreatPort,
+      retreatSupportID: merged.retreatSupportID,
+      supportShip: merged.supportShip,
       lastCombatTick: this._warshipState.lastCombatTick,
       veterancy: this._warshipState.veterancy,
       veterancyProgress: this._warshipState.veterancyProgress,
@@ -841,6 +846,8 @@ export class UnitImpl implements Unit {
             state: this._warshipState.state,
             patrolTile: this._warshipState.patrolTile,
             retreatPort: this._warshipState.retreatPort,
+            retreatSupportID: this._warshipState.retreatSupportID,
+            supportShip: this._warshipState.supportShip,
             isInCombat: this._warshipState.isInCombat,
             lastCombatTick: this._warshipState.lastCombatTick,
             veterancy: this._warshipState.veterancy,
@@ -949,6 +956,8 @@ export const UnitSnapshot = snapshotType({
         state: z.enum(["patrolling", "retreating", "docked"]),
         patrolTile: zTile().optional(),
         retreatPort: zTile().optional(),
+        retreatSupportID: zInt().optional(),
+        supportShip: z.boolean().optional(),
         isInCombat: z.boolean().optional(),
         lastCombatTick: zInt(),
         veterancy: zInt(),

@@ -105,11 +105,13 @@ export const packA = (
   ownerID: number,
   lastOwnerID: number | undefined,
   unitType: UnitType,
+  supportShip = false,
 ): number => {
   const oID = ownerID & 0xfff;
   const lID = lastOwnerID !== undefined ? lastOwnerID & 0xfff : 0xfff;
   const uType = unitTypeToInt(unitType) & 0x1f;
-  return oID | (lID << 12) | (uType << 24);
+  // Spare bit 29 preserves the support-ship variant without widening the wire stride.
+  return oID | (lID << 12) | (uType << 24) | (supportShip ? (1 << 29) : 0);
 };
 
 export const unpackAOwnerID = (packed: number): number => packed & 0xfff;
@@ -119,6 +121,8 @@ export const unpackALastOwnerID = (packed: number): number | undefined => {
 };
 export const unpackAUnitType = (packed: number): UnitType =>
   intToUnitType((packed >> 24) & 0x1f);
+export const unpackASupportShip = (packed: number): boolean =>
+  (packed & (1 << 29)) !== 0;
 
 // Packed B: level (8 bits), warshipState (2 bits), flags (many bits)
 export const packB = (update: UnitUpdate): number => {
@@ -288,6 +292,9 @@ export class PackedUnitUpdateDecoder {
   get hasWarshipState(): boolean {
     return unpackBHasWarshipState(this.buffer[this.offset + OFFSET_PACKED_B]);
   }
+  get warshipSupportShip(): boolean {
+    return unpackASupportShip(this.buffer[this.offset + OFFSET_PACKED_A]);
+  }
   get warshipStateState(): "patrolling" | "retreating" | "docked" {
     return unpackBWarshipStateState(this.buffer[this.offset + OFFSET_PACKED_B]);
   }
@@ -358,6 +365,7 @@ export class PackedUnitUpdateDecoder {
     if (this.hasWarshipState) {
       warshipState = {
         state: this.warshipStateState,
+        supportShip: this.warshipSupportShip,
         patrolTile: this.warshipPatrolTile,
         retreatPort: this.warshipRetreatPort,
         isInCombat: this.warshipIsInCombat,
@@ -496,6 +504,7 @@ export function packUnitUpdates(units: UnitUpdate[]): {
       update.ownerID,
       update.lastOwnerID,
       update.unitType,
+      update.warshipState?.supportShip === true,
     );
     packedUnitUpdates[offset + OFFSET_PACKED_B] = packB(update);
     packedUnitUpdates[offset + OFFSET_LEVEL] = update.level;

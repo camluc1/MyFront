@@ -21,6 +21,10 @@ export type WarshipState = {
   state: "patrolling" | "retreating" | "docked";
   patrolTile?: TileRef;
   retreatPort?: TileRef;
+  /** Mobile repair vessel rather than a combat warship (Geopolitics only). */
+  supportShip?: boolean;
+  /** Moving repair-vessel ID. Persisted in saves; omitted from compact HUD updates. */
+  retreatSupportID?: number;
   isInCombat?: boolean;
   lastCombatTick: number;
   // Veterancy level (0–max) plus a shared integer progress meter fed by

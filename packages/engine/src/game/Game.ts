@@ -61,6 +61,7 @@ export interface UnitParamsMap {
 
   [UnitType.Warship]: {
     patrolTile: TileRef;
+    supportShip?: boolean;
   };
 
   [UnitType.Shell]: Record<string, never>;
