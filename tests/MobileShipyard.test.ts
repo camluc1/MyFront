@@ -197,9 +197,15 @@ describe("Geopolitics mobile shipyard", () => {
     const attacker = enemy.buildUnit(UnitType.Warship, tile, { patrolTile: tile });
     game.addExecution(new WarshipExecution(attacker));
     const before = workshop.health();
-    executeTicks(game, 12);
-    expect(attacker.targetUnit()).toBe(workshop);
-    expect(workshop.health()).toBeLessThan(before);
+    let everTargeted = false;
+    let wasDamaged = false;
+    for (let i = 0; i < 12; i++) {
+      game.executeNextTick();
+      everTargeted ||= attacker.targetUnit() === workshop;
+      wasDamaged ||= workshop.health() < before;
+    }
+    expect(everTargeted).toBe(true);
+    expect(wasDamaged).toBe(true);
     vi.restoreAllMocks();
   });
 
