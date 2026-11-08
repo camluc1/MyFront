@@ -189,7 +189,10 @@ export class Config {
     return this._gameConfig.disabledUnits?.includes(unitType) ?? false;
   }
   castleRange(): number { return this.defensePostRange() * 2; }
-  ironDomeRange(): number { return Math.round(this.samRange(1) * 1.2); }
+  /** 20% greater than SAM at the same level, without cooldown. */
+  ironDomeRange(level = 1): number {
+    return Math.round(this.samRange(Math.max(1, level)) * 1.2);
+  }
   instantBuild(): boolean {
     return this._gameConfig.instantBuild;
   }
@@ -247,7 +250,10 @@ export class Config {
         info = { constructionDuration: this.instantBuild() ? 0 : 15 * 10 };
         break;
       case UnitType.IronDome:
-        info = { constructionDuration: this.instantBuild() ? 0 : 30 * 10 };
+        info = {
+          constructionDuration: this.instantBuild() ? 0 : 30 * 10,
+          upgradable: true,
+        };
         break;
       case UnitType.SAMLauncher:
         info = {
