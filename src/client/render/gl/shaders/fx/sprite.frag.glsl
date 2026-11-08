@@ -21,12 +21,12 @@ out vec4 fragColor;
 #ifdef FRONTIER_CINEMATIC
 // The original artwork is 16 sequential 256x256 cells on a 4x4 1024px atlas.
 // Frame sampling stays local to the active sprite: no bleeding or new draw.
-vec4 sampleCinematicAtlas(sampler2D atlas, float index, vec2 uv) {
+vec2 cinematicAtlasUV(float index, vec2 uv) {
   float frame = clamp(floor(index+0.5),0.0,15.0);
   vec2 cell = vec2(mod(frame,4.0),floor(frame/4.0));
   vec2 p = clamp(uv,vec2(0.004),vec2(0.996));
   // SVG rows start at the top; the GPU quad's local y starts at the bottom.
-  return texture(atlas, (cell+vec2(p.x,1.0-p.y))*0.25);
+  return (cell+vec2(p.x,1.0-p.y))*0.25;
 }
 #endif
 
@@ -39,9 +39,10 @@ void main() {
   if (newMushroom || newImpact) {
     // The mushroom is a staged fireball, column and smoke cap. Small missile
     // explosions use a completely separate brief blast/smoke sequence.
-    vec4 art = newMushroom
-      ? sampleCinematicAtlas(uCinematicNukeAtlas,vFxFrame,vLocalUV)
-      : sampleCinematicAtlas(uCinematicImpactAtlas,vFxFrame,vLocalUV);
+    vec2 atlasUV=cinematicAtlasUV(vFxFrame,vLocalUV);
+    vec4 art;
+    if (newMushroom) art=texture(uCinematicNukeAtlas,atlasUV);
+    else art=texture(uCinematicImpactAtlas,atlasUV);
     if (art.a < 0.012) discard;
     float initial = pow(1.0-clamp(vFxProgress,0.0,1.0),8.0);
     vec3 warm = vec3(1.0,0.63,0.28) *
