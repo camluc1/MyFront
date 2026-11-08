@@ -111,6 +111,8 @@ export interface UnitParamsMap {
   [UnitType.MissileSilo]: Record<string, never>;
 
   [UnitType.DefensePost]: Record<string, never>;
+  [UnitType.Castle]: Record<string, never>;
+  [UnitType.IronDome]: Record<string, never>;
 
   [UnitType.SAMLauncher]: Record<string, never>;
 
