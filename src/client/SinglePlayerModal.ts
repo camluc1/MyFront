@@ -449,14 +449,14 @@ export class SinglePlayerModal extends BaseModal {
 
     return html`<section
       aria-label="FRONTIER scenario briefing"
-      class="relative isolate overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#07121d] shadow-[0_18px_60px_rgba(0,0,0,0.28)]"
+      class="relative isolate overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#07121d]/75"
     >
       <div
         aria-hidden="true"
         class="pointer-events-none absolute inset-0 opacity-80"
         style="background: radial-gradient(ellipse at 12% 0%, rgba(34,211,238,.18), transparent 42%), radial-gradient(ellipse at 100% 100%, rgba(37,99,235,.16), transparent 48%);"
       ></div>
-      <div class="relative grid gap-5 p-5 sm:p-6 ">
+      <div class="relative grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)] lg:items-center">
         ${
           this.geopolitics
             ? html`<div
@@ -483,22 +483,18 @@ export class SinglePlayerModal extends BaseModal {
             >
           </div>
           <p
-            class="mt-4 text-[10px] font-bold uppercase tracking-[0.24em] text-white/40"
+            class="mt-2 text-[10px] font-bold uppercase tracking-[0.24em] text-white/55"
           >
             Strategic theater
           </p>
           <h2
-            class="mt-1 truncate text-2xl font-black tracking-tight text-white sm:text-3xl"
+            class="mt-1 truncate text-xl font-black tracking-tight text-white sm:text-2xl"
           >
             ${this.useRandomMap ? translateText("map.random") : mapName}
           </h2>
-          <p class="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300/75">
-            Configure your theater of war, choose the opposition and prepare
-            your campaign. Your existing OpenFront simulation remains the
-            foundation.
-          </p>
+
         </div>
-        <div class="grid grid-cols-3 gap-2 ">
+        <div class="grid grid-cols-3 gap-2 min-w-0">
           <div
             class="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-3"
           >
@@ -538,7 +534,7 @@ export class SinglePlayerModal extends BaseModal {
         </div>
       </div>
       <div
-        class="relative flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.08] bg-black/20 px-5 py-3 sm:px-6"
+        class="relative flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.08] bg-black/10 px-4 py-2 sm:px-5"
       >
         <span
           class="text-[9px] font-bold uppercase tracking-[0.2em] text-white/35"
@@ -637,11 +633,10 @@ export class SinglePlayerModal extends BaseModal {
     return html`
       <div class="flex flex-col h-full">
         <div
-          class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 pt-4 pb-6 mr-1 mx-auto w-full max-w-7xl"
+          class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 pt-4 pb-6 mx-auto w-full max-w-[1480px]"
         >
-          <div
-            class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]"
-          >
+          <div class="space-y-6 min-w-0">
+            ${this.renderFrontierBriefing()}
             <div class="min-w-0">
               <section
                 aria-label="Configuración del tiempo de paz entre naciones"
@@ -694,7 +689,8 @@ export class SinglePlayerModal extends BaseModal {
               ></saved-games-panel>
               <game-config-settings
                 class="block"
-                .sectionGapClass=${"space-y-6"}
+                .sectionGapClass=${"space-y-8"}
+                .mapBrowserClass=${"block max-h-[460px] overflow-y-auto overscroll-contain custom-scrollbar pr-2 sm:pr-3"}
                 .settings=${{
                   map: {
                     selected: this.selectedMap,
@@ -780,12 +776,6 @@ export class SinglePlayerModal extends BaseModal {
                 @unit-toggle-changed=${this.handleConfigUnitToggleChanged}
               ></game-config-settings>
             </div>
-            <aside
-              class="min-w-0 lg:sticky lg:top-0"
-              aria-label="Resumen de la partida"
-            >
-              ${this.renderFrontierBriefing()}
-            </aside>
           </div>
         </div>
 
