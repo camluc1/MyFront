@@ -83,6 +83,7 @@ export class ControlPanel extends LitElement implements Controller {
 
   connectedCallback() {
     super.connectedCallback();
+    globalThis.addEventListener("keydown", this.handleAttackPresetKeys);
     // The attack ratio is cached below for the lifetime of the game, but the
     // settings modal is now reachable mid-match, so follow the stored value
     // when it changes there. (This panel's own slider is session-only: it
@@ -316,6 +317,7 @@ export class ControlPanel extends LitElement implements Controller {
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    globalThis.removeEventListener("keydown", this.handleAttackPresetKeys);
     globalThis.removeEventListener(
       `${USER_SETTINGS_CHANGED_EVENT}:settings.attackRatio`,
       this.onAttackRatioSettingChanged,
@@ -354,6 +356,24 @@ export class ControlPanel extends LitElement implements Controller {
     this._isVisible = visible;
     this.requestUpdate();
   }
+
+  private setAttackPercent(percent: number) {
+    this.attackRatio = Math.max(0.01, Math.min(1, percent / 100));
+    this.onAttackRatioChange(this.attackRatio);
+    this.requestUpdate();
+  }
+
+  private handleAttackPresetKeys = (e: KeyboardEvent) => {
+    if (!this._isVisible || e.altKey || e.ctrlKey || e.metaKey || e.repeat) return;
+    const target = e.target;
+    if (target instanceof HTMLElement &&
+        (target.closest("input,textarea,select,[contenteditable], [role=dialog]"))) return;
+    // Shift+F1..F4 avoids collisions with the game's configurable build keys.
+    const index = ["F1", "F2", "F3", "F4"].indexOf(e.key);
+    if (index < 0 || !e.shiftKey) return;
+    e.preventDefault();
+    this.setAttackPercent([25, 50, 75, 100][index]);
+  };
 
   private handleRatioSliderInput(e: Event) {
     const input = e.target as HTMLInputElement;
@@ -496,7 +516,7 @@ export class ControlPanel extends LitElement implements Controller {
       <section class="rounded-xl border border-sky-300/15 bg-slate-950/90 p-2.5 text-slate-100 shadow-[0_12px_26px_rgba(0,0,0,0.24)]" aria-label="Estado de la partida">
         <div class="grid grid-cols-[minmax(100px,0.8fr)_minmax(170px,1.4fr)_minmax(110px,0.9fr)] gap-2">
           <div class="flex min-w-0 flex-col justify-center rounded-lg border border-sky-300/15 bg-slate-900/75 px-3 py-2 ${this.tutorialHighlightClass("attack_ratio")}">
-            <span class="mb-0.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400">
+            <span class="mb-0.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
               <img src=${swordIcon} alt="" width="12" height="12" class="opacity-70" /> Ataque
             </span>
             <strong class="text-xl font-bold leading-tight tracking-tight text-sky-200 tabular-nums" translate="no">${percentage}%</strong>
@@ -515,7 +535,7 @@ export class ControlPanel extends LitElement implements Controller {
               <span class="text-sm text-slate-500" aria-hidden="true">/</span>
               <strong class="text-base lg:text-lg font-semibold leading-tight tracking-tight text-cyan-200">${renderTroops(this._maxTroops)}</strong>
             </div>
-            <div class="mt-1.5 flex h-1.5 overflow-hidden rounded-full bg-slate-700/80 ${this._lowTroopsAlert ? "ring-1 ring-red-400/80" : ""}"
+            <div class="mt-1 flex h-2 overflow-hidden rounded-full bg-slate-700/80 ${this._lowTroopsAlert ? "ring-1 ring-red-400/80" : ""}"
               role="progressbar" aria-label="Reserva de soldados"
               aria-valuenow=${Math.round(greenPercent)} aria-valuemin="0" aria-valuemax="100">
               <span class="h-full bg-gradient-to-r from-sky-600 to-cyan-400 transition-[width] duration-200" style=${`width: ${greenPercent}%`}></span>
@@ -532,15 +552,21 @@ export class ControlPanel extends LitElement implements Controller {
               : nothing}
           </div>
         </div>
-        <div class="mt-2 flex items-center gap-3 px-1">
-          <span class="shrink-0 text-[10px] font-semibold tracking-wide text-slate-400">FUERZA DE ATAQUE</span>
-          <input type="range" min="1" max="100" aria-label="Porcentaje de soldados para atacar"
-            .value=${String(percentage)}
-            @input=${(e: Event) => this.handleRatioSliderInput(e)}
-            @pointerup=${(e: Event) => this.handleRatioSliderPointerUp(e)}
-            @click=${(e: MouseEvent) => this.handleRatioSliderClick(e)}
-            data-radial-click-through
-            class="min-w-0 flex-1 cursor-pointer accent-sky-400" />
+        <div class="mt-1.5 flex items-center gap-2 px-1">
+          <span class="shrink-0 text-[11px] font-semibold tracking-wide text-slate-300">FUERZA</span>
+          <div class="relative min-w-0 flex-1">
+            <input type="range" min="1" max="100" aria-label="Porcentaje de soldados para atacar"
+              .value=${String(percentage)}
+              @input=${(e: Event) => this.handleRatioSliderInput(e)}
+              @pointerup=${(e: Event) => this.handleRatioSliderPointerUp(e)}
+              @click=${(e: MouseEvent) => this.handleRatioSliderClick(e)}
+              data-radial-click-through
+              class="frontier-attack-slider w-full cursor-pointer accent-sky-400" />
+            <div class="pointer-events-none flex justify-between text-[9px] text-slate-500 tabular-nums">
+              <span>1</span><span>25</span><span>50</span><span>75</span><span>100</span>
+            </div>
+          </div>
+          <strong class="min-w-10 text-right text-sm font-bold text-cyan-200 tabular-nums">${percentage}%</strong>
         </div>
       </section>
     `;
