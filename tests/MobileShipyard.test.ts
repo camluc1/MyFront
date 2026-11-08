@@ -71,7 +71,13 @@ describe("Geopolitics mobile shipyard", () => {
       ship.modifyHealth(-8);
       return ship;
     });
-    executeTicks(game, 2);
+    // The execution manager may initialize the dock one tick after setup.
+    // During all servicing ticks, the fourth hull must remain in the queue.
+    for (let i = 0; i < 12; i++) {
+      if (ships.slice(0, 3).every((ship) => ship.health() === ship.maxHealth())) break;
+      expect(ships[3].health()).toBe(ships[3].maxHealth() - 8);
+      game.executeNextTick();
+    }
     expect(ships.slice(0, 3).every((ship) => ship.health() === ship.maxHealth())).toBe(true);
     expect(ships[3].health()).toBe(ships[3].maxHealth() - 8);
     game.executeNextTick();
@@ -80,7 +86,7 @@ describe("Geopolitics mobile shipyard", () => {
 
   test("support ship and its three repair assignments survive save/load", async () => {
     [11, 12, 13, 14].forEach((x) => makeShip(owner, game, x));
-    executeTicks(game, 3);
+    executeTicks(game, 6);
     const restored = await expectSnapshotRoundTrip(game, "half_land_half_ocean", 3);
     const repairedShips = restored.player("shipyard_owner")
       .units(UnitType.Warship)
