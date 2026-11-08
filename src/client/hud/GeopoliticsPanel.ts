@@ -212,6 +212,9 @@ export class GeopoliticsPanel extends LitElement {
     .country-dossier .row { gap:12px; align-items:baseline; padding:5px 0; }
     .country-dossier strong { color:#d9e9e9; }
     .country-dossier .muted { font-size:13px; }
+    .trust-meter { width:100%; height:7px; border-radius:9px; background:#4b343c; overflow:hidden; margin:5px 0 7px; }
+    .trust-meter span { display:block; height:100%; background:linear-gradient(90deg,#5e90a4,#89d4af); transition:width .3s ease-out; }
+    .trust-status { display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:12px; }
     .diplomatic-brief { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:14px 0 0; }
     .brief-tile { min-width:0; padding:13px 14px; background:linear-gradient(150deg,#1d3a44,#172d39); border:1px solid #375c69; border-radius:12px; }
     .brief-tile.emphasis { border-color:#ad9270; background:linear-gradient(150deg,#383c3a,#293b3c); }
@@ -1447,11 +1450,30 @@ export class GeopoliticsPanel extends LitElement {
       o.status === "pending" &&
       (o.from === p.id() || o.to === p.id()) &&
       (o.from === mine.id() || o.to === mine.id()));
+    const memory = this.game.diplomacy.memory.find((m) =>
+      m.a === p.id() && m.b === mine.id());
+    const trust = Math.min(100, Math.max(-100, memory?.trust ?? 0));
+    const trustPercent = Math.max(0, Math.min(100, (trust + 100) / 2));
+    const recentReaction = this.game.diplomacy.log.slice().reverse()
+      .find((event) => event.actor === p.id() &&
+        event.target === mine.id() &&
+        ["territorial_concern", "rival_alarm", "ally_support",
+          "betrayal_condemned"].includes(event.event));
     return html`<div class="country-dossier" aria-label="Tratados y situación de ${p.name()}">
       <div class="deal-eyebrow">${t("deal_treaties")}</div>
       <div class="row">
         <span>${t("deal_current_relation")}</span><strong>${t("relation_" + this.relationship(p))}</strong>
       </div>
+      <div class="trust-status"><strong>${t("deal_trust_meter")}</strong>
+        <span class="muted">${trust >= 0 ? "+" : ""}${trust} ·
+          ${t(trust >= 25 ? "deal_trust_high" : "deal_trust_low")}</span>
+      </div>
+      <div class="trust-meter" role="img" aria-label=${t("deal_trust_meter") + ": " + trust}
+        ><span style="width:${trustPercent}%"></span></div>
+      ${recentReaction ? html`<div class="treaty-note">
+        <strong>${t("deal_last_reaction")}: </strong>
+        ${t("event_" + recentReaction.event)}
+      </div>` : nothing}
       <div class="row">
         <span>${t("deal_bilateral")}</span>
         <strong>${pact ? t(pact.kind) + " · " +
@@ -1465,6 +1487,11 @@ export class GeopoliticsPanel extends LitElement {
       ${coalition ? html`<div class="muted">
         ${t("deal_remaining")}: ${Math.ceil((coalition.until - now) / 10)} s
         ${coalition.threat ?  " · " + t("deal_target") + ": "  + this.name(coalition.threat) : ""}
+      </div>` : nothing}
+      ${memory && ((memory.rejections ?? 0) > 0 ||
+        (memory.receivedPorts ?? 0) > 0) ? html`<div class="row muted">
+        <span>${t("deal_memory_rejections")}: ${memory.rejections ?? 0}</span>
+        <span>${t("deal_memory_ports")}: ${memory.receivedPorts ?? 0}</span>
       </div>` : nothing}
       ${related.map((o) => html`<button
         @click=${() => this.inspect(o)}
