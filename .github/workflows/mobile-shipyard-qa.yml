@@ -1,0 +1,28 @@
+name: Mobile Shipyard Focused QA
+
+on:
+  push:
+    branches:
+      - feature/geopolitics-mobile-shipyard-three-repairs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused-naval:
+    name: Mobile shipyard gameplay
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm install --global --ignore-scripts npm@12.1.0
+      - run: npm ci
+      - name: Mobile dock + existing warship regressions
+        run: npx --no-install vitest run --project node tests/MobileShipyard.test.ts tests/Warship.test.ts
