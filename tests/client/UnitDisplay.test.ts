@@ -224,7 +224,8 @@ describe("mobile UnitDisplay layout", () => {
       gold: () => 10n, isAlive: () => true, units: () => [],
     } as any);
     try {
-      display.querySelector<HTMLButtonElement>('[data-build-category="defense"]')?.click();
+      await display.updateComplete;
+      display.querySelector<HTMLButtonElement>('[data-build-category="defense"]')!.click();
       await display.updateComplete;
       const dome = display.querySelectorAll(".unit-display-scroll .unit-display-grid > div")[4];
       expect(dome?.querySelector(".unit-display-multiplier")?.textContent?.trim()).toBe("×3");
