@@ -566,7 +566,7 @@ export class UnitDisplay extends LitElement implements Controller {
               title="Buque Taller: repara hasta 3 barcos; $5.000.000"
               aria-pressed=${this.uiState.ghostStructure === UnitType.Warship && this.uiState.supportShipMode === true}
               ?disabled=${!this.playerBuildables?.some(b => b.type === UnitType.Warship) ||
-                (myPlayer.gold() < 5_000_000n && !this.game.config().infiniteGold()) ||
+                (myPlayer.gold() < 5_000_000n && this.game.config().gameConfig().infiniteGold !== true) ||
                 this.game.config().isUnitDisabled(UnitType.Warship) || myPlayer.units(UnitType.Port).length === 0}
               class="shrink-0 rounded-md border border-cyan-400/40 bg-cyan-950/80 px-3 py-1.5 text-xs font-semibold text-cyan-100 disabled:opacity-40"
               @click=${(event: MouseEvent) => {
