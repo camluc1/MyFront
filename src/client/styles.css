@@ -1445,3 +1445,7 @@ body.frontier-hud:not(:has(geopolitics-panel)) .frontier-strategy-nav [data-stra
   border-color: rgba(125,211,252,.35);
   color: #e3f5ff;
 }
+
+/* Intelligence/chronicle are single-player controllers. The strategy dock
+   must not create empty tabs in multiplayer or team matches. */
+body:not(.frontier-hud) .frontier-strategy-dock { display: none; }
