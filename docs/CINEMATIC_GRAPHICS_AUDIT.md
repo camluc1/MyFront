@@ -135,3 +135,36 @@ software-only test environment; users should not confuse them with a
 full gameplay benchmark. Source tests for the quality policy and ocean
 ambience have been added but the repository's complete suite has **not**
 been run in this environment.
+
+## V3 — In-game performance indicator and restrained nuclear impact
+
+The project already shipped a deep `PerformanceOverlay` with frame interval,
+FPS, TPS, tick timing and optional per-layer diagnostics. This iteration does
+**not** duplicate the monitoring system. It makes it usable during a real match:
+
+- In Graphics Settings, a default-off checkbox enables/disables the existing
+  performance overlay. The compact default shows FPS, the rolling 60-second
+  FPS average, TPS and the 95th percentile of the **last 60 RAF intervals**.
+  These are observed browser animation-frame intervals (not GPU timing), and
+  the p95 window is short rather than a 60-second p95. Compact numbers refresh
+  as they become available; the full monitor remains one click away.
+- Compact mode avoids the expensive per-layer frame profiler. The profiler is
+  enabled only while the full overlay is expanded. Hiding the monitor cancels
+  its independent requestAnimationFrame loop entirely.
+- Opening the full overlay retains its existing timings, copy-JSON snapshots
+  and detailed performance analysis. Players can compare the same match with
+  cinematic graphics enabled/disabled, including 500+ ships or nuclear battles.
+- With the opt-in cinematic shader, the **existing** nuclear shockwave gets
+  three visual stages: bright heat flash, a cooling compression front and a
+  short warm haze. The shockwave uses its original instance, footprint,
+  lifetime and alpha cap. No additional particles, draw calls, textures,
+  shadow buffers, damaging area, or audio assets are introduced. Standard
+  graphics and SAM/cosmetic styles retain their earlier shader branches.
+- Updated Spanish/English settings label and a focused toggle regression test
+  are included in the source.
+
+**QA boundary:** This change is committed but has not been compiled, tested or
+playtested in a real browser session in this environment. RAF FPS is useful
+for detecting uneven pacing but should not be presented as GPU timing, and
+real game stress testing remains necessary before claiming 60 FPS or a 9/10
+audiovisual result.
