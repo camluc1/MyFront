@@ -11,6 +11,7 @@ import { EventBus } from "@openfront/shared/EventBus";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { TransformHandler, GoToPositionEvent } from "../TransformHandler";
+import { PlaySoundEffectEvent } from "../sound/Sounds";
 import {
   SendDonateGoldIntentEvent,
   SendDonateTroopsIntentEvent,
@@ -75,6 +76,9 @@ export class GeopoliticsPanel extends LitElement {
   @state() private confirmAcceptId: number | null = null;
   @state() private confirmSend = false;
   private observedOffers = new Set<number>();
+  private observedDiplomaticMoments = new Set<string>();
+  private momentUntil = 0;
+  @state() private moment: { tick: number; actor: string; target: string; event: string } | null = null;
   private counterTo: number | undefined;
   private timer: ReturnType<typeof setInterval> | undefined;
   private overlay = document.createElement("canvas");
@@ -212,6 +216,17 @@ export class GeopoliticsPanel extends LitElement {
     .decision-buttons button { flex:1; min-width:140px; padding:11px; font-weight:750; }
     .review .danger { color:#ff9d91; }
     .event-feed { margin-bottom:14px; padding:12px; border:1px solid #3c5965; border-radius:12px; background:#122631; }
+    .moment-toast { position:fixed; right:18px; top:180px; width:min(360px,calc(100vw - 36px)); pointer-events:auto; border:1px solid #78b4b0; border-radius:16px; padding:16px; background:linear-gradient(145deg,#1a3f46f5,#142836fa 64%,#17222dfa); box-shadow:0 16px 70px #000a,0 0 30px #3b91852b; backdrop-filter:blur(16px); animation:moment-in .35s ease-out; }
+    .moment-toast::before { content:""; position:absolute; inset:0; border-radius:inherit; background:linear-gradient(115deg,transparent 40%,#fff1 52%,transparent 68%); pointer-events:none; }
+    .moment-brow { color:#a7e7db; text-transform:uppercase; font-size:10px; letter-spacing:.15em; font-weight:850; }
+    .moment-title { font-size:18px; font-weight:800; color:#f4f7f6; margin-top:4px; }
+    .moment-detail { color:#c0d4db; font-size:13px; line-height:1.5; margin:8px 0 12px; }
+    .moment-controls { display:flex; justify-content:space-between; gap:8px; }
+    .moment-controls button { font-size:12px; flex:1; }
+    .moment-inline { border-left:3px solid #7ccdb7; padding:10px 14px; background:#21403e; margin:10px 16px 0; border-radius:6px; }
+    .event-major { border-left:2px solid #89d8c3; padding:7px 10px !important; background:#1a3840; border-radius:6px; }
+    .event-strained { border-left:2px solid #e4ad84; padding:7px 10px !important; background:#3b302f; border-radius:6px; }
+    @keyframes moment-in { from { opacity:0; transform:translateY(-12px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
     .event-feed .event { padding:5px 0; border-bottom:1px solid #293f4b; }
     .event-feed .event:last-child { border-bottom:0; }
     .relation-legend { display:flex; flex-wrap:wrap; gap:12px; margin-top:7px; font-size:11px; }
@@ -404,11 +419,89 @@ export class GeopoliticsPanel extends LitElement {
       }
     }
     @media (prefers-reduced-motion: reduce) {
-      * {
-        transition: none;
-      }
+      * { transition: none !important; animation: none !important; }
     }
+    @media (max-width:640px) { .moment-toast { top:145px; right:10px; } }
   `;
+  /** The diplomatic chronicle generates brief, non-blocking milestone cards.
+   * The game's existing sound mixer handles muted/disabled sound settings. */
+  private checkDiplomaticMoments() {
+    const mine = this.mine();
+    if (!mine) return;
+    const important = new Set([
+      "port_cession", "territorial_cession", "agreement",
+      "betrayal", "ally_support", "rival_alarm",
+      "territorial_concern", "betrayal_condemned",
+    ]);
+    const myBloc = this.game.diplomacy.coalitions.find((c) =>
+      c.members.includes(mine.id()));
+    const involved = new Set(myBloc?.members ?? [mine.id()]);
+    const fresh = [];
+    for (const event of this.game.diplomacy.log) {
+      const key = event.tick + ":" + event.actor + ":" +
+        event.target + ":" + event.event;
+      if (this.observedDiplomaticMoments.has(key)) continue;
+      this.observedDiplomaticMoments.add(key);
+      if (important.has(event.event) &&
+        (involved.has(event.actor) || involved.has(event.target)))
+        fresh.push(event);
+    }
+    if (this.observedDiplomaticMoments.size > 260)
+      this.observedDiplomaticMoments = new Set(
+        this.game.diplomacy.log.map((e) =>
+          e.tick + ":" + e.actor + ":" + e.target + ":" + e.event));
+    if (this.moment && Date.now() >= this.momentUntil) this.moment = null;
+    if (!fresh.length) return;
+    const priority = (event: string) =>
+      event === "port_cession" ? 5 :
+      event === "betrayal" ? 4 :
+      event === "territorial_cession" ? 3 :
+      event === "agreement" ? 2 : 1;
+    fresh.sort((a, b) => priority(b.event) - priority(a.event) ||
+      b.tick - a.tick);
+    this.moment = fresh[0];
+    this.momentUntil = Date.now() + 8500;
+    const significant = ["port_cession", "betrayal", "agreement"];
+    if (significant.includes(this.moment.event) &&
+      (this.moment.actor === mine.id() ||
+        this.moment.target === mine.id())) {
+      this.bus.emit(new PlaySoundEffectEvent(
+        this.moment.event === "betrayal" ? "alliance-broken" :
+        this.moment.event === "port_cession" ? "conquered" :
+        "alliance-accepted"));
+    }
+  }
+  private momentDetail(event: string) {
+    return t(event === "port_cession" ? "moment_port_detail" :
+      event === "territorial_cession" ? "moment_territory_detail" :
+      event === "agreement" ? "moment_agreement_detail" :
+      event === "betrayal" ? "moment_betrayal_detail" :
+      "moment_reaction_detail");
+  }
+  private openMomentHistory() {
+    this.opened = true;
+    this.tab = "history";
+    this.moment = null;
+  }
+  private renderMoment() {
+    if (!this.moment) return nothing;
+    const moment = this.moment;
+    return html`<section class="moment-toast" aria-live="polite" role="status">
+      <div class="moment-brow">FRONTIER · ${t("deal_important")}</div>
+      <div class="moment-title">${t("moment_headline")}</div>
+      <div class="moment-detail">
+        <strong>${this.name(moment.actor)}</strong>
+        ${t("event_" + moment.event)}
+        <strong>${this.name(moment.target)}</strong>.
+        ${this.momentDetail(moment.event)}
+      </div>
+      <div class="moment-controls">
+        <button class="primary" @click=${() => this.openMomentHistory()}>${t("moment_open")}</button>
+        <button @click=${() => this.moment = null}>${t("moment_close")}</button>
+      </div>
+    </section>`;
+  }
+
   private onContextDiplomacy = (event: Event) => {
     if (!this.game?.config().gameConfig().geopolitics || !this.mine()) return;
     const detail = (event as CustomEvent<{ target: string; action?: string }>).detail;
