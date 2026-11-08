@@ -56,6 +56,23 @@ export class GraphicsSettingsModal extends BaseModal {
     return html`
       <div class="graphics-settings-panel flex flex-col px-4 pb-4">
         ${hudOpacitySetting(this.userSettings)}
+        <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-600 bg-slate-800/60 p-3 my-2">
+          <div class="flex flex-col gap-1">
+            <span class="text-sm font-semibold text-white">${translateText("performance_overlay.fps")} / ${translateText("performance_overlay.tps")}</span>
+            <span class="text-xs text-slate-400">${translateText("performance_overlay.avg_60s")} · P95</span>
+          </div>
+          <label class="flex items-center gap-2 text-sm text-white cursor-pointer">
+            <input type="checkbox" aria-label="FPS / TPS / P95"
+              .checked=${this.userSettings.performanceOverlay()}
+              @change=${(e: Event) => {
+                this.userSettings.setPerformanceOverlay(
+                  (e.currentTarget as HTMLInputElement).checked,
+                );
+                this.requestUpdate();
+              }} />
+            ${translateText("user_setting.show")}
+          </label>
+        </div>
         <graphics-advanced-settings
           class="flex flex-col"
           .mapLayers=${this.mapLayers}
