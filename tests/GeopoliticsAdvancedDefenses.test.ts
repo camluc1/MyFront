@@ -6,6 +6,8 @@ import {
   protectedByIronDome,
   createBlastIronDomeCoverage,
 } from "@openfront/engine/execution/IronDomeProtection";
+import { NukeExecution } from "@openfront/engine/execution/NukeExecution";
+import { executeTicks } from "./util/utils";
 import { setup } from "./util/Setup";
 
 const human = (name: string) =>
@@ -54,6 +56,34 @@ describe("Geopolitics advanced defenses", () => {
     });
     expect(castle.attackerTroopLoss).toBeGreaterThan(post.attackerTroopLoss);
     expect(castle).toEqual(castleOnly);
+  });
+
+  it("intercepts simultaneous MIRV sub-warheads without damaging the dome or city", async () => {
+    const game = await setup(
+      "big_plains", { geopolitics: true, infiniteGold: true, instantBuild: true },
+      [human("attacker"), human("defender")],
+    );
+    const attacker = game.player("attacker");
+    const defender = game.player("defender");
+    attacker.conquer(game.ref(10, 10));
+    for (let x = 100; x < 107; x++)
+      defender.conquer(game.ref(x, 100));
+    attacker.buildUnit(UnitType.MissileSilo, game.ref(10, 10), {});
+    const dome = defender.buildUnit(UnitType.IronDome, game.ref(100, 100), {});
+    const city = defender.buildUnit(UnitType.City, game.ref(101, 100), {});
+    const warheads: NukeExecution[] = [];
+    for (let x = 102; x < 107; x++) {
+      const warhead = new NukeExecution(
+        UnitType.MIRVWarhead, attacker, game.ref(x, 100), game.ref(10, 10),
+      );
+      warheads.push(warhead);
+      game.addExecution(warhead);
+    }
+    executeTicks(game, 300);
+    expect(warheads.every((w) => w.getNuke()?.isActive() === false)).toBe(true);
+    expect(dome.isActive()).toBe(true);
+    expect(city.isActive()).toBe(true);
+    expect(game.owner(game.ref(102, 100))).toBe(defender);
   });
 
   it("protects owner tiles from blast fringes without ammunition or cooldown", async () => {
