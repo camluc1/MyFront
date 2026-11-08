@@ -17,8 +17,8 @@ void main() {
   float radial = (quadVertex==1 || quadVertex==3 || quadVertex==4) ? 1.0 : 0.0;
   float phase = (float(segment)+nextAngle) / SEGMENTS;
   float theta = phase*PI2;
-  // Radius matches Config.ironDomeRange(): 70-tile tier-1 SAM * 1.2 = 84.
-  float radius = ring==0 ? 84.0 : 84.0*.72;
+  // Radius comes from the unit's actual upgrade level; level one is 84.
+  float radius = aDome.w * (ring==0 ? 1.0 : .72);
   float thickness = ring==0 ? 1.5 : .85;
   radius += (radial-.5)*thickness;
   vec2 pos = aDome.xy + vec2(cos(theta),sin(theta))*radius;
