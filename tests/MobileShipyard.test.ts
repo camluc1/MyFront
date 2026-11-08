@@ -10,6 +10,7 @@ import {
 } from "@openfront/engine/execution/WarshipExecution";
 import { Game, Player, Unit } from "@openfront/engine/game/Game";
 import { setup } from "./util/Setup";
+import { expectSnapshotRoundTrip } from "./util/Snapshot";
 import { executeTicks } from "./util/utils";
 
 describe("Geopolitics mobile shipyard", () => {
@@ -61,6 +62,31 @@ describe("Geopolitics mobile shipyard", () => {
     expect(healed.slice(0, 3).every(delta => delta > 0)).toBe(true);
     expect(healed[3]).toBe(0);
     expect(hostile.health()).toBe(hostilePrevious);
+  });
+
+  test("the fourth ship waits until a repair bay becomes available", () => {
+    const ships = [11, 12, 13, 14].map((x) => {
+      const tile = game.ref(x, 11);
+      const ship = owner.buildUnit(UnitType.Warship, tile, { patrolTile: tile });
+      ship.modifyHealth(-8);
+      return ship;
+    });
+    executeTicks(game, 2);
+    expect(ships.slice(0, 3).every((ship) => ship.health() === ship.maxHealth())).toBe(true);
+    expect(ships[3].health()).toBe(ships[3].maxHealth() - 8);
+    game.executeNextTick();
+    expect(ships[3].health()).toBeGreaterThan(ships[3].maxHealth() - 8);
+  });
+
+  test("support ship and its three repair assignments survive save/load", async () => {
+    [11, 12, 13, 14].forEach((x) => makeShip(owner, game, x));
+    executeTicks(game, 3);
+    const restored = await expectSnapshotRoundTrip(game, "half_land_half_ocean", 3);
+    const repairedShips = restored.player("shipyard_owner")
+      .units(UnitType.Warship)
+      .filter((ship) => !ship.warshipState().supportShip);
+    expect(repairedShips.filter((ship) => ship.health() > 700)).toHaveLength(3);
+    expect(repairedShips.filter((ship) => ship.health() === 700)).toHaveLength(1);
   });
 
   test("can be given a new sea destination and moves toward it", () => {
