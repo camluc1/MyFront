@@ -12,6 +12,8 @@ import { TileRef } from "@openfront/engine-api/game/GameMap";
 import {
   BuildableUnit,
   bulkCost,
+  maxBulkAmount,
+  MAX_UPGRADE_AMOUNT,
   Cell,
   PlayerBuildableUnitType,
   Structures,
@@ -858,12 +860,22 @@ export class BuildPreviewController implements Controller {
   }
 
   private selectedUpgradeAmount(unit: BuildableUnit): number {
-    const requested = this.uiState.upgradeMultiplier || 1;
-    return unit.resourceEconomy &&
-      unit.upgradeCosts &&
-      unit.canUpgrade !== false
-      ? Math.min(requested, unit.upgradeCosts.length)
-      : requested;
+    const requested = Math.max(
+      1, Math.min(MAX_UPGRADE_AMOUNT, this.uiState.upgradeMultiplier || 1),
+    );
+    const pricedLimit = Math.min(
+      requested, unit.upgradeCosts?.length ?? MAX_UPGRADE_AMOUNT,
+    );
+    const player = this.game.myPlayer();
+    if (!player) return pricedLimit;
+    // The preview and the emitted intent must agree. When the player asks for
+    // x5 but can afford only x3, purchase x3 rather than rejecting the entire
+    // transaction. Keep x1 visible but unaffordable if even one is too costly.
+    const affordable = maxBulkAmount(unit, player.gold());
+    const missiles = unit.type === UnitType.AtomBomb
+      ? player.readyMissileCount()
+      : MAX_UPGRADE_AMOUNT;
+    return Math.max(1, Math.min(pricedLimit, affordable, missiles));
   }
 
   private resolveGhostAffordability(
@@ -1176,7 +1188,7 @@ export class BuildPreviewController implements Controller {
           unitType,
           targetTile,
           rocketDirectionUp,
-          isNuke ? this.uiState.upgradeMultiplier || 1 : undefined,
+          isNuke ? this.selectedUpgradeAmount(unit) : undefined,
         ),
       );
       if (!shouldPreserveGhostAfterBuild(unitType)) {
