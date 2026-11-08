@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getUserMe } from "../../src/client/Api";
+import { UserSettings } from "../../src/client/UserSettings";
 import {
   COSMETICS_FETCH_TIMEOUT_MS,
   fetchCosmetics,
   invalidateCosmetics,
   prewarmCosmetics,
+  getPlayerCosmetics,
+  getPlayerCosmeticsRefs,
 } from "../../src/client/Cosmetics";
 
 vi.mock("../../src/client/Api", async (importOriginal) => ({
@@ -128,5 +131,33 @@ describe("prewarmCosmetics", () => {
     vi.mocked(getUserMe).mockRejectedValueOnce(new Error("offline"));
 
     await expect(prewarmCosmetics()).resolves.toBeUndefined();
+  });
+});
+
+describe("pre-game free color survives cosmetic server failures", () => {
+  beforeEach(() => {
+    invalidateCosmetics();
+    vi.mocked(getUserMe).mockResolvedValue(false);
+  });
+
+  afterEach(() => {
+    new UserSettings().setPreferredGameColor(null);
+    invalidateCosmetics();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("includes the chosen shade in both multiplayer refs and local game cosmetics", async () => {
+    const settings = new UserSettings();
+    settings.setPreferredGameColor("#3b82f6");
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      throw new Error("cosmetic API unavailable");
+    }));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const refs = await getPlayerCosmeticsRefs();
+    expect(refs.color).toBe("#3b82f6");
+    const solo = await getPlayerCosmetics();
+    expect(solo.color).toEqual({ color: "#3b82f6" });
   });
 });
