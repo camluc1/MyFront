@@ -79,6 +79,21 @@ describe("Geopolitics mobile shipyard", () => {
     expect(ship.health()).toBeGreaterThan(before);
   });
 
+  test("a damaged warship retreats to the mobile dock even without a port", () => {
+    const ship = owner.buildUnit(UnitType.Warship, game.ref(14, 14), {
+      patrolTile: game.ref(14, 14),
+    });
+    // The existing retreat guard deliberately ignores automatic retreats
+    // during the first 50 simulation ticks after manual movement.
+    executeTicks(game, 51);
+    ship.modifyHealth(-400);
+    game.addExecution(new WarshipExecution(ship));
+    executeTicks(game, 3);
+
+    expect(ship.warshipState().retreatSupportID).toBe(workshop.id());
+    expect(["docked", "retreating"]).toContain(ship.warshipState().state);
+  });
+
   test("support ship never targets an enemy or fires shells", () => {
     const hostile = enemy.buildUnit(UnitType.Warship, game.ref(11, 10), {
       patrolTile: game.ref(11, 10),
