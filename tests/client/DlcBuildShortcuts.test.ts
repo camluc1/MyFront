@@ -63,12 +63,24 @@ describe("DLC keyboard build controls", () => {
     };
     for (const [type, , , letter] of added) {
       expect(badge(type)).toBe(letter);
+      const button = [...menu.renderRoot.querySelectorAll(".build-button")]
+        .find((node) => node.querySelector(`img[alt="${type}"]`));
+      const icon = button?.querySelector(".build-icon-wrap");
+      expect(icon).toBeTruthy();
+      expect(icon?.querySelector(".build-hotkey")?.textContent?.trim())
+        .toBe(letter);
     }
     new UserSettings().setKeybinds({
       buildFarm: { value: "KeyI", key: "I" },
     });
     await menu.updateComplete;
     expect(badge(UnitType.Farm)).toBe("I");
+    new UserSettings().setKeybinds({
+      buildFarm: { value: "Null", key: "" },
+    });
+    await menu.updateComplete;
+    expect(badge(UnitType.Farm)).toBe("—");
+    expect(menu.renderRoot.querySelector(".build-hotkey.unbound")).toBeTruthy();
     menu.remove();
   });
 
