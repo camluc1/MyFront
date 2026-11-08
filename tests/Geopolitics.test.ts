@@ -464,3 +464,61 @@ it("keeps the selected peace duration across a save/restore", async () => {
   expect(diffSnapshots(bytes, again)).toEqual([]);
   expect(restored.diplomacy.state.offers[0].durationTicks).toBe(3000);
 });
+
+it("compares alternatives to surrendering a strategically valuable port", () => {
+  const harbor = b.buildUnit(UnitType.Port, game.ref(1, 1), {});
+  b.buildUnit(UnitType.Port, game.ref(3, 1), {});
+  const proposal = offer(a, b, "peace", {
+    receive: { ...emptyAssets(), tiles: [harbor.tile()], buildings: [harbor.id()] },
+  });
+  const plan = (game.diplomacy as unknown as {
+    chooseCounteroffer: (offer: typeof proposal, player: Player) =>
+      { give: ReturnType<typeof emptyAssets>; reason: string } | null;
+  }).chooseCounteroffer(proposal, b);
+  expect(plan).not.toBeNull();
+  expect(plan?.give.tiles).toEqual([]);
+  expect(plan?.give.buildings).toEqual([]);
+  expect(plan?.give.gold).toBeGreaterThan(0);
+  expect(plan?.reason).toBe("retain_land");
+});
+
+it("makes border changes a memorable diplomatic event with meaningful third-party reactions", () => {
+  const port = b.buildUnit(UnitType.Port, game.ref(1, 1), {});
+  const treaty = offer(a, b, "peace", {
+    receive: { ...emptyAssets(), tiles: [port.tile()], buildings: [port.id()] },
+  });
+  accept(b, treaty.id);
+  expect(treaty.status).toBe("accepted");
+  expect(game.diplomacy.state.log.some((e) =>
+    e.actor === b.id() && e.target === a.id() &&
+    e.event === "port_cession")).toBe(true);
+  expect(game.diplomacy.state.log.some((e) =>
+    e.actor === c.id() && e.target === a.id() &&
+    e.event === "territorial_concern")).toBe(true);
+  const witness = game.diplomacy.state.memory.find((m) =>
+    m.a === c.id() && m.b === a.id());
+  expect(witness?.trust).toBe(-3);
+});
+
+it("spaces out AI proposals reaching the same human without blocking other nations", () => {
+  const d = game.diplomacy as unknown as {
+    canInitiateTo: (actor: Player, target: Player, tick: number) => boolean;
+  };
+  const tick = game.ticks();
+  game.diplomacy.state.cooldowns["ai:human:inbox:" + b.id()] = tick + 600;
+  game.diplomacy.state.cooldowns["ai:human:last:" + b.id()] = tick;
+  expect(d.canInitiateTo(a, b, tick)).toBe(false);
+  expect(d.canInitiateTo(a, c, tick)).toBe(true);
+});
+
+it("keeps geopolitical reaction history and memory across saved games", async () => {
+  const port = b.buildUnit(UnitType.Port, game.ref(1, 1), {});
+  const treaty = offer(a, b, "peace", {
+    receive: { ...emptyAssets(), tiles: [port.tile()], buildings: [port.id()] },
+  });
+  accept(b, treaty.id);
+  const { bytes, again, restored } = await roundTrip(game, "plains");
+  expect(diffSnapshots(bytes, again)).toEqual([]);
+  expect(restored.diplomacy.state.log).toEqual(game.diplomacy.state.log);
+  expect(restored.diplomacy.state.memory).toEqual(game.diplomacy.state.memory);
+});
