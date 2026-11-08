@@ -123,8 +123,14 @@ vec4 vehicleSprite(vec2 q, float col, out float signedHullDistance) {
     if(cargo) {
       // Coaster seen from above: rounded transom, raised rear bridge, long
       // recessed cargo hold, tapered forecastle. The hold is not the hull.
+#ifdef FRONTIER_CINEMATIC_ULTRA
+      // Round the bow and square off the stern without touching the hull bounds.
+      float fore=sqrt(clamp((bow-q.x)/0.16,0.0,1.0));
+      float aft=clamp((q.x-stern)/0.035,0.0,1.0);
+#else
       float fore=clamp((bow-q.x)/0.22,0.0,1.0);
       float aft=sqrt(clamp((q.x-stern)/0.12,0.0,1.0));
+#endif
       width=beam*min(fore,aft);
       d=max(abs(q.y)-width,max(stern-q.x,q.x-bow));
       gray=abs(q.y)>width-0.028 ? 0.275 : 0.706;
@@ -141,6 +147,25 @@ vec4 vehicleSprite(vec2 q, float col, out float signedHullDistance) {
       if(detail>.1 && q.x>.29 && q.x<.34 && abs(q.y)<.025)gray=.92;
     } else if(warship) {
       if (repairCarrier) {
+#ifdef FRONTIER_CINEMATIC_ULTRA
+        // Ultra Portabuques: big service deck, two drydock bays and bridge.
+        // Keep the broad carrier silhouette and existing logical quad.
+        if (abs(q.x)<0.63 && abs(q.y)<0.20) gray=0.51;
+        if (abs(q.x)<0.55 && abs(q.y)<0.157) gray=0.73;
+        float bay=max(abs(q.x+0.05)-0.26,abs(abs(q.y)-0.099)-0.053);
+        if(bay<0.0)gray=0.88;
+        if(bay< -0.030)gray=0.51;
+        if(abs(q.x)<0.55 && abs(q.y)<0.022)gray=0.275;
+        // Clearly offset bridge, not a spherical radar dome.
+        if(q.x> -0.43 && q.x< -0.20 && q.y>0.13 && q.y<0.247)gray=0.92;
+        if(q.x> -0.38 && q.x< -0.25 && q.y>0.165 && q.y<0.218)gray=0.275;
+        // One recognizable crane and a broad stern gate.
+        if(q.x>0.14 && q.x<0.42 && abs(q.y-0.172)<0.021)gray=0.92;
+        if(abs(q.x-0.30)<0.022 && q.y>0.052 && q.y<0.17)gray=0.275;
+        if(q.x> -0.61 && q.x< -0.56 && abs(q.y)<0.145)gray=0.92;
+        if(detail>0.01 && q.x>0.22 && q.x<0.35 && abs(q.y-0.123)<0.018)
+          gray=mix(gray,0.51,detail);
+#else
         // Aircraft-carrier silhouette, but a NAVAL REPAIR SHIP: two parallel
         // drydock lanes, edge work lights and a starboard service island.
         // No aircraft, radar dome, blue rings, sprites or additional draw calls.
@@ -168,6 +193,7 @@ vec4 vehicleSprite(vec2 q, float col, out float signedHullDistance) {
           // Tiny bay registration lines, suppressed before they alias.
           if (abs(q.x+0.07) < 0.012 && abs(q.y) < 0.15) gray = 0.275;
         }
+#endif
       } else {
       if(q.x> -0.32 && q.x<0.30 && abs(q.y)<0.115)gray=0.51;
       if(q.x> -0.15 && q.x<0.12 && abs(q.y)<0.08)gray=0.92;
