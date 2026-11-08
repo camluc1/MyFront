@@ -54,6 +54,14 @@ export class PerformanceOverlay extends LitElement implements Controller {
   private compactMode: boolean = true;
 
   @state()
+  private p95FrameMs: number = 0;
+
+  private setCompactMode(compact: boolean) {
+    this.compactMode = compact;
+    FrameProfiler.setEnabled(this.isVisible && !compact);
+  }
+
+  @state()
   private currentTPS: number = 0;
 
   @state()
@@ -586,7 +594,7 @@ export class PerformanceOverlay extends LitElement implements Controller {
 
   setVisible(visible: boolean) {
     this.isVisible = visible;
-    FrameProfiler.setEnabled(visible);
+    FrameProfiler.setEnabled(visible && !this.compactMode);
 
     if (visible) {
       this.startFpsLoop();
@@ -836,6 +844,11 @@ export class PerformanceOverlay extends LitElement implements Controller {
 
     // Update every second
     if (now - this.lastSecondTime >= 1000) {
+      if (this.frameTimes.length) {
+        const sorted = [...this.frameTimes].sort((a, b) => a - b);
+        this.p95FrameMs = sorted[Math.min(sorted.length - 1,
+          Math.floor(sorted.length * 0.95))];
+      }
       this.fpsHistory.push(this.framesThisSecond);
       this.fpsHistorySum += this.framesThisSecond;
       if (this.fpsHistory.length > 60) {
@@ -1119,20 +1132,15 @@ export class PerformanceOverlay extends LitElement implements Controller {
 
     this.ensureUiText();
     if (this.compactMode) {
-      const p95 = this.frameTimes.length
-        ? [...this.frameTimes].sort((a, b) => a - b)[
-            Math.min(this.frameTimes.length - 1,
-              Math.floor(this.frameTimes.length * 0.95))]
-        : 0;
       return html`<section class="fps-compact" aria-label="Performance monitor">
         <div class="metric"><span>${this.uiText.fps}</span>
           <strong class="${this.getPerformanceColor(this.currentFPS)}">${this.currentFPS}</strong></div>
         <div class="metric"><span>${this.uiText.avg60s}</span><span>${this.averageFPS}</span></div>
         <div class="metric"><span>${this.uiText.tps}</span>
           <span class="${this.getTPSColor(this.currentTPS)}">${this.currentTPS}</span></div>
-        <div class="metric"><span>P95 · 60 frames</span><span>${p95.toFixed(1)} ms</span></div>
+        <div class="metric"><span>P95 · 60 frames</span><span> ${this.p95FrameMs.toFixed(1)} ms</span></div>
         <div class="controls">
-          <button @click=${() => this.compactMode = false}>${translateText("performance_overlay.expand")}</button>
+          <button @click=${() => this.setCompactMode(false)}>${translateText("performance_overlay.expand")}</button>
           <button @click=${this.handleClose} aria-label=${translateText("common.close")}>×</button>
         </div>
       </section>`;
@@ -1206,7 +1214,7 @@ export class PerformanceOverlay extends LitElement implements Controller {
         </button>
         <button class="close-button" @click="${this.handleClose}">×</button>
         <button class="collapse-button" style="position:absolute;top:8px;right:38px;z-index:10"
-          @click=${() => this.compactMode = true}
+          @click=${() => this.setCompactMode(true)}
           title=${translateText("performance_overlay.collapse")}>−</button>
         <div
           class="resize-handle"
