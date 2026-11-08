@@ -247,15 +247,15 @@ void main() {
         float bands = 0.72+0.28*sin(behind*38.0-time*2.5+vOwnerID*0.6);
         // A light turquoise wake reads against both deep and shallow water.
         // Keep it short-lived and contained within each already instanced hull.
-        float trail = (edges*0.52+churn*0.33)*sternMask*bands;
+        float trail = (edges*0.60+churn*0.38)*sternMask*bands;
         // Soft bow pressure arc and a short side wash, never a full halo.
         vec2 front = (q-vec2(bow-0.04,0.0))/vec2(0.16,0.20);
         float bowArc = (1.0-smoothstep(0.07,0.14+aa*4.0,abs(length(front)-1.0)))*step(bow-0.02,q.x);
         float extent = 1.0-smoothstep(0.89,0.99,max(abs(q.x),abs(q.y)));
-        float wake = clamp((trail+bowArc*0.28)*extent*lod*clamp(vHash,0.0,1.0)*0.56,0.0,0.48);
+        float wake = clamp((trail+bowArc*0.34)*extent*lod*clamp(vHash,0.0,1.0)*0.76,0.0,0.62);
         if (wake>0.005) {
           float combined = wake+waterEffect.a*(1.0-wake);
-          vec3 foamColor = mix(vec3(0.57,0.78,0.83),vec3(0.88,0.95,0.94),edges);
+          vec3 foamColor = mix(vec3(0.58,0.79,0.88),vec3(0.91,0.97,0.96),edges);
           waterEffect=vec4((foamColor*wake+waterEffect.rgb*waterEffect.a*(1.0-wake))/max(combined,0.001),combined);
         }
       }
