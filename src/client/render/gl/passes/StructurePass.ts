@@ -351,7 +351,7 @@ export class StructurePass {
     }
   }
 
-  /** Four 64x64 cells, independent of the original six icons. */
+  /** Six 64x64 cells, independent of the original six classic icons. */
   private async loadFrontierAtlas(): Promise<void> {
     try {
       const names = [
