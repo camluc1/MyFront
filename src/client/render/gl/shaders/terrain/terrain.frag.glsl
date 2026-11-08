@@ -174,10 +174,24 @@ void main() {
       color*=1.0+(relief*uSurface.z*mix(1.0,1.12,rocky)
         +(textureGrain*materialContrast+broad)*uSurface.w)*detail;
 #ifdef FRONTIER_CINEMATIC
-      // Additional aerial ridge separation only when terrain can be seen;
-      // narrow amplitude keeps strategic ownership colors intact.
-      float ridge = max(0.0, relief)*rocky*closeDetail;
-      color *= 1.0 + min(0.055,ridge*0.055);
+      // Material-focused light rather than another blanket color filter:
+      // ridges catch the northwest sun, slopes cast gentle cool shadows, and
+      // near-shore flats stay warm. Ownership fills remain readable.
+      float mountain = smoothstep(12.0,26.0,float(height));
+      float ridgeLight = max(0.0,relief)*mountain*closeDetail;
+      float valleyShade = max(0.0,-relief)*mountain*closeDetail;
+      float stonyGrain = (textureGrain*0.55+broad*0.45)*mountain*
+        closeDetail;
+      vec3 sunlight = vec3(1.08,1.035,0.96);
+      vec3 shadow = vec3(0.78,0.86,0.98);
+      color *= mix(vec3(1.0),sunlight,
+        min(0.22,ridgeLight*0.16));
+      color *= mix(vec3(1.0),shadow,
+        min(0.27,valleyShade*0.18));
+      color *= 1.0+stonyGrain*0.085;
+      if (shore && closeDetail>0.01)
+        color *= mix(vec3(1.0),vec3(1.04,1.035,0.98),
+          0.19*closeDetail);
 #endif
     }
     fragColor = vec4(color, 1.0);
