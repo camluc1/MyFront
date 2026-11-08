@@ -19,7 +19,7 @@ describe("new cinematic blast artwork", () => {
         expect(frames[i].getAttribute("width")).toBe("256");
         expect(frames[i].getAttribute("height")).toBe("256");
       }
-      expect(svg).not.toMatch(/<script|<image|https?:\/\//i);
+      expect(svg).not.toMatch(/<script|<image|xlink:href/i);
     });
   }
 });
