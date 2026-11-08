@@ -13,6 +13,7 @@ import defaults from "../render-settings.json";
 import type { RenderSettings } from "../RenderSettings";
 import {
   enhancedVisualsEnabled,
+  ENHANCED_SHADER_MARKER,
   prefersReducedVisualMotion,
   WaterQualityGovernor,
 } from "../EnhancedVisuals";
@@ -46,7 +47,7 @@ export class TerrainPass {
   private startTime = performance.now();
   private uBackground: WebGLUniformLocation;
   private uWaterQuality: WebGLUniformLocation | null;
-  private readonly cinematic = enhancedVisualsEnabled();
+  private cinematic = enhancedVisualsEnabled();
   private readonly reducedMotion = prefersReducedVisualMotion();
   private readonly waterQuality = new WaterQualityGovernor();
   private mapW: number;
@@ -73,12 +74,19 @@ export class TerrainPass {
     this.mapW = mapW;
     this.mapH = mapH;
     this.terrainColors = terrainColors;
-    this.program = createProgram(
-      gl,
-      shaderSrc(terrainVertSrc, { MAP_W: mapW, MAP_H: mapH }),
-      terrainFragSrc,
-      "TerrainPass",
-    );
+    const vertex = shaderSrc(terrainVertSrc, { MAP_W: mapW, MAP_H: mapH });
+    try {
+      this.program = createProgram(gl, vertex, terrainFragSrc, "TerrainPass");
+    } catch (error) {
+      if (!this.cinematic || gl.isContextLost()) throw error;
+      // The ocean is optional. A problematic GPU/driver must still be able
+      // to render the normal game terrain instead of losing the entire map.
+      console.warn("Cinematic ocean shader unavailable; using classic sea", error);
+      this.cinematic = false;
+      this.program = createProgram(gl, vertex,
+        terrainFragSrc.replace(ENHANCED_SHADER_MARKER, ""),
+        "TerrainPass fallback");
+    }
     this.uCamera = gl.getUniformLocation(this.program, "uCamera")!;
     this.uSurface = gl.getUniformLocation(this.program, "uSurface")!;
     this.uTime = gl.getUniformLocation(this.program, "uTime")!;
