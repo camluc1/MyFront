@@ -28,6 +28,7 @@ import spriteVertSrc from "../../shaders/fx/sprite.vert.glsl?raw";
 
 const fxAtlasUrl = assetUrl("atlases/fx-atlas.png");
 const cinematicNukeAtlasUrl = assetUrl("sprites/cinematic-nuke-atlas.svg");
+const cinematicImpactAtlasUrl = assetUrl("sprites/cinematic-impact-atlas.svg");
 /** 16 frames × 200 ms; the old 630ms atlas remains the standard-profile path. */
 const CINEMATIC_NUKE_LIFETIME_MS = 3_200;
 const MAX_CINEMATIC_NUKES = 10;
@@ -199,6 +200,9 @@ export class FxSpritePass {
   private cinematicNukeTex: WebGLTexture | null = null;
   private cinematicNukeReady = false;
   private uCinematicNukeReady: WebGLUniformLocation | null = null;
+  private cinematicImpactTex: WebGLTexture | null = null;
+  private cinematicImpactReady = false;
+  private uCinematicImpactReady: WebGLUniformLocation | null = null;
 
   private activeFx: ActiveFx[] = [];
   private timeFn: () => number = () => performance.now();
@@ -231,6 +235,18 @@ export class FxSpritePass {
       this.cinematicNukeTex = gl.createTexture();
       gl.activeTexture(gl.TEXTURE1);
       gl.bindTexture(gl.TEXTURE_2D, this.cinematicNukeTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0,
+        gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      this.uCinematicImpactReady = gl.getUniformLocation(
+        this.program, "uCinematicImpactReady");
+      gl.uniform1i(gl.getUniformLocation(this.program, "uCinematicImpactAtlas"), 2);
+      this.cinematicImpactTex = gl.createTexture();
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, this.cinematicImpactTex);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0,
         gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -288,7 +304,10 @@ export class FxSpritePass {
     gl.bindVertexArray(null);
 
     void this.loadAtlas();
-    if (this.cinematic) void this.loadCinematicNukeAtlas();
+    if (this.cinematic) {
+      void this.loadCinematicNukeAtlas();
+      void this.loadCinematicImpactAtlas();
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -357,6 +376,29 @@ export class FxSpritePass {
       this.cinematicNukeReady = true;
     } catch (error) {
       console.warn("Cinematic nuke atlas unavailable; using default FX", error);
+    }
+  }
+
+  /** Single shared explosion atlas, independent of the 16-frame nuke.
+   * It handles shell, unit and building impacts while preserving the exact
+   * old SAM interceptor and special cosmetic sprites. */
+  private async loadCinematicImpactAtlas(): Promise<void> {
+    if (!this.cinematicImpactTex) return;
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = cinematicImpactAtlasUrl;
+      await img.decode();
+      if (this.isDisposed || !this.cinematicImpactTex) return;
+      const gl = this.gl;
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, this.cinematicImpactTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+        gl.UNSIGNED_BYTE, img);
+      gl.activeTexture(gl.TEXTURE0);
+      this.cinematicImpactReady = true;
+    } catch (error) {
+      console.warn("Cinematic impact atlas unavailable; using default FX", error);
     }
   }
 
@@ -461,6 +503,9 @@ export class FxSpritePass {
 
   pushFx(x: number, y: number, fxType: number, now: number): void {
     const cfg = FX_CONFIG[fxType];
+    const newImpact = this.cinematic && this.cinematicImpactReady &&
+      (fxType === FX_BUILDING_EXPLOSION ||
+        fxType === FX_UNIT_EXPLOSION || fxType === FX_MINI_EXPLOSION);
     // Many MIRVs can detonate in the same frame. Preserve the newest visible
     // plumes, but never keep hundreds of 3.2-second clouds on the GPU.
     if (this.cinematic && fxType === FX_NUKE) {
@@ -483,7 +528,10 @@ export class FxSpritePass {
       fxType,
       startMs: now,
       lifetimeMs: this.cinematic && fxType === FX_NUKE
-        ? CINEMATIC_NUKE_LIFETIME_MS
+        ? this.cinematicNukeReady ? CINEMATIC_NUKE_LIFETIME_MS
+          : cfg.frameDurationMs * cfg.frameCount
+        : newImpact ? fxType === FX_BUILDING_EXPLOSION ? 1_200
+          : fxType === FX_UNIT_EXPLOSION ? 900 : 700
         : cfg.frameDurationMs * cfg.frameCount,
       fadeIn: 0,
       fadeOut: 1,
@@ -531,7 +579,11 @@ export class FxSpritePass {
       const elapsed = now - fx.startMs;
 
       let frameIdx: number;
-      if (this.cinematic && fx.fxType === FX_NUKE) {
+      const newImpact = this.cinematic && this.cinematicImpactReady &&
+        (fx.fxType === FX_BUILDING_EXPLOSION ||
+          fx.fxType === FX_UNIT_EXPLOSION || fx.fxType === FX_MINI_EXPLOSION);
+      if ((this.cinematic && fx.fxType === FX_NUKE &&
+          this.cinematicNukeReady) || newImpact) {
         // Encode 0..15 in the existing uint8 frame byte; no new instance
         // attributes and no new draw calls are required.
         frameIdx = Math.min(15, Math.floor(
@@ -587,6 +639,14 @@ export class FxSpritePass {
         gl.uniform1f(this.uCinematicNukeReady,
           this.cinematicNukeReady ? 1 : 0);
     }
+    if (this.cinematicImpactTex) {
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, this.cinematicImpactTex);
+      gl.activeTexture(gl.TEXTURE0);
+      if (this.uCinematicImpactReady)
+        gl.uniform1f(this.uCinematicImpactReady,
+          this.cinematicImpactReady ? 1 : 0);
+    }
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuf.buffer);
     gl.bufferSubData(
       gl.ARRAY_BUFFER,
@@ -620,7 +680,10 @@ export class FxSpritePass {
     gl.deleteVertexArray(this.vao);
     gl.deleteTexture(this.atlasTex);
     if (this.cinematicNukeTex) gl.deleteTexture(this.cinematicNukeTex);
+    if (this.cinematicImpactTex) gl.deleteTexture(this.cinematicImpactTex);
     this.cinematicNukeTex = null;
     this.cinematicNukeReady = false;
+    this.cinematicImpactTex = null;
+    this.cinematicImpactReady = false;
   }
 }
