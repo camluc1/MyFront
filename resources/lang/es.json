@@ -1540,6 +1540,7 @@
     "to_win": "Mantén más del {pct}% para ganar"
   },
   "performance_overlay": {
+    "toggle_compact": "Mostrar medidor",
     "avg_60s": "Prom. (60s):",
     "collapse": "Colapsar",
     "copy_clipboard": "Copiar JSON",
