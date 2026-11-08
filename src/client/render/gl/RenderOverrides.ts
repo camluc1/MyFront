@@ -1,4 +1,5 @@
 import type { GraphicsOverrides } from "./GraphicsOverrides";
+import { applyEnhancedVisualProfile } from "./EnhancedVisuals";
 import { createThemeSettings, type RenderSettings } from "./RenderSettings";
 import { hexToRgb } from "./utils/ColorUtils";
 
@@ -11,6 +12,8 @@ export function applyGraphicsOverrides(
   settings: RenderSettings,
   overrides: GraphicsOverrides,
 ): void {
+  // Optional presentation is a base profile. Explicit user choices still win.
+  applyEnhancedVisualProfile(settings);
   if (overrides.name?.nameScaleFactor !== undefined) {
     settings.name.nameScaleFactor = overrides.name.nameScaleFactor;
   }
