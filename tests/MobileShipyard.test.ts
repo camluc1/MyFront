@@ -1,4 +1,5 @@
 import { PlayerInfo, PlayerType, UnitType } from "@openfront/engine-api/game/GameTypes";
+import { ConstructionExecution } from "@openfront/engine/execution/ConstructionExecution";
 import { MoveWarshipExecution } from "@openfront/engine/execution/MoveWarshipExecution";
 import { ShellExecution } from "@openfront/engine/execution/ShellExecution";
 import {
@@ -94,6 +95,45 @@ describe("Geopolitics mobile shipyard", () => {
 
     expect(ship.warshipState().retreatSupportID).toBe(workshop.id());
     expect(["docked", "retreating"]).toContain(ship.warshipState().state);
+  });
+
+  test("real construction charges exactly 5 million in Geopolitics", async () => {
+    const actualGame = await setup(
+      "half_land_half_ocean",
+      { geopolitics: true, instantBuild: true, infiniteGold: false },
+      [new PlayerInfo("Paying admiral", PlayerType.Human, null, "paying_admiral")],
+    );
+    const admiral = actualGame.player("paying_admiral");
+    admiral.conquer(actualGame.ref(3, 10));
+    admiral.buildUnit(UnitType.Port, actualGame.ref(7, 10), {});
+    admiral.addGold(5_000_000n);
+    const before = admiral.gold();
+    actualGame.addExecution(new ConstructionExecution(
+      admiral, UnitType.Warship, actualGame.ref(10, 10),
+      undefined, undefined, true,
+    ));
+    executeTicks(actualGame, 3);
+    const vessels = admiral.units(UnitType.Warship);
+    expect(vessels).toHaveLength(1);
+    expect(vessels[0].warshipState().supportShip).toBe(true);
+    expect(admiral.gold()).toBe(before - SUPPORT_SHIP_COST);
+  });
+
+  test("classic construction does not create a mobile workshop", async () => {
+    const classic = await setup(
+      "half_land_half_ocean",
+      { geopolitics: false, instantBuild: true, infiniteGold: true },
+      [new PlayerInfo("Classic admiral", PlayerType.Human, null, "classic_admiral")],
+    );
+    const admiral = classic.player("classic_admiral");
+    admiral.conquer(classic.ref(3, 10));
+    admiral.buildUnit(UnitType.Port, classic.ref(7, 10), {});
+    classic.addExecution(new ConstructionExecution(
+      admiral, UnitType.Warship, classic.ref(10, 10),
+      undefined, undefined, true,
+    ));
+    executeTicks(classic, 3);
+    expect(admiral.units(UnitType.Warship)).toHaveLength(0);
   });
 
   test("enemy gunfire damages and can sink the support ship", () => {
