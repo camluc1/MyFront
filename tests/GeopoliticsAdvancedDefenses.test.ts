@@ -2,7 +2,10 @@ import {
   PlayerInfo, PlayerType, TerrainType, UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import type { AttackLogicInput } from "@openfront/engine/configuration/EngineConfig";
-import { protectedByIronDome } from "@openfront/engine/execution/IronDomeProtection";
+import {
+  protectedByIronDome,
+  createBlastIronDomeCoverage,
+} from "@openfront/engine/execution/IronDomeProtection";
 import { setup } from "./util/Setup";
 
 const human = (name: string) =>
@@ -65,6 +68,11 @@ describe("Geopolitics advanced defenses", () => {
     a.addGold(12_000_000n);
     const dome = a.buildUnit(UnitType.IronDome, origin, {});
     expect(protectedByIronDome(game, game.ref(40, 30), a)).toBe(true);
+    const field = createBlastIronDomeCoverage(game);
+    // Identical protection on every tile, even during a fringe blast.
+    expect(field(game.ref(40, 30), a)).toBe(true);
+    expect(field(game.ref(40, 30), b)).toBe(false);
+    expect(field(game.ref(115, 30), a)).toBe(false);
     expect(protectedByIronDome(game, game.ref(40, 30), b)).toBe(false);
     expect(dome.isInCooldown()).toBe(false);
     dome.setUnderConstruction(true);
