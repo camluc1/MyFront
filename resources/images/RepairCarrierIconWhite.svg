@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+  <!-- Top-down mobile naval base: long broad deck with three repair stations,
+       a bridge off the working lanes, no planes or decorative radar dome. -->
+  <path d="M20 5h24l7 9v37l-7 8H20l-7-8V14l7-9Z"
+    fill="#fff" fill-opacity=".13" stroke="#fff" stroke-width="3.2" stroke-linejoin="round"/>
+  <path d="M19 15h26v35H19V15Z" stroke="#fff" stroke-opacity=".95" stroke-width="2"/>
+  <path d="M31.5 15v35" stroke="#fff" stroke-width="2.2" stroke-dasharray="8 3"/>
+  <path d="M21 21h8v10h-8Zm0 14h8v10h-8Zm14-14h8v10h-8Zm0 14h8v10h-8Z"
+    stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M44 13h6v14h-6" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M17 55h30" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+</svg>
