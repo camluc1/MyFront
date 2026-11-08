@@ -196,6 +196,10 @@ export class FrontierChronicle extends LitElement implements Controller {
     if (!this.active) return html``;
 
     const recentEntries = [...this.entries].reverse().slice(0, 8);
+    const configuredPeaceSeconds = (this.game.config().gameConfig().nationPeaceTimeMinutes ?? 0) * 60;
+    const peaceProgress = configuredPeaceSeconds > 0
+      ? Math.max(0, Math.min(100, (this.peaceRemainingSeconds / configuredPeaceSeconds) * 100))
+      : 0;
 
     return html`
       ${this.peaceRemainingSeconds > 0
@@ -204,6 +208,12 @@ export class FrontierChronicle extends LitElement implements Controller {
               <div class="text-[9px] font-black tracking-[0.22em] text-cyan-200">PAZ ENTRE NACIONES</div>
               <div class="mt-0.5 text-lg font-black tabular-nums text-white">${this.formatCountdown(this.peaceRemainingSeconds)}</div>
               <div class="text-[9px] text-slate-400">Las naciones no pueden iniciar guerras todavía</div>
+              <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-700/70" role="progressbar"
+                aria-label="Tiempo de paz restante" aria-valuemin="0" aria-valuemax="100"
+                aria-valuenow=${Math.round(peaceProgress)}>
+                <div class="h-full rounded-full bg-gradient-to-r from-sky-500 to-cyan-300 transition-[width] duration-500"
+                  style=${`width: ${peaceProgress}%`}></div>
+              </div>
             </div>
           </div>`
         : ""}
