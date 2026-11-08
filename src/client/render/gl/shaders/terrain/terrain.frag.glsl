@@ -82,47 +82,6 @@ vec3 cinematicOcean(vec3 base, vec2 world, int terrain, float footprint) {
   return sea;
 }
 #endif
-  float quality = clamp(uWaterQuality, 0.0, 1.0);
-  float detail = (1.0-smoothstep(0.7,2.2,footprint))*quality;
-  float swellPhase = dot(world,vec2(0.029,0.018))-time*0.21;
-  float swell = sin(swellPhase);
-  vec3 color = base*(0.96+0.025*swell);
-  // A true low-cost tier: on huge framebuffers, overview views, or slow
-  // devices skip the derivative-driven specular highlights and water noise.
-  // Never allocate a second water pass or texture.
-  if (detail < 0.035) return color;
-  if (quality <= 0.35) {
-    float broad = sin(dot(world,vec2(0.068,-0.024))-time*0.16);
-    return color*(1.0 + 0.018*broad*detail);
-  }
-  float breakup = grain(world*0.034+vec2(time*0.007,0.0));
-  float a = dot(world,vec2(0.18,0.09))-time*0.57+breakup*1.8;
-  float b = dot(world,vec2(-0.08,0.15))-time*0.39+swell*0.6;
-  vec3 normal = normalize(vec3(
-    -cos(a)*0.43-cos(b)*0.19,
-    -cos(a)*0.22+cos(b)*0.27, 1.0));
-  vec3 halfLight = normalize(vec3(-0.32,0.24,1.0));
-  float spec = pow(max(dot(normal,halfLight),0.0),28.0);
-  float crest = 0.5+0.5*sin(a);
-  color *= 1.0+(crest-0.5)*0.085*detail;
-  // Restrained cool reflection: ownership fills and naval warnings stay legible.
-  // Bounded broad reflection. Less flashing when waves overlap on giant seas.
-  float reflection = spec*(0.025+0.055*breakup)*detail;
-  color += vec3(0.57,0.76,0.84)*reflection;
-  bool shore = (terrain&64)!=0;
-  if (shore) {
-    float wash = pow(0.5+0.5*sin(a*0.64-time*0.16),5.0);
-    float foam = wash*smoothstep(0.25,0.75,breakup);
-    color = mix(color,color*vec3(0.87,1.06,1.04),detail*0.3);
-    color += vec3(0.64,0.80,0.78)*foam*detail*0.14;
-    if (quality>0.55 && footprint<0.9) {
-      float caustic = pow(max(0.0,sin(a*1.7)+sin(b*1.9)-0.6),2.0);
-      color += vec3(0.13,0.25,0.24)*caustic*detail*0.035;
-    }
-  }
-  return color;
-}
-#endif
 
 void main() {
   if (all(greaterThanEqual(vUV, vec2(0.0))) && all(lessThanEqual(vUV, vec2(1.0)))) {
