@@ -70,3 +70,30 @@ describe("UsernameInput validation error", () => {
     expect(el.validationError).toBe("");
   });
 });
+
+describe("pre-game territory color picker", () => {
+  it("lets the player select and clear a palette color beside the name", async () => {
+    const el = await mount();
+    const toggle = el.querySelector<HTMLButtonElement>("#game-color-picker-toggle")!;
+    expect(toggle).not.toBeNull();
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+
+    toggle.click();
+    await el.updateComplete;
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    const swatch = el.querySelector<HTMLButtonElement>('[data-game-color="#3b82f6"]')!;
+    expect(swatch).not.toBeNull();
+    swatch.click();
+    await el.updateComplete;
+    expect(localStorage.getItem("settings.preferredGameColor")).toBe("#3b82f6");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+
+    toggle.click();
+    await el.updateComplete;
+    expect(el.querySelector('[data-game-color="#3b82f6"]')?.getAttribute("aria-pressed")).toBe("true");
+    el.querySelector<HTMLButtonElement>("[data-game-color-default]")!.click();
+    await el.updateComplete;
+    expect(localStorage.getItem("settings.preferredGameColor")).toBeNull();
+    el.remove();
+  });
+});
