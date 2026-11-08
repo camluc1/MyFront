@@ -1,5 +1,6 @@
 import { Emoji, flattenedEmojiTable } from "@openfront/engine-api/Schemas";
 import { Cosmetics } from "@openfront/shared/CosmeticSchemas";
+import { normalizeGameColorChoice } from "@openfront/shared/GameColorChoices";
 import { PlayerPattern } from "@openfront/shared/WireSchemas";
 import {
   GraphicsOverrides,
@@ -203,6 +204,8 @@ const AUDIO_LEGACY_KEY: Partial<Record<AudioCategory, string>> = {
  */
 export const PATTERN_KEY = "territoryPattern";
 export const FLAG_KEY = "flag";
+/** Free preferred territory shade picked alongside the in-game name. */
+export const GAME_COLOR_KEY = "settings.preferredGameColor";
 export const CROWN_KEY = "crown";
 export const PERFORMANCE_OVERLAY_KEY = "settings.performanceOverlay";
 // Kept out of the graphics overrides so picking a preset doesn't turn it back on.
@@ -230,6 +233,7 @@ const STATS_COLUMNS_KEYS: Record<StatsTableKind, string> = {
  * restored on the next login (#4955). Logged out, the bare key is used.
  */
 const PER_PLAYER_KEYS: readonly string[] = [
+  GAME_COLOR_KEY,
   PATTERN_KEY,
   FLAG_KEY,
   CROWN_KEY,
@@ -430,6 +434,17 @@ export class UserSettings {
 
   performanceOverlay() {
     return this.getBool(PERFORMANCE_OVERLAY_KEY, false);
+  }
+
+  /** Null means use the normal automatic palette; never accept arbitrary CSS. */
+  getPreferredGameColor(): string | null {
+    return normalizeGameColorChoice(this.getString(GAME_COLOR_KEY));
+  }
+
+  setPreferredGameColor(value: string | null): void {
+    const color = normalizeGameColorChoice(value);
+    if (color === null) this.removeCached(GAME_COLOR_KEY);
+    else this.setString(GAME_COLOR_KEY, color);
   }
 
   mapLayers() {
