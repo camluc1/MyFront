@@ -192,7 +192,7 @@ describe("Geopolitics mobile shipyard", () => {
     // Model a declared war: the target should be discoverable by the ordinary
     // warship AI, not only vulnerable to manually spawned projectiles.
     vi.spyOn(enemy, "canAttackPlayer").mockReturnValue(true);
-    game.config().warshipShellAttackRate = () => 0;
+    game.config().warshipShellAttackRate = () => 2;
     const tile = game.ref(11, 10);
     const attacker = enemy.buildUnit(UnitType.Warship, tile, { patrolTile: tile });
     game.addExecution(new WarshipExecution(attacker));
