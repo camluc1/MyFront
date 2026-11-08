@@ -644,8 +644,8 @@ export class UnitDisplay extends LitElement implements Controller {
     return html`
       <div class="flex flex-col items-center relative" data-mobile-shipyard-container>
         <button type="button" data-mobile-shipyard data-radial-click-through
-          aria-label="Buque Taller" aria-pressed=${selected}
-          title=${"Buque Taller · Repara hasta 3 barcos · 5M de oro" +
+          aria-label="Portabuques de reparación" aria-pressed=${selected}
+          title=${"Portabuques · Base naval móvil · Repara hasta 3 barcos aliados cerca de su posición · 5M de oro" +
             (unavailable ? " · " + (lacksPort ? "Requiere puerto" : lacksGold ? "Oro insuficiente" : "No disponible") : "")}
           ?disabled=${unavailable}
           class="unit-display-action unit-display-shipyard ${selected ? "is-selected" : ""}"
@@ -661,10 +661,10 @@ export class UnitDisplay extends LitElement implements Controller {
             }
             this.requestUpdate();
           }}>
-          <span class="unit-display-action-icon" aria-hidden="true">⚓</span>
+          <span class="unit-display-action-icon" aria-hidden="true">⛴</span>
           <span class="unit-display-action-cost ${lacksGold ? "is-unaffordable" : ""}">5M <img src=${goldCoinIcon} alt="" width="11" height="11" /></span>
         </button>
-        <span class="unit-display-action-label">Taller</span>
+        <span class="unit-display-action-label">Portabuques</span>
       </div>
     `;
   }
