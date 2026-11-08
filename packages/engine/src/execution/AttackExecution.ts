@@ -372,13 +372,18 @@ export class AttackExecution implements Execution {
     // (active, not under construction, within range), without building a
     // result array per conquered tile — this runs for every tile of every
     // attack on the map.
+    // Most contested tiles have no fortifications nearby. Checking the
+    // defender's memoized count first avoids a radius-60 spatial grid walk
+    // for every border tile while Castles are still rare/locked.
     const defenderHasCastle =
       defender !== null && this.mg.config().gameConfig().geopolitics === true &&
+      defender.unitCount(UnitType.Castle) > 0 &&
       this.mg.hasUnitNearby(
         tile, this.mg.config().castleRange(), UnitType.Castle, defender.id(),
       );
     const defenderHasDefensePost =
       defender !== null && !defenderHasCastle &&
+      defender.unitCount(UnitType.DefensePost) > 0 &&
       this.mg.hasUnitNearby(
         tile,
         this.mg.config().defensePostRange(),
