@@ -52,6 +52,8 @@ export class WarshipExecution implements Execution {
   private lastObservedPatrolTile: TileRef | undefined;
   private activeHealingRemainder = 0;
   private lastEmittedCombat = false;
+  /** Persistent repair bays: three ships remain assigned until they leave or recover. */
+  private assignedRepairShipIDs: number[] = [];
 
   constructor(
     private input: (UnitParams<UnitType.Warship> & OwnerComp) | Unit,
@@ -241,9 +243,14 @@ export class WarshipExecution implements Execution {
       vessel !== this.warship && vessel.warshipState().supportShip &&
       vessel.isActive() && !vessel.isMarkedForDeletion() && vessel.health() > 0,
     );
-    let repaired = 0;
-    for (const { unit, distSquared } of candidates) {
-      // When two docks overlap, only the nearest one may service this ship.
+    // Preserve the same three repair bays across ticks. Without sticky bays,
+    // ships with lower health replace those just repaired every tick, causing
+    // four or more different ships to heal despite a three-ship capacity.
+    const candidateByID = new Map(candidates.map((entry) => [entry.unit.id(), entry]));
+    const nextAssigned: number[] = [];
+    const tryAssign = ({ unit, distSquared }: { unit: Unit; distSquared: number }): void => {
+      if (nextAssigned.length >= SUPPORT_SHIP_CAPACITY) return;
+      // Overlapping docks must not double-heal the same hull.
       let closestID = this.warship.id();
       let closestDist = distSquared;
       for (const vessel of otherDocks) {
@@ -254,10 +261,23 @@ export class WarshipExecution implements Execution {
           closestID = vessel.id();
         }
       }
-      if (closestID !== this.warship.id()) continue;
+      if (closestID !== this.warship.id()) return;
+      nextAssigned.push(unit.id());
       unit.modifyHealth(repairHP);
-      if (++repaired === SUPPORT_SHIP_CAPACITY) break;
+    };
+    for (const id of this.assignedRepairShipIDs) {
+      const candidate = candidateByID.get(id);
+      if (!candidate) continue;
+      tryAssign(candidate);
+      candidateByID.delete(id);
     }
+    for (const candidate of candidates) {
+      if (nextAssigned.length >= SUPPORT_SHIP_CAPACITY) break;
+      if (candidateByID.has(candidate.unit.id())) {
+        tryAssign(candidate);
+      }
+    }
+    this.assignedRepairShipIDs = nextAssigned;
   }
 
   /** The target moves, so store and resolve the support unit ID, never a static tile. */
@@ -1021,6 +1041,7 @@ export class WarshipExecution implements Execution {
       lastObservedPatrolTile: this.lastObservedPatrolTile,
       activeHealingRemainder: this.activeHealingRemainder,
       lastEmittedCombat: this.lastEmittedCombat,
+      assignedRepairShipIDs: [...this.assignedRepairShipIDs],
     });
   }
 
@@ -1042,6 +1063,7 @@ export class WarshipExecution implements Execution {
     this.lastObservedPatrolTile = s.lastObservedPatrolTile;
     this.activeHealingRemainder = s.activeHealingRemainder;
     this.lastEmittedCombat = s.lastEmittedCombat;
+    this.assignedRepairShipIDs = s.assignedRepairShipIDs ?? [];
   }
 }
 
@@ -1063,6 +1085,7 @@ const WarshipExecutionStateSchema = z.object({
   lastObservedPatrolTile: zTile().optional(),
   activeHealingRemainder: zNum(),
   lastEmittedCombat: z.boolean(),
+  assignedRepairShipIDs: z.array(zInt()).optional(),
 });
 type WarshipExecutionState = z.infer<typeof WarshipExecutionStateSchema>;
 
