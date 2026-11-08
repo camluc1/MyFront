@@ -123,6 +123,7 @@ describe("PackedUnitUpdates", () => {
       loaded: undefined,
       missileTimerQueue: [1000, 1200],
       warshipState: {
+        supportShip: false,
         state: "patrolling",
         patrolTile: 120,
         retreatPort: undefined,
