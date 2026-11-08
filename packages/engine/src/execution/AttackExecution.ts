@@ -372,8 +372,13 @@ export class AttackExecution implements Execution {
     // (active, not under construction, within range), without building a
     // result array per conquered tile — this runs for every tile of every
     // attack on the map.
+    const defenderHasCastle =
+      defender !== null && this.mg.config().gameConfig().geopolitics === true &&
+      this.mg.hasUnitNearby(
+        tile, this.mg.config().castleRange(), UnitType.Castle, defender.id(),
+      );
     const defenderHasDefensePost =
-      defender !== null &&
+      defender !== null && !defenderHasCastle &&
       this.mg.hasUnitNearby(
         tile,
         this.mg.config().defensePostRange(),
@@ -399,6 +404,7 @@ export class AttackExecution implements Execution {
                 defender.isDisconnected() && this._owner.isOnSameTeam(defender),
             },
       defenderHasDefensePost,
+      defenderHasCastle,
       falloutRatio: this.mg.hasFallout(tile)
         ? this.mg.numTilesWithFallout() / this.mg.numLandTiles()
         : null,

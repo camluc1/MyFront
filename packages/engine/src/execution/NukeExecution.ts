@@ -20,6 +20,7 @@ import {
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
 import { Execution, Game, isUnit, Player, Unit } from "../game/Game";
+import { protectedByIronDome } from "./IronDomeProtection";
 import { UniversalPathFinding } from "../pathfinding/PathFinder";
 import { ParabolaUniversalPathFinder } from "../pathfinding/PathFinder.Parabola";
 import { PathStatus } from "../pathfinding/types";
@@ -316,7 +317,18 @@ export class NukeExecution implements Execution {
             return unit.targetUnit()?.id() === this.nuke?.id();
           },
         ).length >= 1;
-      if (!shouldBeDestroyed) this.detonate();
+      if (!shouldBeDestroyed) {
+        // The projectile was physically blocked, not detonated. No blast FX,
+        // and most importantly no MIRV warhead secondary fallout in the dome.
+        const owner = this.mg.owner(this.dst);
+        if (owner.isPlayer() &&
+            protectedByIronDome(this.mg, this.dst, owner)) {
+          this.active = false;
+          this.nuke.delete(false);
+        } else {
+          this.detonate();
+        }
+      }
     } else if (result.status === PathStatus.NEXT) {
       this.updateNukeTargetable();
       this.nuke.move(result.node);
@@ -394,6 +406,9 @@ export class NukeExecution implements Execution {
     const tilesPerPlayers = new Map<Player, number>();
     for (const tile of toDestroy) {
       const owner = mg.owner(tile);
+      // The shield blocks even the fringe of a blast centred OUTSIDE it.
+      if (owner.isPlayer() && protectedByIronDome(mg, tile, owner))
+        continue;
       if (owner.isPlayer()) {
         owner.relinquish(tile);
         tilesPerPlayers.set(owner, (tilesPerPlayers.get(owner) ?? 0) + 1);
@@ -470,6 +485,7 @@ export class NukeExecution implements Execution {
         continue;
       }
       if (mg.euclideanDistSquared(dst, unit.tile()) < outer2) {
+        if (protectedByIronDome(mg, unit.tile(), unit.owner())) continue;
         // treatAFKFriendly matches warship targeting: a disconnected
         // teammate's or ally's units are still not kills.
         const friendly = this.player.isFriendly(unit.owner(), true);
