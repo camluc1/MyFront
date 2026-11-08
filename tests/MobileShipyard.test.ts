@@ -106,7 +106,8 @@ describe("Geopolitics mobile shipyard", () => {
     const admiral = actualGame.player("paying_admiral");
     admiral.conquer(actualGame.ref(3, 10));
     admiral.buildUnit(UnitType.Port, actualGame.ref(7, 10), {});
-    admiral.addGold(5_000_000n);
+    // Keep the treasury above the fixed price after paying for the port.
+    admiral.addGold(10_000_000n);
     const before = admiral.gold();
     actualGame.addExecution(new ConstructionExecution(
       admiral, UnitType.Warship, actualGame.ref(10, 10),
