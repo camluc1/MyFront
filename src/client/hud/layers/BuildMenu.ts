@@ -53,6 +53,8 @@ const atomBombIcon = assetUrl("images/NukeIconWhite.svg");
 const portIcon = assetUrl("images/PortIcon.svg");
 const samlauncherIcon = assetUrl("images/SamLauncherIconWhite.svg");
 const shieldIcon = assetUrl("images/ShieldIconWhite.svg");
+const castleIcon = assetUrl("images/CastleIconWhite.svg");
+const ironDomeIcon = assetUrl("images/IronDomeIconWhite.svg");
 
 export interface BuildItemDisplay {
   unitType: PlayerBuildableUnitType;
@@ -118,6 +120,20 @@ const buildTable: BuildItemDisplay[][] = [
       icon: shieldIcon,
       description: "build_menu.desc.defense_post",
       key: "unit_type.defense_post",
+      countable: true,
+    },
+    {
+      unitType: UnitType.Castle,
+      icon: castleIcon,
+      description: "build_menu.desc.castle",
+      key: "unit_type.castle",
+      countable: true,
+    },
+    {
+      unitType: UnitType.IronDome,
+      icon: ironDomeIcon,
+      description: "build_menu.desc.iron_dome",
+      key: "unit_type.iron_dome",
       countable: true,
     },
     {

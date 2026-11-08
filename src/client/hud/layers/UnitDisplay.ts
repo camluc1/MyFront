@@ -31,6 +31,8 @@ import {
   atomBombIcon,
   cityIcon,
   defensePostIcon,
+  castleIcon,
+  ironDomeIcon,
   factoryIcon,
   goldCoinIcon,
   hydrogenBombIcon,
@@ -79,6 +81,8 @@ export class UnitDisplay extends LitElement implements Controller {
   private _missileSilo = 0;
   private _port = 0;
   private _defensePost = 0;
+  private _castle = 0;
+  private _ironDome = 0;
   private _samLauncher = 0;
   private allDisabled = false;
   private enabledUnitCount = 0;
@@ -490,6 +494,8 @@ export class UnitDisplay extends LitElement implements Controller {
     this._missileSilo = player.totalUnitLevels(UnitType.MissileSilo);
     this._port = player.totalUnitLevels(UnitType.Port);
     this._defensePost = player.totalUnitLevels(UnitType.DefensePost);
+    this._castle = player.totalUnitLevels(UnitType.Castle);
+    this._ironDome = player.totalUnitLevels(UnitType.IronDome);
     this._samLauncher = player.totalUnitLevels(UnitType.SAMLauncher);
     this._factories = player.totalUnitLevels(UnitType.Factory);
     this._farms = player.totalUnitLevels(UnitType.Farm);
@@ -583,6 +589,20 @@ export class UnitDisplay extends LitElement implements Controller {
               UnitType.DefensePost,
               "defense_post",
               this.getHotkey("buildDefensePost", "Digit4"),
+            )}
+            ${this.renderUnitItem(
+              castleIcon,
+              this._castle,
+              UnitType.Castle,
+              "castle",
+              this.getHotkey("buildCastle", ""),
+            )}
+            ${this.renderUnitItem(
+              ironDomeIcon,
+              this._ironDome,
+              UnitType.IronDome,
+              "iron_dome",
+              this.getHotkey("buildIronDome", ""),
             )}
             ${this.renderUnitItem(
               missileSiloIcon,
