@@ -37,7 +37,7 @@ describe("Geopolitics advanced defenses", () => {
   });
 
   it("a Castle beats a Defense Post without combining their multipliers", async () => {
-    const game = await setup("plains", { geopolitics: true }, [human("a")]);
+    const game = await setup("plains", { geopolitics: true }, [human("a")], undefined, EngineConfig);
     const input: AttackLogicInput = {
       terrain: TerrainType.Plains,
       attackTroops: 200_000,
