@@ -62,3 +62,76 @@ Before advertising this as a finished remaster, run repository typecheck, produc
 Include a large mostly-water map, distant world overview, a densely contested coastline, large transport/merchant/warship fleets, many simultaneous MIRV impacts, night mode, alternate affiliation view and a restored graphics context. Record median/p95 frame time, worst stalls, GPU/CPU utilization and memory; distinguish simulation-bound from rendering-bound stalls. Confirm that audio warnings remain intelligible rather than merely loud.
 
 The next visual iteration should be driven by those comparisons. Do not add ray marching, per-ship particle emitters, high-resolution shadow maps or 4K textures just to raise a quality label.
+
+
+## V2 — Heavy-map rendering, fleet integration, nuclear palette, ocean sound
+
+This iteration is **opt-in and cosmetic**. All changes remain within the existing
+cinematic path. The standard renderer, gameplay effects, hit boxes, map topology,
+unit simulation, faction ownership and nuclear damage are unchanged.
+
+### What changed
+
+1. **Adaptive ocean cost:** at a quality scalar of 0.35 or below, the water
+   fragment shader skips procedural high-frequency noise, specular normal
+   calculations and coastline caustics. A single inexpensive broad swell
+   remains; when the governor reaches zero, the renderer uses the existing
+   standard water path. No new pass, texture, physics grid, or draw call.
+2. **Water/naval integration:** the opt-in red pulsing boat ring is replaced by
+   a restrained blue-gray pressure wash, and existing per-ship foam is slightly
+   rebalanced. Ships retain their silhouette, tactical distinction, wake
+   direction, affiliations and current batching.
+3. **Nuclear visual design:** opt-in fallout now uses charcoal-colored residue,
+   warm fading bloom, and lower-density amber embers rather than the permanent
+   neon-green visual. The default blast shader has a thin secondary pressure
+   ring inside the existing geometry and lifetime. The legacy renderer retains
+   its colors, while a player's explicit custom stale-nuke color still wins.
+   Radioactive tile state, hazard logic, damage, SAM effects and cosmetic explosion
+   styles are unchanged.
+4. **Maritime atmosphere:** a short deterministic mono WAV loop (~44 KB,
+   generated once locally on first use) becomes available as a new ambience
+   track. It starts only with cinematic graphics enabled, zoom sufficiently
+   close and the camera centered on water, and only when no nearby structure
+   has priority. It follows the established master and ambience volumes, mute,
+   and 500 ms crossfades. No streamed asset or persistent per-unit audio.
+5. **Ambient light:** existing broad sea reflections and the adjusted nuclear
+   bloom contribute restrained lighting. There are no dynamic light shadows,
+   per-ship spotlights, extra postprocessing layers or 4K render targets.
+
+### Synthetic giant-map test actually executed
+
+With Mesa llvmpipe / OpenGL ES **software** (not a consumer GPU),
+an 8192 × 4096 synthetic terrain, **33,554,432 cells**, was uploaded as
+one RGBA8 texture (**128 MiB**) and rendered at 960 × 600 at close
+map zoom. Four water variants — standard, cinematic full, cinematic
+economical and cinematic fallback — compiled and drew without a GL
+error. The fallback matched the standard pixels exactly.
+
+Recorded median wall-clock software draw times in one run, after warmup
+(3 repetitions per variant, influenced by shader compilation, caches and
+CPU scheduling): **standard 3.45 ms; cinematic full 2.86 ms; cinematic
+economical 2.26 ms; fallback 3.44 ms**. These values are only a smoke
+test; they are **not hardware frame rates**, and the differences are too
+small and noisy to assert an actual speedup. Texture upload took roughly
+381 ms once in software. Real GPUs have different costs.
+
+Earlier shader harness scenes were rerun: 8 terrain variants, 11 naval
+and explosion scenarios, all with no GL error; standard graphics remained
+pixel-identical to their original shader paths. Reduced-motion terrain
+stayed stationary. No particle or ship instance count was increased.
+
+### What's still needed for release acceptance
+
+Run full TypeScript check and Vitest suite plus actual browser WebGL2
+rendering on integrated/discrete GPUs. Measure identical save-game scenarios
+on a huge land/water map, 500+ ships, several MIRVs and large coastal
+battles; capture real median, p95, p99 frametime, GPU utilization, memory,
+audio intelligibility and input delay, with mode **off vs on**.
+Also check renderer context restore, graphics overrides, mute/volume sliders,
+accessibility reduced-motion, and mobile. Nothing here guarantees 60 FPS.
+
+The synthetic giant-map results and test scripts were executed in a
+software-only test environment; users should not confuse them with a
+full gameplay benchmark. Source tests for the quality policy and ocean
+ambience have been added but the repository's complete suite has **not**
+been run in this environment.
