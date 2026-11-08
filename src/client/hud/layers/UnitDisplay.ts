@@ -559,7 +559,7 @@ export class UnitDisplay extends LitElement implements Controller {
         @contextmenu=${(event: Event) => event.preventDefault()}
       >
         ${this.resourceEconomy ? html`<div class="absolute bottom-full left-0 mb-2 w-72 max-w-[90vw] pointer-events-none">${renderResourceEconomy(this.resourceEconomy)}</div>` : null}
-        <div class="flex items-center justify-between gap-3 px-1 pb-2">
+        <div class="flex flex-wrap items-center justify-between gap-2 px-1 pb-2">
           <span class="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Construcción rápida</span>
           ${this.game.config().gameConfig().geopolitics === true && !this.tutorialMode ? html`
             <button type="button" data-mobile-shipyard data-radial-click-through
