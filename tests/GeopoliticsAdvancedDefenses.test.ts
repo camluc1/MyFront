@@ -32,7 +32,8 @@ describe("Geopolitics advanced defenses", () => {
     expect(game.config().castleRange()).toBe(60);
     expect(game.config().ironDomeRange()).toBe(84);
     expect(game.config().unitInfo(UnitType.Castle).upgradable).toBeFalsy();
-    expect(game.config().unitInfo(UnitType.IronDome).upgradable).toBeFalsy();
+    expect(game.config().unitInfo(UnitType.IronDome).upgradable).toBe(true);
+    expect(game.config().ironDomeRange(2)).toBeGreaterThan(84);
   });
 
   it("a Castle beats a Defense Post without combining their multipliers", async () => {
@@ -105,6 +106,10 @@ describe("Geopolitics advanced defenses", () => {
     expect(field(game.ref(115, 30), a)).toBe(false);
     expect(protectedByIronDome(game, game.ref(40, 30), b)).toBe(false);
     expect(dome.isInCooldown()).toBe(false);
+    const originalRadius = game.config().ironDomeRange(dome.level());
+    dome.increaseLevel();
+    expect(game.config().ironDomeRange(dome.level())).toBeGreaterThan(originalRadius);
+    expect(protectedByIronDome(game, game.ref(110, 30), a)).toBe(true);
     dome.setUnderConstruction(true);
     expect(protectedByIronDome(game, game.ref(40, 30), a)).toBe(false);
     dome.setUnderConstruction(false);
