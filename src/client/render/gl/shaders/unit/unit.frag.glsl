@@ -207,10 +207,14 @@ vec4 vehicleSprite(vec2 q, float col, out float signedHullDistance) {
 #ifdef FRONTIER_CINEMATIC_ULTRA
       // More readable bridge, forward deck recess and stern machinery.
       // Shared hull quad/palette; no extra mesh, texture or draw calls.
-      if(detail>0.35) {
-        if(q.x>0.12 && q.x<0.27 && abs(q.y)<0.032) gray=0.275;
-        if(q.x> -0.32 && q.x< -0.22 && abs(q.y)<0.065) gray=0.92;
-        if(q.x> -0.36 && q.x< -0.31 && abs(q.y)<0.072) gray=0.275;
+      if(detail>0.01) {
+        // Do not switch details on abruptly at an exact zoom threshold.
+        // Fade the small internal fittings while retaining the two gun
+        // turrets and pointed hull at every zoom level.
+        float fineLOD=smoothstep(0.14,0.78,detail);
+        if(q.x>0.12 && q.x<0.27 && abs(q.y)<0.032) gray=mix(gray,0.275,fineLOD);
+        if(q.x> -0.32 && q.x< -0.22 && abs(q.y)<0.065) gray=mix(gray,0.92,fineLOD);
+        if(q.x> -0.36 && q.x< -0.31 && abs(q.y)<0.072) gray=mix(gray,0.275,fineLOD);
       }
 #endif
       }
@@ -308,12 +312,22 @@ void main() {
         float time = uTime;
 #endif
         bool cargo = vAtlasCol > 0.5 && vAtlasCol < 1.5;
+#ifdef FRONTIER_CINEMATIC_ULTRA
+        // The repair carrier is longer than a gunship. Align foam to its
+        // actual waterline instead of starting the wake inside the hull.
+        float stern = supportCarrier ? -0.75 : (warship ? -0.64 : (cargo ? -0.40 : -0.30));
+        float bow = supportCarrier ? 0.80 : (warship ? 0.72 : (cargo ? 0.45 : 0.34));
+#else
         float stern = warship ? -0.64 : (cargo ? -0.40 : -0.30);
         float bow = warship ? 0.72 : (cargo ? 0.45 : 0.34);
+#endif
         float behind = max(0.0,stern-q.x);
         float reach = max(0.08,min(0.55,0.97+stern));
         float sternMask = step(q.x,stern)*(1.0-smoothstep(0.0,reach,behind));
         float spread = 0.07+behind*0.34;
+#ifdef FRONTIER_CINEMATIC_ULTRA
+        if (supportCarrier) spread = 0.08+behind*0.43;
+#endif
         float edges = 1.0-smoothstep(0.01,0.03+aa,abs(abs(q.y)-spread));
         float churn = exp(-q.y*q.y/max(0.008,0.008+behind*0.07));
         float bands = 0.72+0.28*sin(behind*38.0-time*2.5+vOwnerID*0.6);
@@ -330,7 +344,14 @@ void main() {
         vec2 front = (q-vec2(bow-0.04,0.0))/vec2(0.16,0.20);
         float bowArc = (1.0-smoothstep(0.07,0.14+aa*4.0,abs(length(front)-1.0)))*step(bow-0.02,q.x);
         float extent = 1.0-smoothstep(0.89,0.99,max(abs(q.x),abs(q.y)));
+#ifdef FRONTIER_CINEMATIC_ULTRA
+        // Byte 14 is the already-smoothed vessel speed/wake factor, updated
+        // each frame by UnitPass. No new uniform, simulation or per-boat VBO.
+        float speedWake = smoothstep(0.025,0.88,clamp(vHash,0.0,1.0));
+        float wake = clamp((trail+bowArc*0.28)*extent*lod*speedWake*0.72,0.0,0.58);
+#else
         float wake = clamp((trail+bowArc*0.34)*extent*lod*clamp(vHash,0.0,1.0)*0.76,0.0,0.62);
+#endif
         if (wake>0.005) {
           float combined = wake+waterEffect.a*(1.0-wake);
           vec3 foamColor = mix(vec3(0.58,0.79,0.88),vec3(0.91,0.97,0.96),edges);
