@@ -561,6 +561,27 @@ export class UnitDisplay extends LitElement implements Controller {
         ${this.resourceEconomy ? html`<div class="absolute bottom-full left-0 mb-2 w-72 max-w-[90vw] pointer-events-none">${renderResourceEconomy(this.resourceEconomy)}</div>` : null}
         <div class="flex items-center justify-between gap-3 px-1 pb-2">
           <span class="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Construcción rápida</span>
+          ${this.game.config().gameConfig().geopolitics === true && !this.tutorialMode ? html`
+            <button type="button" data-mobile-shipyard data-radial-click-through
+              title="Buque Taller: repara hasta 3 barcos; $5.000.000"
+              aria-pressed=${this.uiState.ghostStructure === UnitType.Warship && this.uiState.supportShipMode === true}
+              ?disabled=${!this.playerBuildables?.some(b => b.type === UnitType.Warship) ||
+                (myPlayer.gold() < 5_000_000n && !this.game.config().infiniteGold()) ||
+                this.game.config().isUnitDisabled(UnitType.Warship) || myPlayer.units(UnitType.Port).length === 0}
+              class="shrink-0 rounded-md border border-cyan-400/40 bg-cyan-950/80 px-3 py-1.5 text-xs font-semibold text-cyan-100 disabled:opacity-40"
+              @click=${(event: MouseEvent) => {
+                event.stopPropagation();
+                const wasSelected = this.uiState.ghostStructure === UnitType.Warship && this.uiState.supportShipMode === true;
+                if (wasSelected) {
+                  this.inputHandler.setGhostStructure(null, "GUIclick");
+                  this.uiState.supportShipMode = false;
+                } else {
+                  if (this.uiState.ghostStructure === UnitType.Warship) this.inputHandler.setGhostStructure(null, "GUIclick");
+                  this.inputHandler.setGhostStructure(UnitType.Warship, "GUIclick");
+                  this.uiState.supportShipMode = true;
+                }
+                this.requestUpdate();
+              }}>⚓ Buque Taller · $5M</button>` : nothing}
           <button
             type="button"
             data-frontier-resources-toggle
@@ -726,7 +747,8 @@ export class UnitDisplay extends LitElement implements Controller {
     if (!this.isUnitDisplayed(unitType)) {
       return html``;
     }
-    const selected = this.uiState.ghostStructure === unitType;
+    const selected = this.uiState.ghostStructure === unitType &&
+      !(unitType === UnitType.Warship && this.uiState.supportShipMode);
     const naturalResource =
       unitType === UnitType.Farm ||
       unitType === UnitType.Mine ||
@@ -809,6 +831,7 @@ export class UnitDisplay extends LitElement implements Controller {
               this.suppressReleaseClick = false;
               return;
             }
+            this.uiState.supportShipMode = false;
             if (selected) {
               if (!fromTouch && canRepeatBulk) {
                 this.inputHandler.setGhostStructure(unitType, "GUIclick");

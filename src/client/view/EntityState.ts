@@ -55,6 +55,7 @@ export function unitStateFromUpdate(u: UnitUpdate): UnitState {
     retreating:
       (u.transportShipState?.isRetreating ?? false) ||
       u.warshipState?.state === "retreating",
+    supportShip: u.warshipState?.supportShip === true,
     targetable: u.targetable,
     waitTicks: u.nukeState?.waitTicks ?? 0,
     markedForDeletion: u.markedForDeletion,
@@ -89,6 +90,7 @@ export function applyUnitUpdateInPlace(target: UnitState, u: UnitUpdate): void {
   target.retreating =
     (u.transportShipState?.isRetreating ?? false) ||
     u.warshipState?.state === "retreating";
+  target.supportShip = u.warshipState?.supportShip === true;
   target.targetable = u.targetable;
   target.waitTicks = u.nukeState?.waitTicks ?? 0;
   target.markedForDeletion = u.markedForDeletion;

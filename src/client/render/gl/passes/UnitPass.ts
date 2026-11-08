@@ -129,6 +129,7 @@ const FLAG_TRADE_FRIENDLY = 3;
 const FLAG_RETREATING = 4;
 const FLAG_FLICKER_UNTARGETABLE = 5;
 const FLAG_TRADE_SELF = 6;
+const FLAG_SUPPORT_SHIP = 7;
 
 /** Atlas column indices for train sub-types (resolved from trainType + loaded) */
 const TRAIN_ENGINE_COL = UNIT_ORDER.indexOf("TrainEngine");
@@ -569,6 +570,8 @@ export class UnitPass {
       let flags = FLAG_NORMAL;
       if (tradeFlag !== FLAG_NORMAL) {
         flags = tradeFlag;
+      } else if (unit.unitType === UT_WARSHIP && unit.supportShip === true) {
+        flags = FLAG_SUPPORT_SHIP;
       } else if (isRetreatingWarship) {
         flags = FLAG_RETREATING;
       } else if (isAngryWarship) {

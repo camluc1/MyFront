@@ -108,6 +108,7 @@ export interface UnitState {
   isActive: boolean;
   reachedTarget: boolean;
   retreating: boolean;
+  supportShip?: boolean;
   targetable: boolean;
   waitTicks: number;
   markedForDeletion: number | false; // -1 -> false, else tick
