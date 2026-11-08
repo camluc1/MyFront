@@ -3,6 +3,7 @@ import {
   BuildableUnit,
   BuildMenus,
   Gold,
+  maxBulkAmount,
   PlayerBuildableUnitType,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
@@ -734,8 +735,23 @@ export class UnitDisplay extends LitElement implements Controller {
       (unitType === UnitType.AtomBomb ||
         this.game.config().unitInfo?.(unitType)?.upgradable === true);
     const requestedBulk = this.uiState.upgradeMultiplier ?? 1;
+    const currentBuildable = this.playerBuildables?.find(
+      (bu) => bu.type === unitType,
+    );
+    const playerGold = this.game.myPlayer()?.gold();
+    // When an upgrade has an explicit escalating price table, the number
+    // shown on the button must agree with what the player can actually buy.
+    const affordableBulk =
+      selected && currentBuildable?.canUpgrade !== false &&
+      currentBuildable?.upgradeCosts && playerGold !== undefined
+        ? maxBulkAmount(currentBuildable, playerGold)
+        : requestedBulk;
     const bulkBadge = selected && canRepeatBulk && requestedBulk > 1
-      ? requestedBulk
+      ? Math.max(1, Math.min(
+          requestedBulk,
+          affordableBulk,
+          currentBuildable?.upgradeCosts?.length ?? requestedBulk,
+        ))
       : 0;
     const displayHotkey = hotkey
       .replace(/^Shift\+/, "⇧")
@@ -844,7 +860,7 @@ export class UnitDisplay extends LitElement implements Controller {
           ${bulkBadge > 0
             ? html`<span
                 class="unit-display-multiplier pointer-events-none absolute right-0.5 top-0.5 rounded border border-cyan-300/45 bg-cyan-950/95 px-1 text-[10px] font-bold leading-tight text-cyan-100 tabular-nums motion-safe:animate-pulse"
-                title="Cantidad seleccionada"
+                title="Cantidad de mejoras según el oro disponible"
               >×${bulkBadge}</span>`
             : nothing}
           <div
