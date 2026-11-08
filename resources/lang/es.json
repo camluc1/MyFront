@@ -2358,6 +2358,8 @@
     "youtube_tutorial": "¿Necesitas ayuda?"
   },
   "geopolitics": {
+    "deal_no_land": "Sin cambio de terreno",
+    "deal_others": "Balance entre los firmantes",
     "reason_alternative_port": "Ofrecemos otro puerto para conservar nuestra salida más importante.",
     "reason_military_pressure": "La presión militar exige concesiones, pero intentamos preservar capacidad defensiva.",
     "reason_survival_peace": "Necesitamos tiempo para reconstruir nuestras defensas; proponemos una paz más larga.",
