@@ -168,3 +168,71 @@ playtested in a real browser session in this environment. RAF FPS is useful
 for detecting uneven pacing but should not be presented as GPU timing, and
 real game stress testing remains necessary before claiming 60 FPS or a 9/10
 audiovisual result.
+
+
+## V4 — Player-reported visual regressions and build-key visibility
+
+**Triggered by in-game feedback, not by another assumed 8.7/10 rating.**
+The player reported that cinematic water looked worse, small missile impacts
+were comical, naval bows jerked left/right at course changes, and DLC
+structures still had no visible keycap.
+
+### Corrections
+
+- **Build keys across all modes:** the J, V, O, Z bindings (farm, mine,
+  oil well, gas) and the legacy 0–9 keys are now displayed at the upper
+  corner of **each item's icon**, instead of in the remote corner of its
+  full build card. A true unbound key shows a dash with an explanation rather
+  than silently disappearing. Existing user remapping continues to win.
+- **Cinematic sea:** replaced the overly subdued wave highlight with
+  directional traveling swells, modulated crest ribbons, coastal teal and
+  a more readable surf layer. Noise is shared between crest breakup and shore
+  wash. At low quality the shader exits early and preserves an affordable
+  broad wave. Terrain relief changes are slight to keep faction colors
+  legible. Changes are isolated behind FRONTIER_CINEMATIC.
+- **Vessel steering:** the visual hull uses a rate-limited heading on
+  planned sailing routes and a stable course bearing on fallback routes.
+  The authoritative position, route, tile arrivals and unit behavior remain
+  unchanged; this adjusts rendering only.
+- **Rocket/bomb impacts:** the existing explosion sprite vertex shader
+  enlarges only nuke, building and small-shell impact silhouettes in the
+  cinematic profile. The fragment shader shades the same existing atlas
+  texture through hot flash, cooling embers and dark smoke. No new
+  particle emitters or draw calls. SAM intercepts, faction/cosmetic
+  branches and classic graphics retain original behavior. Enlarged quads
+  can shade slightly more pixels, so this is not mathematically free.
+
+### Executed isolated visual checks
+
+Mesa llvmpipe OpenGL ES 3.2 software renderer, not browser/WebGL2:
+
+- **Terrain shader** compiled and rendered all eight previously defined
+  synthetic variants, including close and overview scales, cinematic
+  quality, fallback, and reduced motion. Standard profile compared
+  pixel-identical to the earlier shader baseline; reduced-motion frames
+  were stationary. Earlier first-pass V4 source had a nested-preprocessor
+  replacement error; the smoke test caught it and it was corrected **before**
+  moving the feature branch into development.
+- **Giant texture:** 8192 × 4096 synthetic cells (33,554,432 cells,
+  128 MiB RGBA8 texture) rendered with standard, cinematic full,
+  cinematic quality 0.25 and fallback, with no OpenGL errors. On one
+  software run the median measured draw calls were approximately
+  3.41/2.98/2.92/3.33 ms respectively on a 960 × 600 output.
+  These are **not gameplay frame times, GPU benchmarks or claims of speedup**.
+- **Explosion sprite program:** default, cinematic, and cinematic with
+  reduced motion compiled and linked with a representative WebGL2 ES
+  test harness. This is not a final explosion visual art review.
+- New repository regression tests cover hotkeys anchored over icons,
+  unbound-key messaging, planned ship steering and optional shader
+  gating. The repository's Vitest suite, full build, actual browser,
+  shader appearance on production terrain/ships, and real gameplay
+  remain untested here.
+
+### Deployment caveat
+
+The default GitHub branch is `main`, while development work is under
+`frontier/development`. At the time of audit the latter was 214 commits
+ahead; a live app based on `main` may show none of these fixes. Check the
+deployment source/revision before diagnosing a screenshot as containing
+the new renderer. Do not merge into `main` without an explicit release
+decision and QA approval.
