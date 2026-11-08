@@ -155,9 +155,13 @@ export class VesselMotion {
       // between control points on long or stair-stepped naval routes.
       const delta = Math.atan2(
         Math.sin(desired - lastHeading), Math.cos(desired - lastHeading));
-      const maxTurn = Math.PI * (this.cinematicSteering ? 0.32 : 0.62) * dt;
+      // A heavy ship should not face backwards for seconds after a U-turn.
+      // Give large course changes a faster (still bounded) rotation and
+      // retain the existing stabilization for small tile-stair corrections.
+      const maxTurn = Math.PI * (this.cinematicSteering
+        ? Math.abs(delta) > 1.35 ? 0.86 : 0.44 : 0.62) * dt;
       const eased = delta * (1.0-Math.exp(
-        -(this.cinematicSteering ? 3.4 : 7.0)*dt));
+        -(this.cinematicSteering ? Math.abs(delta) > 1.35 ? 5.2 : 3.6 : 7.0)*dt));
       this.angle = !this.routeHeadingInitialized ? desired :
         lastHeading + Math.max(-maxTurn, Math.min(maxTurn,
           this.cinematicSteering && Math.abs(delta)<0.022 ? 0 : eased));
@@ -189,7 +193,8 @@ export class VesselMotion {
         Math.cos(this.courseAngle - this.angle),
       );
       const step = delta * (1 - Math.exp(-5 * dt));
-      const turnLimit = Math.PI * (this.cinematicSteering ? 0.32 : 0.5) * dt;
+      const turnLimit = Math.PI * (this.cinematicSteering
+        ? Math.abs(delta) > 1.35 ? 0.86 : 0.44 : 0.5) * dt;
       this.angle += Math.max(-turnLimit, Math.min(turnLimit,
         this.cinematicSteering && Math.abs(delta)<0.022 ? 0 : step));
     }

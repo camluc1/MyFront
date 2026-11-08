@@ -1,4 +1,5 @@
 #version 300 es
+// FRONTIER_CINEMATIC_VARIANT
 precision highp float;
 
 layout(location = 0) in vec2 aPos;
@@ -45,6 +46,12 @@ void main() {
   float isHBomb = step(abs(atlasCol - float(HYDROGEN_BOMB_COL)), 0.5);
   vGlow = isHBomb;
   float scale = mix(1.0, uHBombGlowScale, isHBomb);
+#ifdef FRONTIER_CINEMATIC
+  // SAM and naval shells get a little quad margin for a directional exhaust.
+  // Not another sprite instance, and not enabled in classic graphics.
+  if (atlasCol > 5.5 && atlasCol < 7.5)
+    scale = atlasCol < 6.5 ? 1.55 : 1.38;
+#endif
   bool vessel = atlasCol < 2.5;
   bool train = atlasCol > 8.5;
   // Extra space behind a hull holds its wake, in the same instanced quad.
@@ -71,7 +78,11 @@ void main() {
 
   vec2 center = vec2(worldX + 0.5, worldY + 0.5);
   vec2 localPos = (aPos - 0.5) * halfSize * 2.0;
-  if (vessel || train) {
+  bool directional = vessel || train;
+#ifdef FRONTIER_CINEMATIC
+  directional = directional || (atlasCol > 5.5 && atlasCol < 7.5);
+#endif
+  if (directional) {
     float angle = aInstFlags.w * (6.28318530718 / 255.0);
     float c = cos(angle), s = sin(angle);
     localPos = mat2(c, s, -s, c) * localPos;

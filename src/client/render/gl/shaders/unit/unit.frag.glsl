@@ -248,6 +248,12 @@ void main() {
         // A light turquoise wake reads against both deep and shallow water.
         // Keep it short-lived and contained within each already instanced hull.
         float trail = (edges*0.60+churn*0.38)*sternMask*bands;
+#ifdef FRONTIER_CINEMATIC_ULTRA
+        // A little broken stern turbulence reacts to motion without needing
+        // water particles, trail allocations or an additional draw pass.
+        float turbulence=0.5+0.5*sin(behind*22.0+abs(q.y)*13.0-time*2.2);
+        trail+=sternMask*churn*(0.07+0.13*turbulence);
+#endif
         // Soft bow pressure arc and a short side wash, never a full halo.
         vec2 front = (q-vec2(bow-0.04,0.0))/vec2(0.16,0.20);
         float bowArc = (1.0-smoothstep(0.07,0.14+aa*4.0,abs(length(front)-1.0)))*step(bow-0.02,q.x);
@@ -289,6 +295,31 @@ void main() {
   // otherwise discard. Glow is suppressed in alt (affiliation) view.
   if (texel.a < 0.01) {
     if (waterEffect.a > 0.001) { fragColor = waterEffect; return; }
+#ifdef FRONTIER_CINEMATIC
+    // Exhaust on moving SAM missiles and naval shells. The CPU supplies
+    // their real travel bearing; this quad rotates with it in the vertex
+    // shader. This uses transparent margin of the original missile instance.
+    if (uAltView == 0 && vAtlasCol > 5.5 && vAtlasCol < 7.5) {
+      vec2 q=(vQuadPos-0.5)*2.0;
+      float sam=1.0-step(6.5,vAtlasCol);
+      float behind=smoothstep(-0.09,-0.82,q.x);
+      float narrow=exp(-pow(q.y/(0.07+0.055*sam),2.0));
+      float taper=1.0-smoothstep(0.66,0.99,abs(q.x));
+      float ember=behind*narrow*taper;
+#ifdef FRONTIER_CINEMATIC_ULTRA
+      ember*=0.85+0.15*sin(q.x*20.0-uTime*7.0+vHash*6.2831853);
+#endif
+      float opacity=ember*(0.24+0.19*sam);
+#ifdef FRONTIER_REDUCED_MOTION
+      opacity*=0.65;
+#endif
+      if(opacity>0.008) {
+        vec3 tone=mix(vec3(1.0,0.67,0.31),vec3(0.44,0.83,1.0),sam);
+        fragColor=vec4(tone,opacity*alphaMul);
+        return;
+      }
+    }
+#endif
     if (vGlow > 0.5 && uAltView == 0) {
       float d = length(vQuadPos - 0.5) * 2.0; // 0 at center → ~1 at quad edge
       float g = (1.0 - smoothstep(uHBombGlowInner, 1.0, d)) * uHBombGlowStrength;

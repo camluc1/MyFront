@@ -454,6 +454,7 @@ export class UnitPass {
     ownerID: number,
     atlasIdx: number,
     flags: number,
+    heading = 0,
   ): void {
     this.missileBuf.ensureCapacity(this.missileCount + 1);
     const off = this.missileCount * FLOATS_PER_INSTANCE;
@@ -464,7 +465,18 @@ export class UnitPass {
     this.missileBuf.uint8[byteOff + 12] = atlasIdx;
     this.missileBuf.uint8[byteOff + 13] = flags;
     this.missileBuf.uint8[byteOff + 14] = flickerHashByte(x, y);
+    // Reuse the existing fourth byte for projectile travel bearing.
+    this.missileBuf.uint8[byteOff + 15] = heading;
     this.missileCount++;
+  }
+
+  /** Stable direction from the actual projectile movement, never the ship's heading. */
+  private projectileHeading(pos: number, lastPos: number): number {
+    const dx = pos % this.mapW - lastPos % this.mapW;
+    const dy = Math.floor(pos / this.mapW) - Math.floor(lastPos / this.mapW);
+    if (dx === 0 && dy === 0) return 0;
+    const turn = Math.PI * 2;
+    return Math.round(((Math.atan2(dy, dx) + turn) % turn) * 255 / turn);
   }
 
   setViewportSize(width: number, height: number): void {
@@ -565,13 +577,16 @@ export class UnitPass {
           const ly = (unit.lastPos - lx) / this.mapW;
           this.smoothSegs.push(this.missileCount, lx, ly, x, y);
         }
-        this.emitMissile(x, y, unit.ownerID, atlasIdx, flags);
+        const heading = unit.unitType === UT_SAM_MISSILE ||
+            unit.unitType === UT_SHELL
+          ? this.projectileHeading(unit.pos, unit.lastPos) : 0;
+        this.emitMissile(x, y, unit.ownerID, atlasIdx, flags, heading);
 
         // Shells emit a second instance at lastPos (2-pixel trail effect)
         if (unit.unitType === UT_SHELL && unit.lastPos !== unit.pos) {
           const lx = unit.lastPos % this.mapW;
           const ly = (unit.lastPos - lx) / this.mapW;
-          this.emitMissile(lx, ly, unit.ownerID, atlasIdx, flags);
+          this.emitMissile(lx, ly, unit.ownerID, atlasIdx, flags, heading);
         }
       } else {
         const lx = unit.lastPos % this.mapW;
