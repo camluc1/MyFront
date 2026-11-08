@@ -108,9 +108,12 @@ vec4 vehicleSprite(vec2 q, float col) {
   if (col < 2.5) {
     bool cargo=col>0.5 && col<1.5;
     bool warship=col>1.5;
-    float stern=warship ? -0.62 : (cargo ? -0.37 : -0.29);
-    float bow=warship ? 0.72 : (cargo ? 0.45 : 0.34);
-    float beam=warship ? 0.17 : (cargo ? 0.23 : 0.18);
+    bool repairCarrier=warship && abs(vFlags-FLAG_SUPPORT_SHIP)<0.1;
+    // A repair carrier needs a broad, long service deck; a battleship's
+    // narrow hull made the support unit look like an empty destroyer.
+    float stern=repairCarrier ? -0.75 : (warship ? -0.62 : (cargo ? -0.37 : -0.29));
+    float bow=repairCarrier ? 0.80 : (warship ? 0.72 : (cargo ? 0.45 : 0.34));
+    float beam=repairCarrier ? 0.265 : (warship ? 0.17 : (cargo ? 0.23 : 0.18));
     // A proper tapered waterline, with a rounded stern and a distinct bow.
     float width=beam*min(clamp((bow-q.x)/(warship ? 0.32 : 0.20),0.0,1.0),clamp((q.x-stern)/0.08,0.0,1.0));
     if(col<0.5) width=beam*clamp((q.x-stern)/0.07,0.0,1.0);
@@ -137,12 +140,34 @@ vec4 vehicleSprite(vec2 q, float col) {
       if(detail>.1 && q.x>-.20 && q.x<-.17 && abs(q.y)<.10)gray=.275;
       if(detail>.1 && q.x>.29 && q.x<.34 && abs(q.y)<.025)gray=.92;
     } else if(warship) {
-      if (abs(vFlags - FLAG_SUPPORT_SHIP) < 0.1) {
-        // High-contrast workshop deck and service crane; same instanced quad.
-        if (q.x > -0.40 && q.x < 0.35 && abs(q.y) < 0.13) gray = 0.87;
-        if (q.x > -0.12 && q.x < -0.02 && abs(q.y) < 0.16) gray = 0.27;
-        if (q.x > -0.24 && q.x < 0.23 && abs(q.y - 0.09) < 0.025) gray = 0.27;
-        if (length(q - vec2(0.19, 0.03)) < 0.05) gray = 1.0;
+      if (repairCarrier) {
+        // Aircraft-carrier silhouette, but a NAVAL REPAIR SHIP: two parallel
+        // drydock lanes, edge work lights and a starboard service island.
+        // No aircraft, radar dome, blue rings, sprites or additional draw calls.
+        if (abs(q.x) < 0.64 && abs(q.y) < 0.205) gray = 0.52;
+        if (abs(q.x) < 0.58 && abs(q.y) < 0.15) gray = 0.73;
+        // Hardened gunwales read as two long rails at strategic zoom.
+        if (abs(q.x) < 0.60 && abs(abs(q.y)-0.215) < 0.025) gray = 0.275;
+        // Long central bay separation, maintenance lanes for three vessels.
+        if (abs(q.x) < 0.51 && abs(q.y) < 0.015) gray = 0.275;
+        if (abs(q.x) < 0.51 && abs(abs(q.y)-0.105) < 0.012) gray = 0.91;
+        // Stern bay doors and bow approach arrows, no runway/aircraft.
+        if (abs(q.x+0.46) < 0.018 && abs(q.y) < 0.17) gray = 0.92;
+        if (abs(q.x-0.40) < 0.018 && abs(q.y) < 0.15) gray = 0.275;
+        // Two distinct high-sided service lifts with inset deck floors.
+        if (q.x > -0.32 && q.x < 0.13 && abs(abs(q.y)-0.074) < 0.046) gray = 0.87;
+        if (q.x > -0.28 && q.x < 0.09 && abs(abs(q.y)-0.074) < 0.026) gray = 0.51;
+        // Starboard island bridge: offset from the service deck, not a dome.
+        if (q.x > -0.40 && q.x < -0.19 && q.y > 0.125 && q.y < 0.244) gray = 0.92;
+        if (q.x > -0.35 && q.x < -0.23 && q.y > 0.16 && q.y < 0.21) gray = 0.275;
+        // Service crane boom, long enough to be legible at high zoom.
+        if (detail > 0.08) {
+          if (q.x > 0.13 && q.x < 0.43 && abs(q.y-0.17) < 0.016) gray = 0.92;
+          if (abs(q.x-0.32) < 0.013 && q.y > 0.07 && q.y < 0.18) gray = 0.275;
+          if (abs(q.x-0.32) < 0.026 && abs(q.y-0.075) < 0.018) gray = 0.92;
+          // Tiny bay registration lines, suppressed before they alias.
+          if (abs(q.x+0.07) < 0.012 && abs(q.y) < 0.15) gray = 0.275;
+        }
       } else {
       if(q.x> -0.32 && q.x<0.30 && abs(q.y)<0.115)gray=0.51;
       if(q.x> -0.15 && q.x<0.12 && abs(q.y)<0.08)gray=0.92;
@@ -220,7 +245,8 @@ void main() {
     // No terrain modification, accumulated stain, particles or extra draw call.
     bool warship = vAtlasCol > 1.5 && vAtlasCol < 2.5;
     bool transport = vAtlasCol < 0.5;
-    if ((warship || transport) && uAltView == 0) {
+    bool supportCarrier=warship && abs(vFlags-FLAG_SUPPORT_SHIP)<0.1;
+    if ((warship || transport) && !supportCarrier && uAltView == 0) {
       float phase = fract(uTime / max(uNavalPulse.z, 0.1) + fract(vOwnerID * 0.173));
       float radius = uNavalPulse.w * (warship ? 1.0 : 0.68);
       float r = length(q) / radius;
@@ -476,6 +502,11 @@ void main() {
       float box = max(abs(q.x-0.04)-0.23,abs(q.y)-0.21);
       mark = 1.0-smoothstep(-aa,aa,box);
       accent = vec3(1.0,0.85,0.32);
+    } else if (abs(vFlags-FLAG_SUPPORT_SHIP) < 0.1) {
+      // Distinct broad hospital-ship style service lanes (not crosshairs).
+      float lanes = max(abs(q.x)-0.43, abs(abs(q.y)-0.104)-0.027);
+      mark = 1.0-smoothstep(-aa,aa,lanes);
+      accent = vec3(0.38,0.92,0.76);
     } else {
       // Twin pale gun/deck bands survive when individual turrets are subpixel.
       float bars = max(abs(abs(q.x)-0.28)-0.075, abs(q.y)-0.13);
@@ -483,6 +514,17 @@ void main() {
     }
     if (abs(vFlags-FLAG_ANGRY) > 0.1 && abs(vFlags-FLAG_RETREATING) > 0.1)
       color = mix(color,accent,mark*strategic);
+    // In place of the old sonar circles, subtle green deck-service strips
+    // slowly breathe while the mobile dock is active. No external halo.
+    if (vAtlasCol > 1.5 && vAtlasCol < 2.5 &&
+        abs(vFlags-FLAG_SUPPORT_SHIP) < 0.1 && uAltView == 0) {
+      float aa = max(fwidth(q.x), fwidth(q.y));
+      float sideRails =
+        (1.0-smoothstep(0.009,0.009+aa,abs(abs(q.y)-0.185))) *
+        (1.0-smoothstep(0.02,0.05+aa,abs(q.x)-0.52));
+      float pulse = 0.56 + 0.18*sin(uTime*1.65+q.x*5.0);
+      color = mix(color,vec3(0.28,0.92,0.73),sideRails*pulse);
+    }
   }
 #ifdef FRONTIER_CINEMATIC
   if (vessel && vStrategic<0.5 && gray>0.45 &&
