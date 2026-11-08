@@ -11,6 +11,11 @@
 import type { TerrainRect } from "../../types";
 import defaults from "../render-settings.json";
 import type { RenderSettings } from "../RenderSettings";
+import {
+  enhancedVisualsEnabled,
+  prefersReducedVisualMotion,
+  WaterQualityGovernor,
+} from "../EnhancedVisuals";
 import terrainFragSrc from "../shaders/terrain/terrain.frag.glsl?raw";
 import terrainVertSrc from "../shaders/terrain/terrain.vert.glsl?raw";
 import {
@@ -38,6 +43,10 @@ export class TerrainPass {
   private uTime: WebGLUniformLocation;
   private startTime = performance.now();
   private uBackground: WebGLUniformLocation;
+  private uWaterQuality: WebGLUniformLocation | null;
+  private readonly cinematic = enhancedVisualsEnabled();
+  private readonly reducedMotion = prefersReducedVisualMotion();
+  private readonly waterQuality = new WaterQualityGovernor();
   private mapW: number;
   private mapH: number;
   // Base ocean (deep water) color; reused by applyTerrainRects and rebuilds.
@@ -72,6 +81,7 @@ export class TerrainPass {
     this.uSurface = gl.getUniformLocation(this.program, "uSurface")!;
     this.uTime = gl.getUniformLocation(this.program, "uTime")!;
     this.uBackground = gl.getUniformLocation(this.program, "uBackground")!;
+    this.uWaterQuality = gl.getUniformLocation(this.program, "uWaterQuality");
 
     this.tex = createTexture2D(gl, {
       width: mapW,
@@ -178,7 +188,14 @@ export class TerrainPass {
       this.surface.reliefStrength,
       this.surface.surfaceTextureStrength,
     );
-    gl.uniform1f(this.uTime, (performance.now() - this.startTime) / 1000);
+    const now = performance.now();
+    gl.uniform1f(this.uTime,
+      this.cinematic && this.reducedMotion ? 0 : (now - this.startTime) / 1000);
+    if (this.cinematic && this.uWaterQuality !== null) {
+      gl.uniform1f(this.uWaterQuality, this.waterQuality.sample(
+        now, gl.drawingBufferWidth * gl.drawingBufferHeight,
+      ));
+    }
     const background = this.terrainColors?.backgroundColor ?? [11, 22, 36];
     gl.uniform3f(
       this.uBackground,
