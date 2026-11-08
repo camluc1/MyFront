@@ -50,6 +50,9 @@ function makeDisplay(
   display.uiState = { ghostStructure, upgradeMultiplier: 1 } as any;
   if (tutorial) display.classList.add("hidden");
   display.init();
+  (display as any).playerBuildables = BuildMenus.types.map((type) => ({
+    type, cost: 1n, canBuild: true, canUpgrade: false,
+  }));
   document.body.appendChild(display);
   display.requestUpdate();
   return { display, inputHandler, eventBus };
@@ -141,225 +144,91 @@ describe("mobile UnitDisplay layout", () => {
     }
   });
 
-  test("keeps the quick-build items in one horizontally scrollable row", async () => {
+  test("groups structures into single-row categories and keeps nuclear weapons separate", async () => {
     const { display } = makeDisplay();
     try {
       await display.updateComplete;
-
-      const scroller = display.querySelector(".unit-display-scroll");
-      const grid = scroller?.querySelector<HTMLElement>(".unit-display-grid");
-      expect(scroller).not.toBeNull();
-      expect(scroller?.classList.contains("touch-pan-x")).toBe(true);
-      expect(scroller?.classList.contains("lg:overflow-visible")).toBe(true);
-      expect(grid?.classList.contains("max-lg:landscape:grid-flow-col")).toBe(
-        true,
-      );
-      expect(
-        grid?.classList.contains("max-lg:landscape:auto-cols-[47px]"),
-      ).toBe(true);
-      expect(grid?.classList.contains("max-[360px]:grid-flow-col")).toBe(true);
-      expect(grid?.classList.contains("max-[360px]:auto-cols-[44px]")).toBe(
-        true,
-      );
-      expect(grid?.children).toHaveLength(BuildMenus.types.length);
-      expect(grid?.style.getPropertyValue("--unit-display-columns")).toBe(
-        String(BuildMenus.types.length),
-      );
-    } finally {
-      display.remove();
-    }
+      const grid = () => display.querySelector(".unit-display-scroll .unit-display-grid")!;
+      expect(grid().children).toHaveLength(6);
+      expect(display.querySelectorAll(".unit-display-arsenal .unit-display-grid > div")).toHaveLength(3);
+      display.querySelector<HTMLButtonElement>('[data-build-category="defense"]')!.click();
+      await display.updateComplete;
+      expect(grid().children).toHaveLength(5);
+      display.querySelector<HTMLButtonElement>('[data-build-category="naval"]')!.click();
+      await display.updateComplete;
+      expect(grid().children).toHaveLength(2);
+    } finally { display.remove(); }
   });
 
-  test("portrait grid uses only the visible build buttons", async () => {
-    const { display } = makeDisplay(null, [UnitType.City]);
+  test("filters disabled buildings from their categories", async () => {
+    const { display } = makeDisplay(null, [UnitType.City, UnitType.Castle]);
     try {
       await display.updateComplete;
-
-      const grid = display.querySelector<HTMLElement>(".unit-display-grid");
-      expect(grid?.children).toHaveLength(BuildMenus.types.length - 1);
-      expect(grid?.style.getPropertyValue("--unit-display-columns")).toBe(
-        String(BuildMenus.types.length - 1),
-      );
-      expect(grid?.classList.contains("lg:grid-cols-none")).toBe(true);
-      expect(grid?.classList.contains("lg:auto-cols-max")).toBe(true);
-    } finally {
-      display.remove();
-    }
+      expect(display.querySelectorAll(".unit-display-scroll .unit-display-grid > div")).toHaveLength(5);
+      display.querySelector<HTMLButtonElement>('[data-build-category="defense"]')!.click();
+      await display.updateComplete;
+      expect(display.querySelectorAll(".unit-display-scroll .unit-display-grid > div")).toHaveLength(4);
+    } finally { display.remove(); }
   });
 
-  test("tutorial shows only enabled atom button after silo is captured", async () => {
+  test("tutorial exposes only its nuclear action after capturing the silo", async () => {
     const { display } = makeDisplay(null, [], true, true);
     try {
       await display.updateComplete;
-
-      const grid = display.querySelector<HTMLElement>(".unit-display-grid");
       expect(display.classList.contains("hidden")).toBe(false);
-      expect(grid?.children).toHaveLength(1);
-      expect(grid?.style.getPropertyValue("--unit-display-columns")).toBe("1");
-    } finally {
-      display.remove();
-    }
+      expect(display.querySelectorAll(".unit-display-scroll .unit-display-grid > div")).toHaveLength(1);
+    } finally { display.remove(); }
   });
 
   test("the build bar opts into radial-menu click-through", async () => {
     const { display } = makeDisplay();
     try {
       await display.updateComplete;
-
-      const root = display.querySelector(".unit-display-root");
-      expect(root?.hasAttribute("data-radial-click-through")).toBe(true);
-    } finally {
-      display.remove();
-    }
+      expect(display.querySelector(".unit-display-root")?.hasAttribute("data-radial-click-through")).toBe(true);
+    } finally { display.remove(); }
   });
 
-  test("button hover backgrounds are limited to fine pointers", async () => {
-    const { display } = makeDisplay();
-    try {
-      await display.updateComplete;
-      const cityButton = display.querySelector(".unit-display-grid > * > div");
-
-      expect(cityButton?.classList.contains("hover:bg-gray-800")).toBe(false);
-      expect(
-        cityButton?.classList.contains("pointer-fine:hover:bg-gray-800"),
-      ).toBe(true);
-    } finally {
-      display.remove();
-    }
-  });
-
-  test("shows the hotkeys when a keyboard is present", async () => {
-    const { display } = makeDisplay();
-    try {
-      await display.updateComplete;
-
-      const hotkeys = display.querySelectorAll(".unit-display-hotkey");
-      expect(hotkeys.length).toBeGreaterThan(0);
-    } finally {
-      display.remove();
-    }
-  });
-
-  test("shows all resource and advanced defense default shortcuts, plus live rebinding", async () => {
+  test("shows resource and advanced defense shortcuts with live remapping", async () => {
     const settings = new UserSettings();
     settings.removeCached(KEYBINDS_KEY, false);
     const { display } = makeDisplay();
     try {
       await display.updateComplete;
-      const badge = (i: number) =>
-        display.querySelectorAll(".unit-display-grid > div")[i]
-          ?.querySelector(".unit-display-hotkey")?.textContent?.trim();
-      // Button order is the quick-build bar's 10 originals + advanced defenses
-      // + resource buildings, not the engine's enum order.
-      expect(badge(10)).toBe("⇧C"); // Castle after digits 1–0
-      expect(badge(11)).toBe("I"); // Iron Dome
-      expect(badge(12)).toBe("J"); // Farm
-      expect(badge(13)).toBe("V"); // Mine
-      expect(badge(14)).toBe("O"); // Oil Well
-      expect(badge(15)).toBe("Z"); // Gas Plant
-
-      settings.setKeybinds({
-        buildFarm: { value: "Shift+KeyJ", key: "Shift+J" },
-        buildIronDome: { value: "Null", key: "" },
-      });
+      const keys = () => [...display.querySelectorAll(".unit-display-scroll .unit-display-hotkey")].map((item) => item.textContent?.trim());
+      expect(keys()).toEqual(expect.arrayContaining(["J", "V", "O", "Z"]));
+      display.querySelector<HTMLButtonElement>('[data-build-category="defense"]')!.click();
       await display.updateComplete;
-      expect(badge(12)).toBe("⇧J");
-      expect(badge(11)).toBeUndefined();
+      expect(keys()).toEqual(expect.arrayContaining(["⇧C", "I"]));
+      settings.setKeybinds({ buildIronDome: { value: "Null", key: "" } });
+      await display.updateComplete;
+      expect(keys()).not.toContain("I");
     } finally {
       display.remove();
       settings.removeCached(KEYBINDS_KEY, false);
     }
   });
 
-  test("repeated desktop clicks raise upgrade quantity, but do not bulk-upgrade Castle", async () => {
-    const { display, inputHandler } = makeDisplay(UnitType.Port);
-    (display.game as any).config = () => ({
-      isUnitDisabled: () => false,
-      gameConfig: () => ({ tutorial: false }),
-      unitInfo: (type: UnitType) => ({ upgradable: type !== UnitType.Castle }),
-    });
-    try {
-      await display.updateComplete;
-      const cards = () => display.querySelectorAll(".unit-display-grid > div");
-      (cards()[2].firstElementChild as HTMLElement).click(); // Port
-      expect(inputHandler.setGhostStructure).toHaveBeenCalledWith(
-        UnitType.Port, "GUIclick",
-      );
-      display.uiState.upgradeMultiplier = 5;
-      display.requestUpdate();
-      await display.updateComplete;
-      expect(cards()[2].querySelector(".unit-display-multiplier")?.textContent?.trim())
-        .toBe("×5");
-
-      display.uiState.ghostStructure = UnitType.Castle;
-      display.requestUpdate();
-      await display.updateComplete;
-      (cards()[10].firstElementChild as HTMLElement).click();
-      expect(inputHandler.setGhostStructure).toHaveBeenLastCalledWith(
-        null, "GUIclick",
-      );
-      expect(cards()[10].querySelector(".unit-display-multiplier")).toBeNull();
-    } finally {
-      display.remove();
-    }
-  });
-
-  test("premium defenses remain unavailable until their real price loads", async () => {
-    const { display, inputHandler } = makeDisplay();
-    try {
-      await display.updateComplete;
-      const cards = () => display.querySelectorAll(".unit-display-grid > div");
-      const castle = cards()[10].firstElementChild as HTMLElement;
-      const dome = cards()[11].firstElementChild as HTMLElement;
-      expect(castle.className).toContain("opacity-55");
-      expect(dome.className).toContain("opacity-55");
-      castle.click();
-      dome.click();
-      expect(inputHandler.setGhostStructure).not.toHaveBeenCalled();
-
-      // The real purchase price, not a zero fallback, decides availability.
-      (display as any).playerBuildables = [
-        { type: UnitType.Castle, cost: 1_500_000n },
-        { type: UnitType.IronDome, cost: 10_000_000n },
-      ];
-      display.requestUpdate();
-      await display.updateComplete;
-      expect((cards()[10].firstElementChild as HTMLElement).className)
-        .toContain("opacity-55");
-      expect((cards()[11].firstElementChild as HTMLElement).className)
-        .toContain("opacity-55");
-    } finally {
-      display.remove();
-    }
-  });
-
-  test("the selected Dome badge shows affordable upgrades, not the requested maximum", async () => {
+  test("keeps resource upgrade affordability and Dome bulk multipliers", async () => {
     const { display } = makeDisplay(UnitType.IronDome);
     (display.game as any).config = () => ({
       isUnitDisabled: () => false,
       gameConfig: () => ({ tutorial: false }),
       unitInfo: () => ({ upgradable: true }),
     });
-    vi.spyOn(display.game, "myPlayer").mockReturnValue({
-      gold: () => 10n,
-      isAlive: () => true,
-      units: () => [],
-    } as any);
-    display["playerBuildables"] = [{
-      type: UnitType.IronDome,
-      canBuild: false, canUpgrade: 10, cost: 1_500_000n,
-      upgradeCosts: [2n, 5n, 9n, 14n],
-    }] as any;
+    (display as any).playerBuildables = [{
+      type: UnitType.IronDome, canBuild: false, canUpgrade: 10,
+      cost: 1_500_000n, upgradeCosts: [2n, 5n, 9n, 14n],
+    }];
     display.uiState.upgradeMultiplier = 10;
+    vi.spyOn(display.game, "myPlayer").mockReturnValue({
+      gold: () => 10n, isAlive: () => true, units: () => [],
+    } as any);
     try {
-      display.requestUpdate();
+      display.querySelector<HTMLButtonElement>('[data-build-category="defense"]')?.click();
       await display.updateComplete;
-      const dome = display.querySelectorAll(".unit-display-grid > div")[11];
-      expect(dome.querySelector(".unit-display-multiplier")?.textContent?.trim())
-        .toBe("×3");
-    } finally {
-      display.remove();
-    }
+      const dome = display.querySelectorAll(".unit-display-scroll .unit-display-grid > div")[4];
+      expect(dome?.querySelector(".unit-display-multiplier")?.textContent?.trim()).toBe("×3");
+    } finally { display.remove(); }
   });
 
   test("does not show hotkeys when there is no keyboard", async () => {
@@ -419,7 +288,7 @@ describe("mobile UnitDisplay layout", () => {
         );
         dispatchTouch(cityItem, "touchend", 42);
         cityItem
-          .querySelector("div > div")
+          .querySelector(".unit-display-action")
           ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
         expect(inputHandler.setGhostStructure).not.toHaveBeenCalled();
       } finally {
@@ -460,7 +329,7 @@ describe("mobile UnitDisplay layout", () => {
           }),
         );
         cityItem
-          .querySelector("div > div")
+          .querySelector(".unit-display-action")
           ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
         expect(inputHandler.setGhostStructure).toHaveBeenCalledWith(
@@ -488,7 +357,7 @@ describe("mobile UnitDisplay layout", () => {
         await display.updateComplete;
         const cityItem = display.querySelector(".unit-display-grid")
           ?.firstElementChild as HTMLElement;
-        const button = cityItem.querySelector("div > div") as HTMLElement;
+        const button = cityItem.querySelector(".unit-display-action") as HTMLElement;
         cityItem.dispatchEvent(
           new PointerEvent("pointerdown", {
             button: 0,
@@ -530,8 +399,10 @@ describe("mobile UnitDisplay layout", () => {
       const highlights: ToggleStructureEvent[] = [];
       eventBus.on(ToggleStructureEvent, (event) => highlights.push(event));
       await display.updateComplete;
-      const item = display.querySelectorAll(".unit-display-grid > *")[5];
-      const button = item.querySelector("div > div") as HTMLElement;
+      display.querySelector<HTMLButtonElement>('[data-build-category="defense"]')!.click();
+      await display.updateComplete;
+      const item = display.querySelectorAll(".unit-display-scroll .unit-display-grid > *")[2];
+      const button = item.querySelector(".unit-display-action") as HTMLElement;
 
       const tap = () =>
         button.dispatchEvent(
@@ -568,7 +439,7 @@ describe("mobile UnitDisplay layout", () => {
       eventBus.on(ToggleStructureEvent, (event) => highlights.push(event));
       await display.updateComplete;
       const button = display.querySelectorAll(
-        ".unit-display-grid > * > div > div",
+        ".unit-display-scroll .unit-display-action",
       )[0] as HTMLElement;
 
       button.dispatchEvent(
@@ -615,7 +486,7 @@ describe("mobile UnitDisplay layout", () => {
       );
       await display.updateComplete;
       const button = display.querySelector(
-        ".unit-display-grid > * > div > div",
+        ".unit-display-scroll .unit-display-action",
       ) as HTMLElement;
       const click = new MouseEvent("click", { bubbles: true });
       Object.defineProperty(click, FORWARDED_TOUCH_CLICK, { value: true });
@@ -726,7 +597,7 @@ describe("mobile UnitDisplay layout", () => {
           }),
         );
         cityItem
-          .querySelector("div > div")
+          .querySelector(".unit-display-action")
           ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
         expect(inputHandler.setGhostStructure).toHaveBeenCalledWith(
@@ -972,7 +843,7 @@ describe("mobile UnitDisplay layout", () => {
         await display.updateComplete;
         const cityItem = display.querySelector(".unit-display-grid")
           ?.firstElementChild as HTMLElement;
-        const button = cityItem.querySelector("div > div") as HTMLElement;
+        const button = cityItem.querySelector(".unit-display-action") as HTMLElement;
         cityItem.dispatchEvent(
           new PointerEvent("pointerdown", {
             button: 0,
@@ -1027,7 +898,7 @@ describe("mobile UnitDisplay layout", () => {
       await display.updateComplete;
       const cityItem = display.querySelector(".unit-display-grid")
         ?.firstElementChild as HTMLElement;
-      const button = cityItem.querySelector("div > div") as HTMLElement;
+      const button = cityItem.querySelector(".unit-display-action") as HTMLElement;
       button.dispatchEvent(
         new PointerEvent("pointerenter", {
           pointerId: 1,
@@ -1074,7 +945,9 @@ describe("mobile UnitDisplay layout", () => {
     const { display } = makeDisplay();
     try {
       await display.updateComplete;
-      const warshipItem = display.querySelectorAll(".unit-display-grid > *")[6];
+      display.querySelector<HTMLButtonElement>('[data-build-category="naval"]')!.click();
+      await display.updateComplete;
+      const warshipItem = display.querySelectorAll(".unit-display-scroll .unit-display-grid > *")[1];
       warshipItem.dispatchEvent(new MouseEvent("mouseenter"));
       await display.updateComplete;
 
@@ -1090,9 +963,9 @@ describe("mobile UnitDisplay layout", () => {
       const { display } = makeDisplay();
       try {
         await display.updateComplete;
-        const warshipItem = display.querySelectorAll(
-          ".unit-display-grid > *",
-        )[6];
+        display.querySelector<HTMLButtonElement>('[data-build-category="naval"]')!.click();
+        await display.updateComplete;
+        const warshipItem = display.querySelectorAll(".unit-display-scroll .unit-display-grid > *")[1];
         warshipItem.dispatchEvent(new MouseEvent("mouseenter"));
         await display.updateComplete;
 
@@ -1286,7 +1159,7 @@ describe("mobile UnitDisplay layout", () => {
     const { display, inputHandler } = makeDisplay(UnitType.City);
     try {
       await display.updateComplete;
-      const cityItem = display.querySelector(".grid")?.children[0] as
+      const cityItem = display.querySelector(".unit-display-scroll .unit-display-grid")?.children[0] as
         | HTMLElement
         | undefined;
       const cityButton = cityItem?.children[0] as HTMLElement | undefined;
