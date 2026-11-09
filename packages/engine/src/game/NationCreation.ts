@@ -1,5 +1,6 @@
 import {
   Cell,
+  GameMapType,
   Nation,
   PlayerInfo,
   PlayerType,
@@ -63,6 +64,8 @@ export function createNationsForGame(
         additionalNations,
         toNation,
         random,
+        gameStart.config.geopolitics === true &&
+          gameStart.config.gameMap === GameMapType.World,
       );
   }
 }
@@ -79,8 +82,11 @@ function createRandomNations(
   additionalNations: AdditionalNation[],
   toNation: (n: ManifestNation) => Nation,
   random: PseudoRandom,
+  favorAntarctica: boolean,
 ): Nation[] {
-  const shuffled = random.shuffleArray(manifestNations);
+  const shuffled = favorAntarctica
+    ? weightedAntarcticShuffle(manifestNations, random)
+    : random.shuffleArray(manifestNations);
   if (targetCount <= manifestNations.length) {
     return shuffled.slice(0, targetCount).map(toNation);
   }
@@ -129,6 +135,38 @@ function createRandomNations(
     );
   }
   return nations;
+}
+
+/**
+ * Geopolitics on the normal world map: modestly increase the chance that
+ * Antarctic nations appear when fewer than all manifest nations are enabled.
+ * Uses seeded, weighted sampling without replacement (1.5x for Antarctic
+ * entries), never changes the requested nation count or duplicates entries.
+ */
+function weightedAntarcticShuffle(
+  nations: ManifestNation[],
+  random: PseudoRandom,
+): ManifestNation[] {
+  const remaining = [...nations];
+  const ordered: ManifestNation[] = [];
+  while (remaining.length > 0) {
+    const totalWeight = remaining.reduce(
+      (sum, nation) => sum + (nation.flag === "aq" ? 1.5 : 1),
+      0,
+    );
+    let roll = random.nextFloat(0, totalWeight);
+    let chosen = remaining.length - 1;
+    for (let i = 0; i < remaining.length; i++) {
+      roll -= remaining[i].flag === "aq" ? 1.5 : 1;
+      if (roll < 0) {
+        chosen = i;
+        break;
+      }
+    }
+    ordered.push(remaining[chosen]);
+    remaining.splice(chosen, 1);
+  }
+  return ordered;
 }
 
 function generateUniqueNationName(
