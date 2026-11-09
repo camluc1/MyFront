@@ -65,7 +65,8 @@ export function createNationsForGame(
         toNation,
         random,
         gameStart.config.geopolitics === true &&
-          gameStart.config.gameMap === GameMapType.World,
+          (gameStart.config.gameMap === GameMapType.World ||
+            gameStart.config.gameMap === GameMapType.GiantWorldMap),
       );
   }
 }
@@ -88,7 +89,21 @@ function createRandomNations(
     ? weightedAntarcticShuffle(manifestNations, random)
     : random.shuffleArray(manifestNations);
   if (targetCount <= manifestNations.length) {
-    return shuffled.slice(0, targetCount).map(toNation);
+    const selected = shuffled.slice(0, targetCount);
+    // Antarctica must not have exactly one uncontested starting nation.
+    // Leave zero Antarctic nations as a possible random outcome, and keep
+    // the requested total unchanged. One-nation games cannot form a pair.
+    if (favorAntarctica && targetCount >= 2) {
+      const selectedAntarctic = selected.filter((n) => n.flag === "aq");
+      if (selectedAntarctic.length === 1) {
+        const second = shuffled.slice(targetCount).find((n) => n.flag === "aq");
+        if (second) {
+          const displaced = selected.findLastIndex((n) => n.flag !== "aq");
+          selected[displaced] = second;
+        }
+      }
+    }
+    return selected.map(toNation);
   }
   const nations: Nation[] = shuffled.map(toNation);
   const usedNames = new Set(nations.map((n) => n.playerInfo.name));
