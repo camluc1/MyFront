@@ -338,3 +338,49 @@ describe("createNationsForGame: additionalNations pool", () => {
     expect(new Set(names).size).toBe(8);
   });
 });
+
+
+describe("Geopolitics Antarctic start competition", () => {
+  const manifest: ManifestNation[] = [
+    { name: "Antarctica", flag: "aq", coordinates: [10, 90] },
+    { name: "West Antarctica", flag: "aq", coordinates: [30, 90] },
+    { name: "East Antarctica", flag: "aq", coordinates: [50, 90] },
+    ...makeManifestNations(15),
+  ];
+
+  test("never selects exactly one Antarctic nation on world maps", () => {
+    for (const map of [GameMapType.World, GameMapType.GiantWorldMap]) {
+      for (const count of [2, 3, 5, 10, 17, 18]) {
+        for (let seed = 0; seed < 100; seed++) {
+          const start = makeGameStart(count);
+          start.config.geopolitics = true;
+          start.config.gameMap = map;
+          const nations = createNationsForGame(
+            start,
+            manifest,
+            [],
+            0,
+            new PseudoRandom(seed),
+          );
+          expect(nations).toHaveLength(count);
+          expect(new Set(nationNames(nations)).size).toBe(count);
+          expect(nations.filter((n) => n.playerInfo.nationFlag === "aq").length)
+            .not.toBe(1);
+        }
+      }
+    }
+  });
+
+  test("classic preserves uniform selection behavior", () => {
+    const start = makeGameStart(5);
+    const seed = 42;
+    const expected = new PseudoRandom(seed)
+      .shuffleArray(manifest)
+      .slice(0, 5)
+      .map((n) => n.name);
+    const actual = nationNames(
+      createNationsForGame(start, manifest, [], 0, new PseudoRandom(seed)),
+    );
+    expect(actual).toEqual(expected);
+  });
+});
