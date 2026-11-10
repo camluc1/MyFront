@@ -1,4 +1,5 @@
 import { TrainType, UnitType } from "@openfront/engine-api/game/GameTypes";
+import { isAircraftType } from "@openfront/engine-api/game/Aircraft";
 import {
   GameUpdateType,
   UnitUpdate,
@@ -445,6 +446,19 @@ export class PackedUnitUpdateDecoder {
       trainType: this.trainType,
       loaded: this.loaded,
       samUpgrade,
+      ...(isAircraftType(this.unitType) ? {
+        aircraftState: {
+          fuel: this.samUpgradeStartTick ?? 0,
+          homeTile: this.warshipPatrolTile ?? this.pos,
+          targetTile: Number.isNaN(this.buffer[this.offset + OFFSET_SAM_UPGRADE_DURATION])
+            ? undefined : this.buffer[this.offset + OFFSET_SAM_UPGRADE_DURATION],
+          carrierId: this.warshipRetreatPort,
+          phase: this.samUpgradeTargetLevel % 4 === 1 ? "outbound" as const
+            : this.samUpgradeTargetLevel % 4 === 2 ? "returning" as const
+            : "docked" as const,
+          targetedBySAM: (this.samUpgradeTargetLevel & 4) !== 0,
+        },
+      } : {}),
       ...(this.unitType === UnitType.Shipyard
         ? { shipyardLevels: unpackShipyardLevels(this.samUpgradeStartTick ?? 0) } : {}),
       // Castle uses the SAM-only numerical slots; no increase to 21-wide wire stride.
@@ -487,7 +501,12 @@ export function packUnitUpdates(units: UnitUpdate[]): {
     packedUnitUpdates[offset + OFFSET_MARKED_FOR_DELETION] =
       update.markedForDeletion !== false ? update.markedForDeletion : NaN;
 
-    if (update.warshipState) {
+    if (update.aircraftState) {
+      packedUnitUpdates[offset + OFFSET_WARSHIP_LAST_COMBAT_TICK] = -100;
+      packedUnitUpdates[offset + OFFSET_WARSHIP_PATROL_TILE] = update.aircraftState.homeTile;
+      packedUnitUpdates[offset + OFFSET_WARSHIP_RETREAT_PORT] = update.aircraftState.carrierId ?? NaN;
+      packedUnitUpdates[offset + OFFSET_WARSHIP_VETERANCY_PROGRESS] = 0;
+    } else if (update.warshipState) {
       packedUnitUpdates[offset + OFFSET_WARSHIP_LAST_COMBAT_TICK] =
         update.warshipState.lastCombatTick;
       packedUnitUpdates[offset + OFFSET_WARSHIP_PATROL_TILE] =
@@ -503,7 +522,15 @@ export function packUnitUpdates(units: UnitUpdate[]): {
       packedUnitUpdates[offset + OFFSET_WARSHIP_VETERANCY_PROGRESS] = 0;
     }
 
-    if (update.unitType === UnitType.Shipyard && update.shipyardLevels) {
+    if (update.aircraftState) {
+      packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_START_TICK] = update.aircraftState.fuel;
+      packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_DURATION] = update.aircraftState.targetTile ?? NaN;
+      packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_START_RANGE] = 0;
+      packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_TARGET_LEVEL] =
+        (update.aircraftState.phase === "outbound" ? 1 :
+          update.aircraftState.phase === "returning" ? 2 : 0) |
+        (update.aircraftState.targetedBySAM ? 4 : 0);
+    } else if (update.unitType === UnitType.Shipyard && update.shipyardLevels) {
       packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_START_TICK] =
         packShipyardLevels(update.shipyardLevels);
       packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_DURATION] = 0;
