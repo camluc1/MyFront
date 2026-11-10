@@ -14,6 +14,7 @@ const added = [
   [UnitType.OilWell, "buildOilWell", "KeyO", "O"],
   [UnitType.GasPlant, "buildGasPlant", "KeyZ", "Z"],
   [UnitType.Castle, "buildCastle", "Shift+KeyC", "Shift+C"],
+  [UnitType.Shipyard, "buildShipyard", "Shift+KeyY", "Shift+Y"],
   [UnitType.IronDome, "buildIronDome", "KeyI", "I"],
 ] as const;
 

@@ -156,7 +156,7 @@ describe("mobile UnitDisplay layout", () => {
       expect(grid().children).toHaveLength(5);
       display.querySelector<HTMLButtonElement>('[data-build-category="naval"]')!.click();
       await display.updateComplete;
-      expect(grid().children).toHaveLength(2);
+      expect(grid().children).toHaveLength(3);
     } finally { display.remove(); }
   });
 
@@ -948,7 +948,7 @@ describe("mobile UnitDisplay layout", () => {
       await display.updateComplete;
       display.querySelector<HTMLButtonElement>('[data-build-category="naval"]')!.click();
       await display.updateComplete;
-      const warshipItem = display.querySelectorAll(".unit-display-scroll .unit-display-grid > *")[1];
+      const warshipItem = display.querySelectorAll(".unit-display-scroll .unit-display-grid > *")[2];
       warshipItem.dispatchEvent(new MouseEvent("mouseenter"));
       await display.updateComplete;
 
@@ -966,7 +966,7 @@ describe("mobile UnitDisplay layout", () => {
         await display.updateComplete;
         display.querySelector<HTMLButtonElement>('[data-build-category="naval"]')!.click();
         await display.updateComplete;
-        const warshipItem = display.querySelectorAll(".unit-display-scroll .unit-display-grid > *")[1];
+        const warshipItem = display.querySelectorAll(".unit-display-scroll .unit-display-grid > *")[2];
         warshipItem.dispatchEvent(new MouseEvent("mouseenter"));
         await display.updateComplete;
 

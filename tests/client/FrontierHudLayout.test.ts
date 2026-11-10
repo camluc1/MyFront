@@ -79,7 +79,7 @@ describe("Frontier bottom HUD categories", () => {
     hud.querySelector<HTMLButtonElement>('[data-build-category="naval"]')?.click();
     await hud.updateComplete;
     expect(hud.querySelector("[data-mobile-shipyard]")).not.toBeNull();
-    expect(hud.querySelectorAll(".unit-display-scroll .unit-display-grid > div")).toHaveLength(3);
+    expect(hud.querySelectorAll(".unit-display-scroll .unit-display-grid > div")).toHaveLength(4);
     hud.remove();
   });
 });

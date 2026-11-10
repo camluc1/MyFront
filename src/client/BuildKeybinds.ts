@@ -14,6 +14,7 @@ export const BUILD_KEYBIND_ACTIONS: ReadonlyArray<{
   { action: "buildCity", type: UnitType.City },
   { action: "buildFactory", type: UnitType.Factory },
   { action: "buildPort", type: UnitType.Port },
+  { action: "buildShipyard", type: UnitType.Shipyard },
   { action: "buildDefensePost", type: UnitType.DefensePost },
   { action: "buildCastle", type: UnitType.Castle },
   { action: "buildIronDome", type: UnitType.IronDome },

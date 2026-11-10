@@ -695,7 +695,7 @@ export class UnitDisplay extends LitElement implements Controller {
       case "naval":
         return html`
           ${this.renderUnitItem(portIcon, this._port, UnitType.Port, "port", this.getHotkey("buildPort", "Digit3"))}
-          ${this.renderUnitItem(shipyardIcon, this._shipyard, UnitType.Shipyard, "shipyard", "")}
+          ${this.renderUnitItem(shipyardIcon, this._shipyard, UnitType.Shipyard, "shipyard", this.getHotkey("buildShipyard", ""))}
           ${this.renderUnitItem(warshipIcon, this._warships, UnitType.Warship, "warship", this.getHotkey("buildWarship", "Digit7"))}
           ${this.renderMobileShipyard()}
         `;
