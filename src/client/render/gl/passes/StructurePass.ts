@@ -22,6 +22,7 @@ import {
   UT_IRON_DOME,
   UT_CAPITAL,
   UT_SHIPYARD,
+  UT_AIRFIELD,
   UT_FACTORY,
   UT_FARM,
   UT_MINE,
@@ -168,6 +169,10 @@ export class StructurePass {
         this.typeToAtlasCol.set(header.unitTypes[i], col);
       }
     }
+
+    // Functional airfield reuses an existing factory atlas slot until the
+    // original runway glyph is GPU-programmatic; no extra atlas width or pass.
+    this.typeToAtlasCol.set(UT_AIRFIELD, STRUCTURE_ORDER.indexOf(UT_FACTORY));
 
     // Compile shaders
     this.program = createProgram(
