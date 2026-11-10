@@ -1,6 +1,7 @@
 import { PlayerInfo, PlayerType, UnitType, Nukes } from "@openfront/engine-api/game/GameTypes";
 import { unitTypeToBombUnit } from "@openfront/engine-api/StatsSchemas";
 import { PACKED_UNIT_TYPES } from "@openfront/engine-lib/game/PackedUnitUpdates";
+import { EngineConfig } from "@openfront/engine/configuration/EngineConfig";
 import { NukeExecution } from "@openfront/engine/execution/NukeExecution";
 import { setup } from "./util/Setup";
 import { roundTrip } from "./util/Snapshot";
@@ -42,9 +43,12 @@ describe("functional Geopolitics Tsar Bomba", () => {
 
     expect(game.config().isUnitDisabled(UnitType.TsarBomba)).toBe(false);
     expect(game.unitInfo(UnitType.TsarBomba).cost(game, a)).toBe(20_000_000n);
-    expect(game.config().nukeMagnitudes(UnitType.TsarBomba)).toEqual({ inner: 160, outer: 200 });
-    const hydrogen = game.config().nukeMagnitudes(UnitType.HydrogenBomb);
-    expect(game.config().nukeMagnitudes(UnitType.TsarBomba).outer).toBe(hydrogen.outer * 2);
+    // setup() defaults to TestConfig whose 1-tile blast keeps simulations cheap;
+    // verify the shipping radii against the real engine config, not the test override.
+    const liveConfig = new EngineConfig(game.config().gameConfig(), false);
+    expect(liveConfig.nukeMagnitudes(UnitType.TsarBomba)).toEqual({ inner: 160, outer: 200 });
+    const hydrogen = liveConfig.nukeMagnitudes(UnitType.HydrogenBomb);
+    expect(liveConfig.nukeMagnitudes(UnitType.TsarBomba).outer).toBe(hydrogen.outer * 2);
 
     const nuke = new NukeExecution(UnitType.TsarBomba, a, target);
     game.addExecution(nuke);
