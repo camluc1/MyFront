@@ -14,6 +14,7 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
+import { AircraftExecution } from "./AircraftExecution";
 import { CityExecution } from "./CityExecution";
 import { DefensePostExecution } from "./DefensePostExecution";
 import { FactoryExecution } from "./FactoryExecution";
@@ -142,6 +143,14 @@ export class ConstructionExecution implements Execution {
       case UnitType.MIRV:
         this.mg.addExecution(new MirvExecution(player, this.tile));
         break;
+      case UnitType.AttackAircraft:
+      case UnitType.BomberAircraft:
+      case UnitType.FighterAircraft:
+        if (!this.mg.config().isFunctionalGeopolitics()) break;
+        this.mg.addExecution(new AircraftExecution({
+          owner: player, tile: this.tile, type: this.constructionType,
+        }));
+        break;
       case UnitType.Bismarck:
         if (!this.mg.config().isFunctionalGeopolitics()) break;
         this.mg.addExecution(new WarshipExecution({
@@ -166,6 +175,7 @@ export class ConstructionExecution implements Execution {
       case UnitType.Castle:
       case UnitType.IronDome:
       case UnitType.Shipyard:
+      case UnitType.Airfield:
         // Passive spatial defenses require no execution/cooldown.
         break;
       case UnitType.SAMLauncher:
@@ -201,6 +211,7 @@ export class ConstructionExecution implements Execution {
       case UnitType.Castle:
       case UnitType.IronDome:
       case UnitType.Shipyard:
+      case UnitType.Airfield:
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
