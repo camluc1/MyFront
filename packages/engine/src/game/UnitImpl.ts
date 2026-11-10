@@ -765,7 +765,7 @@ export class UnitImpl implements Unit {
     if (this._warshipState === undefined) {
       return;
     }
-    if (targetType === UnitType.Warship) {
+    if (targetType === UnitType.Warship || targetType === UnitType.Bismarck) {
       // Final blow on an enemy warship: instant level, and the partial
       // transport/capture progress toward the next level is wiped.
       this._warshipState.veterancyProgress = 0;
