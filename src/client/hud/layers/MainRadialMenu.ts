@@ -26,6 +26,7 @@ const donateTroopIcon = assetUrl("images/DonateTroopIconWhite.svg");
 const swordIcon = assetUrl("images/SwordIconWhite.svg");
 
 import { CloseViewEvent, ContextMenuEvent } from "../../InputHandler";
+import { defenseAtScreenPoint, InspectDefenseEvent } from "../CastleDefensePanel";
 
 function emptyPlayerActions(): PlayerActions {
   return {
@@ -99,6 +100,18 @@ export class MainRadialMenu implements Controller {
       this.menuRequest = null;
     });
     this.eventBus.on(ContextMenuEvent, (event) => {
+      // In Geopolitics, right-click and left-click-menu users can inspect
+      // defensive buildings without opening an unrelated attack/build radial.
+      if (this.uiState.ghostStructure === null) {
+        const defense = defenseAtScreenPoint(
+          this.game, this.transformHandler, event.x, event.y,
+        );
+        if (defense) {
+          this.menuRequest = null;
+          this.eventBus.emit(new InspectDefenseEvent(defense.id()));
+          return;
+        }
+      }
       const request = {};
       this.menuRequest = request;
       const worldCoords = this.transformHandler.screenToWorldCoordinates(

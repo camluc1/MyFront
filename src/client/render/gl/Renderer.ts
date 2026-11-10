@@ -49,7 +49,7 @@ import { NukeTelegraphPass } from "./passes/NukeTelegraphPass";
 import { NukeTrajectoryPass } from "./passes/NukeTrajectoryPass";
 import { PointLightPass } from "./passes/PointLightPass";
 import { RailroadPass } from "./passes/RailroadPass";
-import { RangeCirclePass } from "./passes/RangeCirclePass";
+import { RangeCirclePass, type SelectedDefenseRange } from "./passes/RangeCirclePass";
 import { SAMRadiusPass } from "./passes/SamRadiusPass";
 import { IronDomePass } from "./passes/IronDomePass";
 import { SelectionBoxPass } from "./passes/SelectionBoxPass";
@@ -1066,6 +1066,10 @@ export class GPURenderer {
 
   updateAttackRings(rings: AttackRingInput[]): void {
     this.fxPass.updateAttackRings(rings);
+  }
+
+  updateSelectedDefenseRange(range: SelectedDefenseRange | null): void {
+    this.rangeCirclePass.updateSelectedDefenseRange(range);
   }
 
   updateGhostPreview(data: GhostPreviewData | null): void {

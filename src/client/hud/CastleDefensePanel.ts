@@ -10,10 +10,36 @@ import { EventBus } from "@openfront/shared/EventBus";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { MouseUpEvent } from "../InputHandler";
+import type { MapRenderer } from "../render/gl/MapRenderer";
+import type { SelectedDefenseRange } from "../render/gl/passes/RangeCirclePass";
 import { SendCastleDefenseIntentEvent } from "../Transport";
 import { TransformHandler } from "../TransformHandler";
 import type { UIState } from "../UIState";
 import { GameView, UnitView } from "../view";
+
+/** Shared hit-test prevents inspecting a fortress from accidentally issuing
+ * the game's normal attack order. No pathfinding or battle rules are changed. */
+export function defenseAtScreenPoint(
+  game: GameView, transform: TransformHandler, x: number, y: number,
+): UnitView | undefined {
+  if (!game.config().gameConfig().geopolitics || game.inSpawnPhase()) return;
+  const radius = Math.min(18, Math.max(12, transform.scale * 4));
+  let distance = radius * radius;
+  let best: UnitView | undefined;
+  for (const unit of game.units(UnitType.Castle, UnitType.IronDome)) {
+    if (!unit.isActive()) continue;
+    const pos = transform.worldToScreenCoordinates(
+      new Cell(game.x(unit.tile()), game.y(unit.tile())),
+    );
+    const d = (pos.x - x) ** 2 + (pos.y - y) ** 2;
+    if (d <= distance) { best = unit; distance = d; }
+  }
+  return best;
+}
+
+export class InspectDefenseEvent {
+  constructor(public readonly unitId: number) {}
+}
 
 const TICKS_PER_SECOND = 10;
 const money = (amount: bigint) => "$" + amount.toLocaleString("es-AR");
@@ -33,6 +59,8 @@ export class CastleDefensePanel extends LitElement {
   bus!: EventBus;
   transform!: TransformHandler;
   uiState!: UIState;
+  view?: MapRenderer;
+  private coverageKey = "";
   @state() private selectedId: number | null = null;
   @state() private inspectedMode: "normal" | "fortified" | "recovery" = "normal";
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -41,35 +69,40 @@ export class CastleDefensePanel extends LitElement {
     if (this.game.isSpectator()) return;
     const mine = this.game.myPlayer();
     if (!mine) return;
-    let best: UnitView | undefined;
-    let distance = 22 * 22;
-    for (const castle of mine.units(UnitType.Castle)) {
-      if (!castle.isActive()) continue;
-      const pos = this.screenPosition(castle);
-      const d = (pos.x - e.x) ** 2 + (pos.y - e.y) ** 2;
-      if (d < distance) { distance = d; best = castle; }
-    }
-    if (best && this.selectedId !== best.id()) this.inspectedMode = "normal";
-    this.selectedId = best?.id() ?? null;
+    const best = defenseAtScreenPoint(this.game, this.transform, e.x, e.y);
+    if (best) this.openCastle(best.id());
+    else this.closeDefense();
   };
   private openCastle(id: number) {
     if (this.selectedId !== id) this.inspectedMode = "normal";
     this.selectedId = id;
+    this.syncCoverage();
   }
+  private closeDefense() {
+    this.selectedId = null;
+    this.syncCoverage();
+  }
+  private readonly onInspect = (e: InspectDefenseEvent) => this.openCastle(e.unitId);
   private readonly onKey = (event: KeyboardEvent) => {
-    if (event.key === "Escape") this.selectedId = null;
+    if (event.key === "Escape") this.closeDefense();
   };
 
   connectedCallback() {
     super.connectedCallback();
     this.bus.on(MouseUpEvent, this.onClickMap);
+    this.bus.on(InspectDefenseEvent, this.onInspect);
     window.addEventListener("keydown", this.onKey);
     // Time labels and screen projections update with the simulation and camera.
-    this.timer = setInterval(() => this.requestUpdate(), 250);
+    this.timer = setInterval(() => {
+      this.syncCoverage();
+      this.requestUpdate();
+    }, 250);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     this.bus.off(MouseUpEvent, this.onClickMap);
+    this.bus.off(InspectDefenseEvent, this.onInspect);
+    this.view?.setSelectedDefenseRange(null);
     window.removeEventListener("keydown", this.onKey);
     if (this.timer !== null) clearInterval(this.timer);
     this.timer = null;
@@ -79,6 +112,30 @@ export class CastleDefensePanel extends LitElement {
     return this.transform.worldToScreenCoordinates(
       new Cell(this.game.x(tile), this.game.y(tile)),
     );
+  }
+  private syncCoverage() {
+    const unit = this.selectedId === null ? undefined :
+      this.game.units(UnitType.Castle, UnitType.IronDome)
+        .find((u) => u.id() === this.selectedId && u.isActive());
+    const tick = this.game.ticks();
+    const own = unit && this.game.myPlayer()?.id() === unit.owner().id();
+    const isCastle = unit?.type() === UnitType.Castle;
+    const range: SelectedDefenseRange | null = unit && !unit.isUnderConstruction()
+      ? {
+          x: this.game.x(unit.tile()),
+          y: this.game.y(unit.tile()),
+          radius: isCastle ? this.game.config().castleRange()
+            : this.game.config().ironDomeRange(unit.level()),
+          hostile: !own,
+          fortified: !!isCastle &&
+            castleDefenseMode(tick, this.defenseState(unit)) === "fortified",
+        }
+      : null;
+    const key = range ? [unit?.id(), range.x, range.y, range.radius,
+      range.hostile, range.fortified].join(":") : "";
+    if (key === this.coverageKey) return;
+    this.coverageKey = key;
+    this.view?.setSelectedDefenseRange(range);
   }
   private defenseState(castle: UnitView) {
     return {
@@ -111,6 +168,9 @@ export class CastleDefensePanel extends LitElement {
       box-shadow:0 0 0 2px #45ae7a33, 0 4px 20px #153d32cc;
       animation: fort-pulse 1.8s ease-in-out infinite; }
     .tag.recovery { border-color:#cca56f; color:#ffe0a5; }
+    .tag.enemy { border-color:#db7d59; color:#ffd2ac; }
+    .tag.enemy.fortified { border-color:#ff5e55; color:#ffe0da;
+      box-shadow:0 0 0 2px #e43c4c55,0 4px 20px #50252ccc; }
     @keyframes fort-pulse {
       50% { box-shadow:0 0 0 5px #45ae7a19,0 4px 20px #153d32cc; }
     }
@@ -165,20 +225,23 @@ export class CastleDefensePanel extends LitElement {
     const tick = this.game.ticks();
     const mine = this.game.myPlayer();
     const selected = this.selectedId === null ? undefined :
-      this.game.units(UnitType.Castle).find((u) => u.id() === this.selectedId && u.isActive());
+      this.game.units(UnitType.Castle, UnitType.IronDome)
+        .find((u) => u.id() === this.selectedId && u.isActive());
+    const isDome = selected?.type() === UnitType.IronDome;
     const markers = this.game.units(UnitType.Castle)
-      .filter((u) => u.isActive() && mine && u.owner().id() === mine.id())
+      .filter((u) => u.isActive() && !!mine)
       .map((castle) => ({
         castle,
         position: this.screenPosition(castle),
         mode: castleDefenseMode(tick, this.defenseState(castle)),
         state: this.defenseState(castle),
+        enemy: mine ? castle.owner().id() !== mine.id() : false,
       }))
       .filter((m) => m.position.x >= 4 && m.position.y >= 4 &&
         m.position.x <= window.innerWidth - 4 &&
         m.position.y <= window.innerHeight - 4 &&
-        (m.mode !== "normal" || this.transform.scale >= 1.1 ||
-          m.castle.id() === this.selectedId))
+        (m.mode !== "normal" || m.castle.id() === this.selectedId ||
+          this.transform.scale >= (m.enemy ? 2 : 1.1)))
       .slice(0, 130);
     const mode = selected ? castleDefenseMode(tick, this.defenseState(selected)) : "normal";
     const state = selected ? this.defenseState(selected) : {activeUntilTick:0,cooldownUntilTick:0};
@@ -187,9 +250,9 @@ export class CastleDefensePanel extends LitElement {
       mode === "normal" && mine.gold() >= CASTLE_DEFENSE_COST &&
       this.inspectedMode === "fortified";
     return html`
-      ${markers.map(({castle,position,mode,state}) => html`
-        <button class="tag ${mode}" style="left:${position.x}px;top:${position.y-16}px"
-          title="${mode === "normal" ? "Defensa normal" : mode === "fortified" ? "Resistencia extrema" : "Recuperación"}"
+      ${markers.map(({castle,position,mode,state,enemy}) => html`
+        <button class="tag ${mode} ${enemy ? "enemy" : ""}" style="left:${position.x}px;top:${position.y-16}px"
+          title="${enemy ? "Castillo rival · " : ""}${mode === "normal" ? "Defensa normal" : mode === "fortified" ? "Resistencia extrema" : "Recuperación"}"
           aria-label="Abrir castillo. Estado: ${mode}"
           @click=${() => this.openCastle(castle.id())}>
           ${mode === "fortified" ? "🛡" : mode === "recovery" ? "⌛" : "♜"}
@@ -200,18 +263,32 @@ export class CastleDefensePanel extends LitElement {
       ${selected ? html`
         <section class="panel" role="region" aria-label="Estado y opciones del castillo">
           <div class="head"><div>
-            <div class="eyebrow">Geopolítica · Fortaleza</div>
-            <h2>♜ Castillo</h2>
+            <div class="eyebrow">Geopolítica · ${validOwner ? "Defensa propia" : "Defensa rival"}</div>
+            <h2>${isDome ? "◉ Cúpula de Hierro" : "♜ Castillo"}</h2>
+            <div class="eyebrow">${selected.owner().displayName()}</div>
           </div><button class="close" aria-label="Cerrar panel del castillo"
-             @click=${() => this.selectedId = null}>✕</button></div>
-          <div class="state"><span>${mode === "normal" ? "🛡" : mode === "fortified" ? "✨" : "⌛"}</span>
+             @click=${() => this.closeDefense()}>✕</button></div>
+          <div class="state"><span>${isDome ? "☢" : mode === "normal" ? "🛡" : mode === "fortified" ? "✨" : "⌛"}</span>
             <div><strong>${selected.isUnderConstruction() ? "En construcción" :
+              isDome ? "Protección nuclear pasiva" :
               mode === "normal" ? "Defensa normal" :
                 mode === "fortified" ? "Resistencia extrema activa" : "En recuperación"}</strong>
-              <div>${mode === "fortified" ? "Quedan " + clock(state.activeUntilTick - tick) :
+              <div>${isDome ? "Cobertura visible en el mapa" : mode === "fortified" ? "Quedan " + clock(state.activeUntilTick - tick) :
                 mode === "recovery" ? "Disponible en " + clock(state.cooldownUntilTick - tick) :
                   "Protección permanente lista"}</div></div>
           </div>
+          ${isDome ? html`
+            <div class="cost">
+              <div class="metric"><span>Radio de cobertura</span>
+                <strong>${this.game.config().ironDomeRange(selected.level())} casillas</strong></div>
+              <div class="metric"><span>Nivel</span><strong>${selected.level()}</strong></div>
+            </div>
+            <div class="help"><b>Defensa antinuclear</b>
+              La Cúpula protege el territorio de su propietario que esté
+              dentro del círculo. Si neutraliza una ojiva, su anillo emite
+              un destello breve. No tiene activación ni contador de derribos.
+            </div>
+          ` : html`
           <div class="choices" role="group" aria-label="Tres estados de la fortaleza">
             <button class="choice ${mode === "normal" ? "current" : ""}
               ${this.inspectedMode === "normal" ? "inspected" : ""}"
@@ -257,7 +334,7 @@ export class CastleDefensePanel extends LitElement {
               "Pagás " + money(CASTLE_DEFENSE_COST) +
               " por 60 segundos: +35% de desgaste enemigo y +25% de tiempo de conquista dentro del alcance. No se acumula con otros castillos." :
               "Después de la resistencia extrema, el castillo conserva su defensa normal durante 120 segundos. Podés consultar el contador sobre el castillo. La captura o transferencia cancela el efecto."}
-          </div>
+          </div>`}
         </section>` : nothing}
     `;
   }
@@ -265,6 +342,7 @@ export class CastleDefensePanel extends LitElement {
 
 export function mountCastleDefense(
   game: GameView, bus: EventBus, transform: TransformHandler, uiState: UIState,
+  view?: MapRenderer,
 ): () => void {
   if (!game.config().gameConfig().geopolitics ||
       game.config().gameConfig().gameType !== GameType.Singleplayer) return () => {};
@@ -273,6 +351,7 @@ export function mountCastleDefense(
   el.bus = bus;
   el.transform = transform;
   el.uiState = uiState;
+  el.view = view;
   document.body.append(el);
   return () => el.remove();
 }

@@ -34,7 +34,7 @@ import { GameMetrics } from "./GameMetrics";
 import { createRenderer, GameRenderer } from "./hud/GameRenderer";
 import { mountGeopolitics } from "./hud/GeopoliticsPanel";
 import { mountNavalStatus } from "./hud/NavalStatusPanel";
-import { mountCastleDefense } from "./hud/CastleDefensePanel";
+import { defenseAtScreenPoint, mountCastleDefense } from "./hud/CastleDefensePanel";
 import { goldRateTracker } from "./hud/layers/lib/GoldRateTracker";
 import { OnboardingOverlay } from "./hud/layers/OnboardingOverlay";
 import { UnitDisplay } from "./hud/layers/UnitDisplay";
@@ -903,6 +903,7 @@ async function createClientGame(
     );
     const disposeCastleDefense = mountCastleDefense(
       gameView, eventBus, gameRenderer.transformHandler, gameRenderer.uiState,
+      view,
     );
     const disposeNavalStatus = mountNavalStatus(gameView, eventBus);
     let rendererDisposed = false;
@@ -1281,6 +1282,11 @@ export class ClientGameRunner {
     if (!this.gameView.isValidCoord(cell.x, cell.y)) {
       return;
     }
+    // Selecting a castle or Iron Dome opens its defense dossier and coverage;
+    // do not interpret that precise building click as a territorial attack.
+    if (defenseAtScreenPoint(
+      this.gameView, this.renderer.transformHandler, event.x, event.y,
+    )) return;
     console.log(`clicked cell ${cell}`);
     const tile = this.gameView.ref(cell.x, cell.y);
     if (

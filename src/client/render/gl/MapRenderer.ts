@@ -33,6 +33,7 @@ import type {
 import type { SpawnCenter } from "./passes/SpawnOverlayPass";
 import type { AttackTroopLabel } from "./passes/WorldTextPass";
 import { GPURenderer } from "./Renderer";
+import type { SelectedDefenseRange } from "./passes/RangeCirclePass";
 import type { RenderSettings } from "./RenderSettings";
 
 export class MapRenderer {
@@ -40,6 +41,7 @@ export class MapRenderer {
   private resizeObs: ResizeObserver | null = null;
   // Stored layer data for context-restore re-creation.
   private storedLayers: MapLayer[] = [];
+  private selectedDefenseRange: SelectedDefenseRange | null = null;
   private storedLayerImages: Map<string, ImageBitmap> = new Map();
   // Layer state that survives context loss (GPU textures do not).
   private layerVisibility = new Map<string, boolean>();
@@ -101,6 +103,7 @@ export class MapRenderer {
 
     const rect = this.canvas.getBoundingClientRect();
     if (rect.width > 0) this.renderer.resize(rect.width, rect.height);
+    this.renderer.updateSelectedDefenseRange(this.selectedDefenseRange);
   };
 
   private handleContextLost = (e: Event) => {
@@ -281,6 +284,12 @@ export class MapRenderer {
   }
   updateAttackRings(rings: AttackRingInput[]): void {
     this.renderer?.updateAttackRings(rings);
+  }
+
+  /** Show the exact coverage of a selected castle or Iron Dome; clear on close. */
+  setSelectedDefenseRange(range: SelectedDefenseRange | null): void {
+    this.selectedDefenseRange = range;
+    this.renderer?.updateSelectedDefenseRange(range);
   }
 
   /** Update ghost structure preview (build-mode visualization). null = clear. */
