@@ -27,8 +27,10 @@ const BUILDING_ORDER = {
   mine: 10,
   oilw: 11,
   gasp: 12,
+  airf: 13,
 } as const satisfies Record<
-  Exclude<(typeof otherUnits)[number], "wshp" | "bism">,
+  Exclude<(typeof otherUnits)[number], "wshp" | "bism" |
+    "atka" | "boma" | "fita">,
   number
 >;
 
@@ -195,6 +197,14 @@ export class PlayerStatsTable extends LitElement {
         ${statsSection("player_stats_table.warship_stats", UNIT_COLUMNS, [
           { values: slots(stats?.units?.wshp, 4) },
         ])}
+        ${statsSection("player_stats_table.aircraft_stats",
+          UNIT_COLUMNS,
+          (["atka", "boma", "fita"] as const).map((key) => ({
+            label: UNIT_LABEL_KEYS[key],
+            values: slots(stats?.units?.[key], 4),
+          })),
+          "player_stats_table.aircraft_type",
+        )}
         ${statsSection(
           "player_stats_table.ship_arrivals",
           [
