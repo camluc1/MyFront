@@ -468,17 +468,11 @@ export class AttackExecution implements Execution {
           break;
       }
 
-      // A soft direction for nation campaigns, not a new combat advantage.
-      // Queue age, terrain and neighboring territory still shape the front.
-      const objectiveDistance =
-        this.objectiveTile !== null &&
-        this.map.ownerID(this.objectiveTile) === this.targetSmallID
-          ? this.mg.manhattanDist(neighbor, this.objectiveTile) * 0.25
-          : 0;
+      // Campaign objectives may choose the enemy, never the territorial front.
+      // Use the same conquest priority for human and nation attacks.
       const priority =
         (this.random.nextInt(0, 7) + 10) * (1 - numOwnedByMe * 0.5 + mag / 2) +
-        tickNow +
-        objectiveDistance;
+        tickNow;
 
       this.toConquer.enqueue(neighbor, priority);
     }
