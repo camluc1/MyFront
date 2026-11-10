@@ -89,6 +89,13 @@ const buildTable: BuildItemDisplay[][] = [
       countable: false,
     },
     {
+      unitType: UnitType.TsarBomba,
+      icon: hydrogenBombIcon,
+      description: "build_menu.desc.tsar_bomba",
+      key: "unit_type.tsar_bomba",
+      countable: false,
+    },
+    {
       unitType: UnitType.Warship,
       icon: warshipIcon,
       description: "build_menu.desc.warship",
@@ -542,7 +549,8 @@ export class BuildMenu extends LitElement implements Controller {
     } else if (buildableUnit.canBuild !== false) {
       const rocketDirectionUp =
         buildableUnit.type === UnitType.AtomBomb ||
-        buildableUnit.type === UnitType.HydrogenBomb
+        buildableUnit.type === UnitType.HydrogenBomb ||
+        buildableUnit.type === UnitType.TsarBomba
           ? this.uiState.rocketDirectionUp
           : undefined;
       this.eventBus.emit(
