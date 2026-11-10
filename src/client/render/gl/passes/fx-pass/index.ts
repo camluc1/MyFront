@@ -18,7 +18,7 @@ import type {
 import type { RenderSettings } from "../../RenderSettings";
 import { GLContextLostError } from "../../utils/GlUtils";
 import { FxAttackRingPass } from "./FxAttackRingPass";
-import { nukeExplosionRadius } from "./FxSettings";
+import { effectiveNukeExplosionParams, nukeExplosionRadius } from "./FxSettings";
 import {
   calculateExplosionDurationMs,
   FxShockwavePass,
@@ -156,7 +156,9 @@ export class FxPass {
     if (nukeRadius !== undefined) {
       if (unit.reachedTarget) {
         this.spritePass.spawnFxForUnit(unit, now);
-        this.shockwavePass.pushNukeShockwave(x, y, nukeRadius, unit.explosion);
+        this.shockwavePass.pushNukeShockwave(
+          x, y, nukeRadius, effectiveNukeExplosionParams(typeName, unit.explosion),
+        );
       } else {
         // SAM interception: sprite pass handles the SAM explosion sprite
         this.spritePass.spawnFxForUnit(unit, now);
