@@ -107,7 +107,7 @@ export class UnitImpl implements Unit {
       // Only the experimental service ship receives a reinforced hull.
       if (this.mg.config().isFunctionalGeopolitics() &&
           "supportShip" in params && params.supportShip === true) {
-        this._health *= 5;
+        this._health *= 5n;
       }
       this._warshipState = {
         state: "patrolling",
