@@ -72,6 +72,37 @@ try {
     }
     process.stdout.write(`PASS: ${profile.name} vertex + fragment compile and link\n`);
   }
+
+  // These defensive-map shader stages also run in the Geopolitics client.
+  // Vite bundles shader strings but does not compile or link WebGL programs.
+  // Compile the actual selected-coverage and interception-ring pairs in CI.
+  for (const effect of ["range-circle", "iron-dome"]) {
+    const vertexPath = new URL(
+      `../src/client/render/gl/shaders/${effect}/${effect}.vert.glsl`,
+      import.meta.url,
+    );
+    const fragmentPath = new URL(
+      `../src/client/render/gl/shaders/${effect}/${effect}.frag.glsl`,
+      import.meta.url,
+    );
+    const v = join(dir, `${effect}.vert`);
+    const f = join(dir, `${effect}.frag`);
+    writeFileSync(v, readFileSync(vertexPath, "utf8"));
+    writeFileSync(f, readFileSync(fragmentPath, "utf8"));
+    const result = spawnSync("glslangValidator", ["-l", v, f], {
+      encoding: "utf8",
+      timeout: 60_000,
+    });
+    if (result.error || result.status !== 0) {
+      process.stderr.write(`\n${effect} shader compilation/link failed:\n`);
+      process.stderr.write(result.stdout || "");
+      process.stderr.write(result.stderr || "");
+      throw result.error || new Error(
+        `glslangValidator exited with ${result.status}`,
+      );
+    }
+    process.stdout.write(`PASS: ${effect} defense shader stages compile and link\n`);
+  }
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
