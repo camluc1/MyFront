@@ -28,7 +28,7 @@ const BUILDING_ORDER = {
   oilw: 11,
   gasp: 12,
 } as const satisfies Record<
-  Exclude<(typeof otherUnits)[number], "wshp">,
+  Exclude<(typeof otherUnits)[number], "wshp" | "bism">,
   number
 >;
 
@@ -55,6 +55,7 @@ const UNIT_LABEL_KEYS = {
   cast: "unit_type.castle",
   idom: "unit_type.iron_dome",
   wshp: "unit_type.warship",
+  bism: "unit_type.bismarck",
   abomb: "unit_type.atom_bomb",
   hbomb: "unit_type.hydrogen_bomb",
   mirv: "unit_type.mirv",
