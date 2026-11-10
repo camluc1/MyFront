@@ -437,10 +437,9 @@ export class PackedUnitUpdateDecoder {
       loaded: this.loaded,
       samUpgrade,
       // Castle uses the SAM-only numerical slots; no increase to 21-wide wire stride.
-      castleDefense: this.unitType === UnitType.Castle
-        ? { activeUntilTick: this.samUpgradeStartTick ?? 0,
-            cooldownUntilTick: this.samUpgradeDuration }
-        : undefined,
+      ...(this.unitType === UnitType.Castle && this.samUpgradeDuration > 0
+        ? { castleDefense: { activeUntilTick: this.samUpgradeStartTick ?? 0,
+            cooldownUntilTick: this.samUpgradeDuration } } : {}),
       missileTimerQueue: [],
     };
   }

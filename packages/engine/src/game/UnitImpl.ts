@@ -220,8 +220,8 @@ export class UnitImpl implements Unit {
       hasTrainStation: this._hasTrainStation,
       trainType: this._trainType,
       loaded: this._loaded,
-      castleDefense: this._type === UnitType.Castle
-        ? this.castleDefenseState() : undefined,
+      ...(this._type === UnitType.Castle && this._castleCooldownUntilTick > 0
+        ? { castleDefense: this.castleDefenseState() } : {}),
     };
     return update;
   }

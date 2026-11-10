@@ -1,4 +1,5 @@
 import { GameType, PlayerInfo, PlayerType, UnitType } from "@openfront/engine-api/game/GameTypes";
+import { tryActivateCastleDefense } from "@openfront/engine/execution/CastleDefenseExecution";
 import { packUnitUpdates, unpackUnitUpdates } from "@openfront/engine-lib/game/PackedUnitUpdates";
 import { setup } from "./util/Setup";
 import { constructionExecution } from "./util/utils";
@@ -34,10 +35,16 @@ it("constructs Castle and Iron Dome in Geopolitics without crashing the packed g
   }
 
   const structures = [UnitType.Castle, UnitType.IronDome].map((type) => player.units(type)[0]);
+  const goldBefore = player.gold();
+  expect(tryActivateCastleDefense(game, player, structures[0].id())).toBe(true);
+  expect(player.gold()).toBe(goldBefore - 150_000n);
+  expect(tryActivateCastleDefense(game, player, structures[0].id())).toBe(false);
   const packed = packUnitUpdates(structures.map((unit) => unit.toUpdate()));
   const decoded = unpackUnitUpdates(packed.packedUnitUpdates, packed.packedMissileTimers);
   expect(decoded.map((u) => u.unitType)).toEqual([UnitType.Castle, UnitType.IronDome]);
   expect(decoded.every((u) => u.isActive && !u.underConstruction)).toBe(true);
+  expect(decoded[0].castleDefense).toEqual(structures[0].castleDefenseState());
+  expect(decoded[1].castleDefense).toBeUndefined();
 
   // In-game Dome level ups must continue to serialize, including their level.
   structures[1].increaseLevel();

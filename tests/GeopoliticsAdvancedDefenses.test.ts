@@ -7,6 +7,7 @@ import {
   createBlastIronDomeCoverage,
 } from "@openfront/engine/execution/IronDomeProtection";
 import { NukeExecution } from "@openfront/engine/execution/NukeExecution";
+import { CASTLE_DEFENSE_LOSS_MULTIPLIER } from "@openfront/engine-api/game/CastleDefense";
 import { executeTicks } from "./util/utils";
 import { setup } from "./util/Setup";
 
@@ -61,6 +62,12 @@ describe("Geopolitics advanced defenses", () => {
     });
     expect(castle.attackerTroopLoss).toBeGreaterThan(post.attackerTroopLoss);
     expect(castle).toEqual(castleOnly);
+    const fortified = game.config().attackLogic({ ...input,
+      defenderHasCastle: true, defenderHasFortifiedCastle: true });
+    expect(fortified.attackerTroopLoss).toBeCloseTo(
+      castle.attackerTroopLoss * CASTLE_DEFENSE_LOSS_MULTIPLIER,
+    );
+    expect(fortified.tickFraction).toBeGreaterThan(castle.tickFraction);
   });
 
   it("intercepts simultaneous MIRV sub-warheads without damaging the dome or city", async () => {
