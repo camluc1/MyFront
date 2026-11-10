@@ -20,6 +20,7 @@ function makeDisplay(
   disabledUnits: UnitType[] = [],
   tutorial = false,
   hasMissileSilo = false,
+  functional = false,
 ) {
   const player = {
     gold: () => 1000n,
@@ -41,8 +42,14 @@ function makeDisplay(
     myPlayer: () => player,
     inSpawnPhase: () => false,
     config: () => ({
-      isUnitDisabled: (unitType: UnitType) => disabledUnits.includes(unitType),
-      gameConfig: () => ({ tutorial }),
+      isUnitDisabled: (unitType: UnitType) => disabledUnits.includes(unitType) ||
+        (!functional && [
+          UnitType.TsarBomba, UnitType.Bismarck, UnitType.Airfield,
+          UnitType.AttackAircraft, UnitType.BomberAircraft,
+          UnitType.FighterAircraft,
+        ].includes(unitType)),
+      isFunctionalGeopolitics: () => functional,
+      gameConfig: () => ({ tutorial, geopolitics: functional, geopoliticsFunctional: functional }),
     }),
   } as any;
   display.eventBus = eventBus;
@@ -158,6 +165,19 @@ describe("mobile UnitDisplay layout", () => {
       await display.updateComplete;
       expect(grid().children).toHaveLength(3);
     } finally { display.remove(); }
+  });
+
+  test("adds an aviation construction tab and Tsar Bomba only in functional mode", async () => {
+    const { display } = makeDisplay(null, [], false, false, true);
+    try {
+      await display.updateComplete;
+      expect(display.querySelectorAll(".unit-display-arsenal .unit-display-grid > div")).toHaveLength(4);
+      display.querySelector<HTMLButtonElement>('[data-build-category="aviation"]')!.click();
+      await display.updateComplete;
+      expect(display.querySelectorAll(".unit-display-scroll .unit-display-grid > div")).toHaveLength(4);
+    } finally {
+      display.remove();
+    }
   });
 
   test("filters disabled buildings from their categories", async () => {
