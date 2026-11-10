@@ -1,5 +1,6 @@
 import { TileRef } from "@openfront/engine-api/game/GameMap";
 import {
+  AircraftState,
   NukeState,
   Tick,
   TrainType,
@@ -37,6 +38,7 @@ export class UnitView implements UnitLike {
   private _warshipState?: WarshipState;
   private _transportShipState?: TransportShipState;
   private _nukeState?: NukeState;
+  private _aircraftState?: AircraftState;
   private _createdAt: Tick;
 
   constructor(
@@ -47,6 +49,7 @@ export class UnitView implements UnitLike {
     this._warshipState = data.warshipState;
     this._transportShipState = data.transportShipState;
     this._nukeState = data.nukeState;
+    this._aircraftState = data.aircraftState;
     this.lastPos.push(data.pos);
     this._createdAt = this.gameView.ticks();
     if (this.state.underConstruction) {
@@ -81,6 +84,7 @@ export class UnitView implements UnitLike {
     this._warshipState = data.warshipState;
     this._transportShipState = data.transportShipState;
     this._nukeState = data.nukeState;
+    this._aircraftState = data.aircraftState;
     // constructionStartTick: set on transition into underConstruction.
     if (this.state.underConstruction && !wasUnderConstruction) {
       this.state.constructionStartTick = this.gameView.ticks();
@@ -144,6 +148,9 @@ export class UnitView implements UnitLike {
     _update: Pick<TransportShipState, "isRetreating">,
   ): void {
     throw new Error("updateTransportShipState is not supported on UnitView");
+  }
+  aircraftState(): AircraftState | undefined {
+    return this._aircraftState;
   }
   nukeState(): NukeState {
     if (this._nukeState === undefined) {
