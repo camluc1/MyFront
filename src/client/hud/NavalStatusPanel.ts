@@ -61,6 +61,8 @@ export class NavalStatusPanel extends LitElement {
     .metric span {display:block;font-size:10px;color:#acc3cf}
     .metric strong {display:block;font-size:13px;font-variant-numeric:tabular-nums}
     .hint {border-top:1px solid #35576b;padding-top:10px;color:#afc7d4;font-size:11px;}
+    .fuel-track{height:7px;border-radius:8px;background:#123242;overflow:hidden;margin:7px 0}
+    .fuel-fill{height:100%;border-radius:8px;background:#7bd3ab;transition:width .2s}
     .close {color:#c9dce9;background:#2a4d60;border:1px solid #487083;
       padding:3px 8px;border-radius:8px;cursor:pointer;}
     @media(max-width:740px){:host{left:12px;bottom:66px}.panel{padding:10px 12px;width:min(270px,calc(100vw - 24px))}}
@@ -72,7 +74,7 @@ export class NavalStatusPanel extends LitElement {
     const single = selected.length === 1 ? selected[0] : null;
     const air = single?.aircraftState();
     const state = single && !air ? single.warshipState() : undefined;
-    const patrolTile = state?.patrolTile;
+    const patrolTile = air?.targetTile ?? state?.patrolTile;
     const destination = patrolTile === undefined ? "Sin destino fijado" :
       `${this.game.x(patrolTile)}, ${this.game.y(patrolTile)}`;
     const totalHealth = selected.reduce((s, u) => s + Math.max(0,u.health()),0);
@@ -114,6 +116,7 @@ export class NavalStatusPanel extends LitElement {
           ? "Seleccioná un avión y pulsá un objetivo en el mapa; el avión regresará a repostar cuando complete la misión."
           : "Seleccioná el buque y pulsá una zona de agua para darle una orden. Podés seleccionar varios buques usando el recuadro."}
         </div>
+        ${air ? html`<div class="fuel-track" role="progressbar" aria-label="Combustible" aria-valuenow="${air.fuel}" aria-valuemin="0" aria-valuemax="${AIRCRAFT_MAX_FUEL}"><div class="fuel-fill" style="width:${100 * air.fuel / AIRCRAFT_MAX_FUEL}%"></div></div>` : nothing}
         ${aircraft.length > 0 ? html`<button class="close"
           aria-label="Ordenar regreso de aviones"
           @click=${() => {
