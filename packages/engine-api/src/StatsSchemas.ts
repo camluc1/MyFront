@@ -35,6 +35,7 @@ export const otherUnits = [
   "idom",
   "port",
   "wshp",
+  "bism",
   "silo",
   "saml",
   "fact",
@@ -54,6 +55,7 @@ export type OtherUnitType =
   | UnitType.Port
   | UnitType.SAMLauncher
   | UnitType.Warship
+  | UnitType.Bismarck
   | UnitType.Factory
   | UnitType.Farm
   | UnitType.Mine
@@ -69,6 +71,7 @@ export const unitTypeToOtherUnit = {
   [UnitType.Port]: "port",
   [UnitType.SAMLauncher]: "saml",
   [UnitType.Warship]: "wshp",
+  [UnitType.Bismarck]: "bism",
   [UnitType.Factory]: "fact",
   [UnitType.Farm]: "farm",
   [UnitType.Mine]: "mine",
