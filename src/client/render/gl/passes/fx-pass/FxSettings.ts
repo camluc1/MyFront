@@ -10,6 +10,7 @@ import {
   UT_MIRV_WARHEAD,
 } from "../../../types";
 import type { RenderSettings } from "../../RenderSettings";
+import type { NukeExplosionRenderParams } from "../../../types";
 
 /**
  * Visual explosion radius (shockwave / debris scatter — not the gameplay
@@ -33,4 +34,17 @@ export function nukeExplosionRadius(
     default:
       return undefined;
   }
+}
+
+/**
+ * Cosmetic explosion radius is otherwise absolute and would make the Tsar
+ * indistinguishable from hydrogen whenever a player has a cosmetic equipped.
+ * Preserve each chosen style and palette while doubling the Tsar's footprint.
+ */
+export function effectiveNukeExplosionParams(
+  unitType: string,
+  cosmetic?: NukeExplosionRenderParams,
+): NukeExplosionRenderParams | undefined {
+  if (!cosmetic || unitType !== UT_TSAR_BOMBA) return cosmetic;
+  return { ...cosmetic, maxRadius: cosmetic.maxRadius * 2 };
 }
