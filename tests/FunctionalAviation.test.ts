@@ -80,7 +80,7 @@ describe("Functional Geopolitics aviation", () => {
     game.executeNextTick();
 
     // 20 tiles outbound + 20 back + 80 in reserve = 120 required.
-    plane.updateAircraftState({ fuel: 110 });
+    plane.updateAircraftState({ fuel: 5 });
     game.addExecution(new MoveWarshipExecution(a, [plane.id()], objective));
     game.executeNextTick();
     expect(plane.aircraftState()?.phase).toBe("docked");
