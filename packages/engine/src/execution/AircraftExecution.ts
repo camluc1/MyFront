@@ -128,10 +128,15 @@ export class AircraftExecution implements Execution {
     }
     if (plane.type() === UnitType.BomberAircraft) {
       const x = this.mg.x(target), y = this.mg.y(target);
+      // Spread the run along the approach instead of always west/east.
+      const lastX = this.mg.x(plane.lastTile());
+      const lastY = this.mg.y(plane.lastTile());
+      const vertical = Math.abs(y-lastY) > Math.abs(x-lastX);
       for (let i = 0; i < AIRCRAFT_BOMBER_BOMBS; i++) {
-        const px = x + i - Math.floor(AIRCRAFT_BOMBER_BOMBS / 2);
-        if (!this.mg.isValidCoord(px, y)) continue;
-        const owner = this.mg.owner(this.mg.ref(px, y));
+        const offset = i - Math.floor(AIRCRAFT_BOMBER_BOMBS / 2);
+        const px = x + (vertical ? 0 : offset), py = y + (vertical ? offset : 0);
+        if (!this.mg.isValidCoord(px, py)) continue;
+        const owner = this.mg.owner(this.mg.ref(px, py));
         if (owner.isPlayer() && owner !== plane.owner() &&
             !plane.owner().isFriendly(owner)) {
           owner.removeTroops(AIRCRAFT_BOMBER_TROOPS_PER_BOMB);
@@ -168,6 +173,15 @@ export class AircraftExecution implements Execution {
     }
 
     if (state.phase === "docked") {
+      if (state.carrierId === undefined) {
+        const runway = plane.owner().units(UnitType.Airfield).some((field) =>
+          field.isActive() && !field.isUnderConstruction() &&
+          field.tile() === plane.tile());
+        if (!runway) {
+          this.beginReturn(plane);
+          return;
+        }
+      }
       if (state.carrierId !== undefined) {
         const carrier = plane.owner().units(UnitType.Warship)
           .find((u) => u.id() === state.carrierId &&
@@ -221,7 +235,15 @@ export class AircraftExecution implements Execution {
           });
         }
       } else {
-        this.flyToward(plane, state.homeTile);
+        const reached = this.flyToward(plane, state.homeTile);
+        if (reached) {
+          // A destroyed runway must not become an infinite-fuel safe haven.
+          // A stranded plane loses remaining fuel while circling its last fix.
+          plane.updateAircraftState({
+            fuel: Math.max(0, (plane.aircraftState()?.fuel ?? 0) -
+              AIRCRAFT_CRUISE_TILES_PER_TICK),
+          });
+        }
       }
     }
   }
