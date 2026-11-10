@@ -34,6 +34,7 @@ export class CastleDefensePanel extends LitElement {
   transform!: TransformHandler;
   uiState!: UIState;
   @state() private selectedId: number | null = null;
+  @state() private inspectedMode: "normal" | "fortified" | "recovery" = "normal";
   private timer: ReturnType<typeof setInterval> | null = null;
   private readonly onClickMap = (e: MouseUpEvent) => {
     if (this.game.inSpawnPhase() || this.uiState.ghostStructure !== null) return;
@@ -48,8 +49,13 @@ export class CastleDefensePanel extends LitElement {
       const d = (pos.x - e.x) ** 2 + (pos.y - e.y) ** 2;
       if (d < distance) { distance = d; best = castle; }
     }
+    if (best && this.selectedId !== best.id()) this.inspectedMode = "normal";
     this.selectedId = best?.id() ?? null;
   };
+  private openCastle(id: number) {
+    if (this.selectedId !== id) this.inspectedMode = "normal";
+    this.selectedId = id;
+  }
   private readonly onKey = (event: KeyboardEvent) => {
     if (event.key === "Escape") this.selectedId = null;
   };
@@ -127,7 +133,10 @@ export class CastleDefensePanel extends LitElement {
     .choice { display:flex; flex-direction:column; gap:5px; align-items:center;
       text-align:center; padding:10px 5px; border:1px solid #456577; border-radius:12px;
       background:#193440; min-height:103px; }
+    .choice { color:inherit; font:inherit; cursor:pointer; }
     .choice.current { border-color:#8fc4ad; background:#234b47; }
+    .choice.inspected { outline:2px solid #e4c78f; outline-offset:1px; }
+    .choice:focus-visible { outline:2px solid #fff; }
     .choice .symbol { font-size:21px; }
     .choice b { font-size:11px; }
     .choice small { color:#b4c9d1; font-size:10px; }
@@ -175,13 +184,14 @@ export class CastleDefensePanel extends LitElement {
     const state = selected ? this.defenseState(selected) : {activeUntilTick:0,cooldownUntilTick:0};
     const validOwner = selected && mine && selected.owner().id() === mine.id();
     const canActivate = validOwner && !selected.isUnderConstruction() &&
-      mode === "normal" && mine.gold() >= CASTLE_DEFENSE_COST;
+      mode === "normal" && mine.gold() >= CASTLE_DEFENSE_COST &&
+      this.inspectedMode === "fortified";
     return html`
       ${markers.map(({castle,position,mode,state}) => html`
         <button class="tag ${mode}" style="left:${position.x}px;top:${position.y-16}px"
           title="${mode === "normal" ? "Defensa normal" : mode === "fortified" ? "Resistencia extrema" : "Recuperación"}"
           aria-label="Abrir castillo. Estado: ${mode}"
-          @click=${() => this.selectedId = castle.id()}>
+          @click=${() => this.openCastle(castle.id())}>
           ${mode === "fortified" ? "🛡" : mode === "recovery" ? "⌛" : "♜"}
           ${mode === "fortified"
             ? clock(state.activeUntilTick - tick)
@@ -202,16 +212,25 @@ export class CastleDefensePanel extends LitElement {
                 mode === "recovery" ? "Disponible en " + clock(state.cooldownUntilTick - tick) :
                   "Protección permanente lista"}</div></div>
           </div>
-          <div class="choices" aria-label="Tres estados de la fortaleza">
-            <div class="choice ${mode === "normal" ? "current" : ""}">
-              <div class="symbol">🛡️</div><b>Normal</b><small>Siempre activa</small>
-            </div>
-            <div class="choice ${mode === "fortified" ? "current" : ""}">
-              <div class="symbol">⚔️</div><b>Extrema</b><small>60 segundos</small>
-            </div>
-            <div class="choice ${mode === "recovery" ? "current" : ""}">
-              <div class="symbol">⏳</div><b>Recuperación</b><small>120 segundos</small>
-            </div>
+          <div class="choices" role="group" aria-label="Tres estados de la fortaleza">
+            <button class="choice ${mode === "normal" ? "current" : ""}
+              ${this.inspectedMode === "normal" ? "inspected" : ""}"
+              aria-pressed=${this.inspectedMode === "normal"}
+              @click=${() => this.inspectedMode = "normal"}>
+              <span class="symbol">🛡️</span><b>Normal</b><small>Siempre activa</small>
+            </button>
+            <button class="choice ${mode === "fortified" ? "current" : ""}
+              ${this.inspectedMode === "fortified" ? "inspected" : ""}"
+              aria-pressed=${this.inspectedMode === "fortified"}
+              @click=${() => this.inspectedMode = "fortified"}>
+              <span class="symbol">⚔️</span><b>Extrema</b><small>${money(CASTLE_DEFENSE_COST)}</small>
+            </button>
+            <button class="choice ${mode === "recovery" ? "current" : ""}
+              ${this.inspectedMode === "recovery" ? "inspected" : ""}"
+              aria-pressed=${this.inspectedMode === "recovery"}
+              @click=${() => this.inspectedMode = "recovery"}>
+              <span class="symbol">⏳</span><b>Recuperación</b><small>120 segundos</small>
+            </button>
           </div>
           <div class="cost">
             <div class="metric"><span>Activación</span><strong>${money(CASTLE_DEFENSE_COST)}</strong></div>
@@ -227,14 +246,17 @@ export class CastleDefensePanel extends LitElement {
                mode === "fortified" ? "Resistencia extrema activa" :
                mode === "recovery" ? "Recuperación · " + clock(state.cooldownUntilTick - tick) :
                mine!.gold() < CASTLE_DEFENSE_COST ? "Oro insuficiente" :
+               this.inspectedMode !== "fortified" ? "Elegí Extrema para activar" :
                "Activar resistencia · " + money(CASTLE_DEFENSE_COST)}
            </button>` : nothing}
-          <div class="help"><b>¿Cómo funciona?</b>
-            La defensa normal no cuesta oro extra. Resistencia extrema aumenta
-            las pérdidas del atacante en un 35% sobre la protección del castillo
-            y ralentiza su conquista un 25% durante 60 segundos. Después necesita
-            120 segundos de recuperación. No se acumula con otros castillos.
-            Al ser capturado o transferido, pierde su bonificación temporal.
+          <div class="help"><b>${this.inspectedMode === "normal" ? "Defensa normal" :
+            this.inspectedMode === "fortified" ? "Resistencia extrema" : "Recuperación"}</b>
+            ${this.inspectedMode === "normal" ?
+              "Protección permanente sin costos adicionales. Continúa funcionando también durante la recuperación." :
+              this.inspectedMode === "fortified" ?
+              "Pagás " + money(CASTLE_DEFENSE_COST) +
+              " por 60 segundos: +35% de desgaste enemigo y +25% de tiempo de conquista dentro del alcance. No se acumula con otros castillos." :
+              "Después de la resistencia extrema, el castillo conserva su defensa normal durante 120 segundos. Podés consultar el contador sobre el castillo. La captura o transferencia cancela el efecto."}
           </div>
         </section>` : nothing}
     `;
