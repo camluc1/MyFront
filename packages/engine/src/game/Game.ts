@@ -66,9 +66,9 @@ export interface UnitParamsMap {
   };
   [UnitType.Bismarck]: { patrolTile: TileRef };
   // Aircraft reuse the existing deterministic patrol, fuel and save lanes.
-  [UnitType.AttackAircraft]: { patrolTile: TileRef };
-  [UnitType.BomberAircraft]: { patrolTile: TileRef };
-  [UnitType.FighterAircraft]: { patrolTile: TileRef };
+  [UnitType.AttackAircraft]: { homeTile: TileRef };
+  [UnitType.BomberAircraft]: { homeTile: TileRef };
+  [UnitType.FighterAircraft]: { homeTile: TileRef };
   [UnitType.Airfield]: Record<string, never>;
 
   [UnitType.Shell]: Record<string, never>;
