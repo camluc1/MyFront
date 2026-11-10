@@ -71,7 +71,9 @@ jobs:
           npx vitest run --project client \
             tests/client/DlcBuildShortcuts.test.ts \
             tests/client/UnitDisplay.test.ts \
-            tests/client/FrontierHudLayout.test.ts
+            tests/client/FrontierHudLayout.test.ts \
+            tests/client/CastleDefensePanel.test.ts \
+            tests/client/NavalStatusPanel.test.ts
       - name: Check defense gameplay, build shortcuts, HUD and GPU regressions
         run: |
           npx vitest run --project client --project node \
