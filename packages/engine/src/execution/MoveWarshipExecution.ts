@@ -1,5 +1,5 @@
 import { TileRef } from "@openfront/engine-api/game/GameMap";
-import { UnitType } from "@openfront/engine-api/game/GameTypes";
+import { Aircraft, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { zNum, zPlayerRef } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
 import { Execution, Game, Player } from "../game/Game";
@@ -21,6 +21,21 @@ export class MoveWarshipExecution implements Execution {
     if (!mg.isValidRef(this.position)) {
       console.warn(`MoveWarshipExecution: position ${this.position} not valid`);
       return;
+    }
+    // Single-player aircraft share the existing move intent but can fly over
+    // land or sea. Their authoritative flight targets live in aircraftState.
+    if (mg.config().isFunctionalGeopolitics()) {
+      const selected = new Set(this.unitIds);
+      for (const aircraft of this.owner.units(Aircraft.types)) {
+        if (!selected.has(aircraft.id()) || !aircraft.isActive()) continue;
+        const state = aircraft.aircraftState();
+        if (!state) continue;
+        aircraft.updateAircraftState({
+          targetTile: this.position,
+          carrierId: undefined,
+          phase: this.position === state.homeTile ? "returning" : "outbound",
+        });
+      }
     }
     // Both invalid terrain and a disconnected sea must reject the move. Never
     // feed a null component into hasWaterComponent for an untrusted intent.
