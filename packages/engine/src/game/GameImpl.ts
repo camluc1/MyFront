@@ -957,7 +957,7 @@ export class GameImpl implements Game {
     }
 
     const previousOwner = this.owner(tile) as PlayerImpl;
-    if (this._config.isFunctionalGeopolitics() &&
+    if (this._config.isFunctionalGeopolitics() && !this.inSpawnPhase() &&
         previousOwner.units(UnitType.Capital).some((u) =>
           u.isActive() && u.tile() === tile)) return;
     previousOwner._lastTileChange = this._ticks;
