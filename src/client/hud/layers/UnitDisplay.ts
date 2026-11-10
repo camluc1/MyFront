@@ -56,6 +56,7 @@ const farmIcon = assetUrl("images/FarmIconWhite.svg");
 const mineIcon = assetUrl("images/MineIconWhite.svg");
 const oilWellIcon = assetUrl("images/OilWellIconWhite.svg");
 const gasPlantIcon = assetUrl("images/GasPlantIconWhite.svg");
+const shipyardIcon = assetUrl("images/ShipyardIconWhite.svg");
 const PEEK_HOLD_MS = 450;
 /** How long the details stay up after the browser cancels the touch itself. */
 const PEEK_GRACE_MS = 1200;
@@ -67,7 +68,7 @@ const BUILD_CATEGORIES: ReadonlyArray<{
 }> = [
   { id: "economy", label: "Economía", types: [UnitType.City, UnitType.Factory, UnitType.Farm, UnitType.Mine, UnitType.OilWell, UnitType.GasPlant] },
   { id: "defense", label: "Defensa", types: [UnitType.DefensePost, UnitType.MissileSilo, UnitType.SAMLauncher, UnitType.Castle, UnitType.IronDome] },
-  { id: "naval", label: "Naval", types: [UnitType.Port, UnitType.Warship] },
+  { id: "naval", label: "Naval", types: [UnitType.Port, UnitType.Warship, UnitType.Shipyard] },
 ];
 
 @customElement("unit-display")
@@ -104,6 +105,7 @@ export class UnitDisplay extends LitElement implements Controller {
   private _gasPlants = 0;
   private _missileSilo = 0;
   private _port = 0;
+  private _shipyard = 0;
   private _defensePost = 0;
   private _castle = 0;
   private _ironDome = 0;
@@ -526,6 +528,7 @@ export class UnitDisplay extends LitElement implements Controller {
     this._cities = player.totalUnitLevels(UnitType.City);
     this._missileSilo = player.totalUnitLevels(UnitType.MissileSilo);
     this._port = player.totalUnitLevels(UnitType.Port);
+    this._shipyard = player.totalUnitLevels(UnitType.Shipyard);
     this._defensePost = player.totalUnitLevels(UnitType.DefensePost);
     this._castle = player.totalUnitLevels(UnitType.Castle);
     this._ironDome = player.totalUnitLevels(UnitType.IronDome);
@@ -692,6 +695,7 @@ export class UnitDisplay extends LitElement implements Controller {
       case "naval":
         return html`
           ${this.renderUnitItem(portIcon, this._port, UnitType.Port, "port", this.getHotkey("buildPort", "Digit3"))}
+          ${this.renderUnitItem(shipyardIcon, this._shipyard, UnitType.Shipyard, "shipyard", "")}
           ${this.renderUnitItem(warshipIcon, this._warships, UnitType.Warship, "warship", this.getHotkey("buildWarship", "Digit7"))}
           ${this.renderMobileShipyard()}
         `;

@@ -212,7 +212,7 @@ void main() {
     // ten-column UVs into the original six-column or new four-column atlas.
     float localU = vAtlasUV.x * float(ATLAS_COLS) - vAtlasIdx;
     float atlasCol = vAtlasIdx < 5.5 ? vAtlasIdx : vAtlasIdx - 6.0;
-    float cols = vAtlasIdx < 5.5 ? 6.0 : 7.0;
+    float cols = vAtlasIdx < 5.5 ? 6.0 : 8.0;
     float colStart = atlasCol / cols;
     float colEnd = (atlasCol + 1.0) / cols;
     vec2 safeUV = vec2(

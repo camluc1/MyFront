@@ -2102,6 +2102,7 @@
     "title": "Tutorial"
   },
   "unit_type": {
+    "shipyard": "Astillero",
     "atom_bomb": "Bomba atómica",
     "boat": "Buque",
     "city": "Ciudad",

@@ -21,6 +21,7 @@ import {
   UT_CASTLE,
   UT_IRON_DOME,
   UT_CAPITAL,
+  UT_SHIPYARD,
   UT_FACTORY,
   UT_FARM,
   UT_MINE,
@@ -67,6 +68,7 @@ const STRUCTURE_ORDER = [
   UT_CASTLE,
   UT_IRON_DOME,
   UT_CAPITAL,
+  UT_SHIPYARD,
 ] as const;
 
 const ATLAS_COLS = STRUCTURE_ORDER.length;
@@ -360,7 +362,7 @@ export class StructurePass {
         "FarmIconWhite.svg", "MineIconWhite.svg",
         "OilWellIconWhite.svg", "GasPlantIconWhite.svg",
         "CastleIconWhite.svg", "IronDomeIconWhite.svg",
-        "CapitalIconWhite.svg",
+        "CapitalIconWhite.svg", "ShipyardIconWhite.svg",
       ];
       const images = await Promise.all(names.map(async (name): Promise<HTMLImageElement | null> => {
         const img = new Image();

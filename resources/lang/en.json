@@ -2666,6 +2666,7 @@
     "title": "Tutorial"
   },
   "unit_type": {
+    "shipyard": "Shipyard",
     "atom_bomb": "Atom Bomb",
     "boat": "Boat",
     "city": "City",
