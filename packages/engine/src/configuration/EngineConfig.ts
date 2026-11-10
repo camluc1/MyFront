@@ -377,7 +377,7 @@ export class EngineConfig extends Config {
           UnitType.Castle,
         );
       case UnitType.IronDome:
-        return this.costWrapper(() => 10_000_000, UnitType.IronDome);
+        return this.costWrapper(() => 8_000_000, UnitType.IronDome);
       case UnitType.SAMLauncher:
         return this.costWrapper(
           (numUnits: number) => Math.min(3_000_000, (numUnits + 1) * 1_500_000),
