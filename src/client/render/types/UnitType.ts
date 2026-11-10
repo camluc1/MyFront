@@ -17,6 +17,7 @@ export const UT_WARSHIP = "Warship" as const;
 export const UT_BISMARCK = "Bismarck" as const;
 export const UT_ATOM_BOMB = "Atom Bomb" as const;
 export const UT_HYDROGEN_BOMB = "Hydrogen Bomb" as const;
+export const UT_TSAR_BOMBA = "Tsar Bomba" as const;
 export const UT_MIRV = "MIRV" as const;
 export const UT_SAM_MISSILE = "SAMMissile" as const;
 export const UT_SHELL = "Shell" as const;
@@ -63,6 +64,7 @@ export const STRUCTURE_TYPES: ReadonlySet<string> = new Set([
 export const NUKE_TYPES: ReadonlySet<string> = new Set([
   UT_ATOM_BOMB,
   UT_HYDROGEN_BOMB,
+  UT_TSAR_BOMBA,
   UT_MIRV,
 ]);
 
@@ -72,6 +74,7 @@ export const NUKE_TYPES: ReadonlySet<string> = new Set([
 export const SMOOTHED_NUKE_TYPES: ReadonlySet<string> = new Set([
   UT_ATOM_BOMB,
   UT_HYDROGEN_BOMB,
+  UT_TSAR_BOMBA,
   UT_MIRV,
   UT_MIRV_WARHEAD,
 ]);
@@ -81,6 +84,7 @@ export const TRAIL_TYPES: ReadonlySet<string> = new Set([
   UT_TRANSPORT,
   UT_ATOM_BOMB,
   UT_HYDROGEN_BOMB,
+  UT_TSAR_BOMBA,
   UT_MIRV,
   UT_MIRV_WARHEAD,
 ]);
@@ -91,6 +95,7 @@ export const NUKE_MAGNITUDES: Readonly<
 > = {
   [UT_ATOM_BOMB]: { inner: 12, outer: 30 },
   [UT_HYDROGEN_BOMB]: { inner: 80, outer: 100 },
+  [UT_TSAR_BOMBA]: { inner: 160, outer: 200 },
   [UT_MIRV_WARHEAD]: { inner: 12, outer: 18 },
 };
 
@@ -125,4 +130,5 @@ export const ALL_UNIT_TYPES = [
   UT_CAPITAL,
   UT_SHIPYARD,
   UT_BISMARCK,
+  UT_TSAR_BOMBA,
 ] as const;
