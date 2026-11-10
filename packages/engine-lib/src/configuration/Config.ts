@@ -192,7 +192,9 @@ export class Config {
 
   isUnitDisabled(unitType: UnitType): boolean {
     if ((unitType === UnitType.Capital || unitType === UnitType.Shipyard ||
-         unitType === UnitType.Bismarck || unitType === UnitType.TsarBomba) &&
+         unitType === UnitType.Bismarck || unitType === UnitType.TsarBomba ||
+         unitType === UnitType.Airfield || unitType === UnitType.AttackAircraft ||
+         unitType === UnitType.BomberAircraft || unitType === UnitType.FighterAircraft) &&
         !this.isFunctionalGeopolitics())
       return true;
     if ((unitType === UnitType.Castle || unitType === UnitType.IronDome) &&
@@ -242,6 +244,15 @@ export class Config {
       case UnitType.Bismarck:
         info = { maxHealth: 4800 };
         break;
+      case UnitType.AttackAircraft:
+        info = { maxHealth: 300 };
+        break;
+      case UnitType.BomberAircraft:
+        info = { maxHealth: 450 };
+        break;
+      case UnitType.FighterAircraft:
+        info = { maxHealth: 360 };
+        break;
       case UnitType.Shell:
         info = { damage: 250 };
         break;
@@ -267,6 +278,9 @@ export class Config {
         info = { constructionDuration: 0, maxHealth: 1 };
         break;
       case UnitType.Shipyard:
+        info = { constructionDuration: this.instantBuild() ? 0 : 20 * 10 };
+        break;
+      case UnitType.Airfield:
         info = { constructionDuration: this.instantBuild() ? 0 : 20 * 10 };
         break;
       case UnitType.IronDome:
