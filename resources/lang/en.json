@@ -209,7 +209,11 @@
       "mine": "Extracts minerals and gains 40% with a connected factory",
       "oil_well": "Produces gold on oil fields",
       "gas_plant": "Produces gold on natural gas fields",
-      "bismarck": "An armored capital ship. Heavy hull and 20% more naval firepower; withdraws below 40% hull. Functional Geopolitics only."
+      "bismarck": "An armored capital ship. Heavy hull and 20% more naval firepower; withdraws below 40% hull. Functional Geopolitics only.",
+      "airfield": "Builds and refuels aircraft. Must be held by your country; cost 3M.",
+      "attack_aircraft": "Light ground-attack aircraft. One successful strike reduces the enemy troop pool by up to 500,000. Cost 1M.",
+      "bomber_aircraft": "Five light bombs in a line. Refuels at your airfield or a workshop ship. Cost 2M.",
+      "fighter_aircraft": "Air superiority aircraft. Only attacks enemy aircraft. Cost 1.5M."
     },
     "not_enough_money": "Not enough money",
     "upgrade_amount": "x{amount}",
@@ -2689,7 +2693,11 @@
     "mine": "Mine",
     "oil_well": "Oil Well",
     "gas_plant": "Gas Plant",
-    "bismarck": "Bismarck"
+    "bismarck": "Bismarck",
+    "airfield": "Airfield",
+    "attack_aircraft": "Attack Aircraft",
+    "bomber_aircraft": "Bomber",
+    "fighter_aircraft": "Fighter"
   },
   "update_available": {
     "desktop": "A new version of OpenFront is available. It will download in the background; reload from the update bar once it is ready.",
@@ -2760,6 +2768,14 @@
     "build_hydrogen_bomb_desc": "Build a Hydrogen Bomb under your cursor.",
     "build_tsar_bomba": "Build Tsar Bomba",
     "build_tsar_bomba_desc": "Fire a Tsar Bomba at your cursor. Functional Geopolitics only.",
+    "build_airfield": "Build Airfield",
+    "build_airfield_desc": "Build an Airfield under the cursor.",
+    "build_attack_aircraft": "Build Ground-Attack Aircraft",
+    "build_attack_aircraft_desc": "Launch a ground-attack aircraft from an active airfield.",
+    "build_bomber_aircraft": "Build Bomber",
+    "build_bomber_aircraft_desc": "Launch a light bomber from an active airfield.",
+    "build_fighter_aircraft": "Build Fighter",
+    "build_fighter_aircraft_desc": "Launch a fighter from an active airfield.",
     "build_menu_modifier": "Build Menu Modifier",
     "build_menu_modifier_desc": "Hold this key while clicking to open the build menu.",
     "build_mirv": "Build MIRV",
