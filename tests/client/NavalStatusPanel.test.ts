@@ -39,4 +39,39 @@ describe("Geopolitics naval selection HUD", () => {
       el.remove();
     }
   });
+
+  it("identifies the functional Bismarck through the existing selection event", async () => {
+    const bus = new EventBus();
+    const bismarck = {
+      id: () => 91, type: () => UnitType.Bismarck,
+      isActive: () => true, health: () => 4800,
+      veterancy: () => 0, tile: () => 210,
+      warshipState: () => ({
+        state: "retreating", patrolTile: 330, supportShip: false,
+        isInCombat: false, lastCombatTick: 0, veterancy: 0,
+        veterancyProgress: 0,
+      }),
+    } as unknown as UnitView;
+    const game = {
+      units: () => [bismarck],
+      x: (tile: number) => Math.trunc(tile / 10),
+      y: (tile: number) => tile % 10,
+    } as unknown as GameView;
+    const el = new NavalStatusPanel();
+    el.game = game;
+    el.bus = bus;
+    document.body.append(el);
+    try {
+      bus.emit(new UnitSelectionEvent(bismarck, true));
+      await el.updateComplete;
+      expect(el.shadowRoot?.textContent).toContain("Bismarck");
+      expect(el.shadowRoot?.textContent).toContain("Retirándose");
+      expect(el.shadowRoot?.textContent).toContain("4.800");
+      bus.emit(new UnitSelectionEvent(null, false));
+      await el.updateComplete;
+      expect(el.shadowRoot?.querySelector(".panel")).toBeNull();
+    } finally {
+      el.remove();
+    }
+  });
 });
