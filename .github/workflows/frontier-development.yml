@@ -66,6 +66,7 @@ jobs:
             tests/GeopoliticsAdvancedDefenses.test.ts \
             tests/FunctionalGeopoliticsCapital.test.ts \
             tests/FunctionalShipyard.test.ts \
+            tests/FunctionalBismarck.test.ts \
             tests/CastleDefense.test.ts \
             tests/Geopolitics.test.ts
       - name: Check responsive HUD regression tests
