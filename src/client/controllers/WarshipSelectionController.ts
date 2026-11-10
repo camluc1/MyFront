@@ -152,6 +152,8 @@ export class WarshipSelectionController implements Controller {
             (this.game.config().isFunctionalGeopolitics() &&
               unit.type() === UnitType.Bismarck
                 ? Math.ceil(WARSHIP_SELECTION_RADIUS * 1.7)
+                : unit.aircraftState() !== undefined
+                  ? Math.ceil(WARSHIP_SELECTION_RADIUS * 1.1)
                 : unit.warshipState().supportShip
                   ? Math.ceil(WARSHIP_SELECTION_RADIUS * 1.25)
                   : WARSHIP_SELECTION_RADIUS),
