@@ -32,7 +32,7 @@ describe("Geopolitics naval selection HUD", () => {
       expect(el.shadowRoot?.textContent).toContain("34, 0");
       bus.emit(new UnitSelectionEvent(null, false));
       await el.updateComplete;
-      expect(el.shadowRoot?.textContent?.trim() ?? "").toBe("");
+      expect(el.shadowRoot?.querySelector(".panel")).toBeNull();
     } finally {
       el.remove();
     }
