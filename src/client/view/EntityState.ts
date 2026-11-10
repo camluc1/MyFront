@@ -75,6 +75,7 @@ export function unitStateFromUpdate(u: UnitUpdate): UnitState {
     samUpgradeStartRange: u.samUpgrade?.startRange ?? null,
     samUpgradeTargetLevel: u.samUpgrade?.targetLevel ?? null,
     samUpgradeDuration: u.samUpgrade?.duration ?? null,
+    shipyardLevels: u.shipyardLevels,
     castleActiveUntilTick: u.castleDefense?.activeUntilTick ?? 0,
     castleCooldownUntilTick: u.castleDefense?.cooldownUntilTick ?? 0,
   };
@@ -111,6 +112,7 @@ export function applyUnitUpdateInPlace(target: UnitState, u: UnitUpdate): void {
   target.samUpgradeStartRange = u.samUpgrade?.startRange ?? null;
   target.samUpgradeTargetLevel = u.samUpgrade?.targetLevel ?? null;
   target.samUpgradeDuration = u.samUpgrade?.duration ?? null;
+  target.shipyardLevels = u.shipyardLevels;
   target.castleActiveUntilTick = u.castleDefense?.activeUntilTick ?? 0;
   target.castleCooldownUntilTick = u.castleDefense?.cooldownUntilTick ?? 0;
 }

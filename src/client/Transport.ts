@@ -8,6 +8,7 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { DiplomacyAction } from "@openfront/engine-api/Geopolitics";
+import type { ShipyardTrack } from "@openfront/engine-api/game/Shipyard";
 import {
   AllPlayersStats,
   ClientID,
@@ -94,6 +95,7 @@ export class SendUpgradeStructureIntentEvent implements GameEvent {
     public readonly unitId: number,
     public readonly unitType: UnitType,
     public readonly amount: number = 1,
+    public readonly shipyardTrack?: ShipyardTrack,
   ) {}
 }
 
@@ -855,6 +857,7 @@ export class Transport {
       unit: event.unitType,
       unitId: event.unitId,
       amount: event.amount,
+      shipyardTrack: event.shipyardTrack,
     });
   }
 

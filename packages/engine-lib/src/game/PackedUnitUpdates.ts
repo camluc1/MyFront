@@ -3,6 +3,7 @@ import {
   GameUpdateType,
   UnitUpdate,
 } from "@openfront/engine-api/game/GameUpdates";
+import { packShipyardLevels, unpackShipyardLevels } from "@openfront/engine-api/game/Shipyard";
 
 export const UNIT_UPDATE_STRIDE = 21;
 
@@ -438,6 +439,8 @@ export class PackedUnitUpdateDecoder {
       trainType: this.trainType,
       loaded: this.loaded,
       samUpgrade,
+      ...(this.unitType === UnitType.Shipyard
+        ? { shipyardLevels: unpackShipyardLevels(this.samUpgradeStartTick ?? 0) } : {}),
       // Castle uses the SAM-only numerical slots; no increase to 21-wide wire stride.
       ...(this.unitType === UnitType.Castle && this.samUpgradeDuration > 0
         ? { castleDefense: { activeUntilTick: this.samUpgradeStartTick ?? 0,
@@ -494,7 +497,13 @@ export function packUnitUpdates(units: UnitUpdate[]): {
       packedUnitUpdates[offset + OFFSET_WARSHIP_VETERANCY_PROGRESS] = 0;
     }
 
-    if (update.unitType === UnitType.Castle && update.castleDefense) {
+    if (update.unitType === UnitType.Shipyard && update.shipyardLevels) {
+      packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_START_TICK] =
+        packShipyardLevels(update.shipyardLevels);
+      packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_DURATION] = 0;
+      packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_START_RANGE] = 0;
+      packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_TARGET_LEVEL] = 0;
+    } else if (update.unitType === UnitType.Castle && update.castleDefense) {
       packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_START_TICK] = update.castleDefense.activeUntilTick;
       packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_DURATION] = update.castleDefense.cooldownUntilTick;
       packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_START_RANGE] = 0;

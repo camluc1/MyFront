@@ -129,6 +129,8 @@ export interface UnitState {
   samUpgradeTargetLevel: number | null;
   samUpgradeDuration: number | null;
   /** Geopolitics castle temporary protection, carried on the original compact unit wire. */
+  shipyardLevels?: { merchantSpeed: number; transportCapacity: number;
+    warshipHealth: number; warshipDamage: number };
   castleActiveUntilTick?: number;
   castleCooldownUntilTick?: number;
 }

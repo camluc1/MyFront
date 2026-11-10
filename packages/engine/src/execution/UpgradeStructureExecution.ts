@@ -4,6 +4,8 @@ import {
   zRef,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
+import { PlayerType, UnitType } from "@openfront/engine-api/game/GameTypes";
+import { type ShipyardTrack, shipyardUpgradePrice } from "@openfront/engine-api/game/Shipyard";
 import { Execution, Game, Player, Unit } from "../game/Game";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
 import type {
@@ -20,6 +22,7 @@ export class UpgradeStructureExecution implements Execution {
     private player: Player,
     private unitId: number,
     private amount: number = 1,
+    private shipyardTrack?: ShipyardTrack,
   ) {}
 
   init(mg: Game, ticks: number): void {
@@ -34,6 +37,27 @@ export class UpgradeStructureExecution implements Execution {
       return;
     }
 
+    if (this.shipyardTrack !== undefined) {
+      if (!mg.config().isFunctionalGeopolitics() ||
+          this.structure.type() !== UnitType.Shipyard ||
+          this.player.type() !== PlayerType.Human ||
+          this.structure.isUnderConstruction() || !this.structure.isActive()) return;
+      for (let i = 0; i < this.amount; i++) {
+        const current = this.structure.shipyardLevels()?.[this.shipyardTrack];
+        if (current === undefined) break;
+        const cost = shipyardUpgradePrice(current);
+        if (cost === null || this.player.gold() < cost) break;
+        const ships = this.shipyardTrack === "warshipHealth"
+          ? this.player.units(UnitType.Warship).filter((s) =>
+            s.isActive() && !s.warshipState().supportShip).map((s) =>
+              ({ ship: s, previousMax: s.maxHealth() })) : [];
+        if (!this.structure.upgradeShipyard(this.shipyardTrack)) break;
+        this.player.removeGold(cost);
+        for (const { ship, previousMax } of ships)
+          ship.modifyHealth(Math.max(0, ship.maxHealth() - previousMax));
+      }
+      return;
+    }
     for (let i = 0; i < this.amount; i++) {
       if (!this.player.canUpgradeUnit(this.structure)) {
         if (i === 0) {
@@ -66,6 +90,7 @@ export class UpgradeStructureExecution implements Execution {
       player: w.player(this.player),
       unitId: this.unitId,
       amount: this.amount,
+      shipyardTrack: this.shipyardTrack,
     });
   }
 
@@ -74,6 +99,7 @@ export class UpgradeStructureExecution implements Execution {
     this.player = r.player(s.player);
     this.unitId = s.unitId;
     this.amount = s.amount;
+    this.shipyardTrack = s.shipyardTrack;
   }
 }
 
@@ -83,6 +109,8 @@ const UpgradeStructureStateSchema = z.object({
   player: zPlayerRef(),
   unitId: zNum(),
   amount: zNum(),
+  shipyardTrack: z.enum(["merchantSpeed", "transportCapacity",
+    "warshipHealth", "warshipDamage"]).optional(),
 });
 type UpgradeStructureState = z.infer<typeof UpgradeStructureStateSchema>;
 
