@@ -40,6 +40,7 @@ import {
   TrainType,
   UT_ATOM_BOMB,
   UT_HYDROGEN_BOMB,
+  UT_TSAR_BOMBA,
   UT_MIRV,
   UT_MIRV_WARHEAD,
   UT_SAM_MISSILE,
@@ -142,6 +143,7 @@ const TRAIN_CARRIAGE_LOADED_COL = UNIT_ORDER.indexOf("TrainCarriageLoaded");
 const FLICKER_TYPES: ReadonlySet<string> = new Set([
   UT_ATOM_BOMB,
   UT_HYDROGEN_BOMB,
+  UT_TSAR_BOMBA,
   UT_MIRV,
   UT_MIRV_WARHEAD,
   UT_SAM_MISSILE,
@@ -153,6 +155,7 @@ const FLICKER_TYPES: ReadonlySet<string> = new Set([
 const MISSILE_TYPES: ReadonlySet<string> = new Set([
   UT_ATOM_BOMB,
   UT_HYDROGEN_BOMB,
+  UT_TSAR_BOMBA,
   UT_MIRV,
   UT_SAM_MISSILE,
   UT_SHELL,
@@ -318,6 +321,8 @@ export class UnitPass {
     }
 
     this.typeToAtlasCol.set(UT_BISMARCK, WARSHIP_COL);
+    // Reuse the hydrogen atlas glyph, keeping the existing 12-column GPU batch.
+    this.typeToAtlasCol.set(UT_TSAR_BOMBA, HYDROGEN_BOMB_COL);
 
     // Compile shaders
     this.program = createProgram(
