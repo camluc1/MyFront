@@ -4,6 +4,7 @@ import { AllianceExtensionExecutionSnapshot } from "../execution/alliance/Allian
 import { AllianceRejectExecutionSnapshot } from "../execution/alliance/AllianceRejectExecution";
 import { AllianceRequestExecutionSnapshot } from "../execution/alliance/AllianceRequestExecution";
 import { BreakAllianceExecutionSnapshot } from "../execution/alliance/BreakAllianceExecution";
+import { AircraftExecutionSnapshot } from "../execution/AircraftExecution";
 import { AttackExecutionSnapshot } from "../execution/AttackExecution";
 import { BoatRetreatExecutionSnapshot } from "../execution/BoatRetreatExecution";
 import { CityExecutionSnapshot } from "../execution/CityExecution";
@@ -61,6 +62,7 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   AllianceRejectExecutionSnapshot,
   AllianceRequestExecutionSnapshot,
   AttackExecutionSnapshot,
+  AircraftExecutionSnapshot,
   BoatRetreatExecutionSnapshot,
   BreakAllianceExecutionSnapshot,
   CityExecutionSnapshot,
