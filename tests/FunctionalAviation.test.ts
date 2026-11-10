@@ -1,4 +1,5 @@
 import { PlayerInfo, PlayerType, UnitType } from "@openfront/engine-api/game/GameTypes";
+import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { AIRCRAFT_MAX_FUEL } from "@openfront/engine-api/game/Aircraft";
 import { PACKED_UNIT_TYPES, packUnitUpdates, unpackUnitUpdates } from "@openfront/engine-lib/game/PackedUnitUpdates";
 import { AircraftExecution } from "@openfront/engine/execution/AircraftExecution";
@@ -95,7 +96,8 @@ describe("Functional Geopolitics aviation", () => {
     }, [human("a"),human("b")]);
     const a=game.player("a"),b=game.player("b");
     const home=game.ref(32,32),target=game.ref(39,32);
-    a.conquer(home);b.conquer(target);
+    a.conquer(home);
+    for (let x=37; x<=41; x++) b.conquer(game.ref(x,32));
     a.buildUnit(UnitType.Airfield,home,{});
     b.setTroops(600_000);
     const bomber=a.buildUnit(UnitType.BomberAircraft,home,{homeTile:home});
@@ -105,7 +107,13 @@ describe("Functional Geopolitics aviation", () => {
       new MoveWarshipExecution(a,[bomber.id()],target),
       new MoveWarshipExecution(a,[fighter.id()],target),
     );
-    for(let i=0;i<15;i++)game.executeNextTick();
+    let visualBombImpacts = 0;
+    for (let i=0;i<15;i++) {
+      const updates = game.executeNextTick()[GameUpdateType.Unit];
+      visualBombImpacts += updates.filter((u) =>
+        u.unitType === UnitType.Shell && !u.isActive && u.reachedTarget).length;
+    }
+    expect(visualBombImpacts).toBe(5);
     expect(b.troops()).toBeLessThan(600_000);
     // Fighter never touches the ground troop pool: the bomber alone did that.
     expect(fighter.aircraftState()?.fuel).toBeGreaterThan(0);
