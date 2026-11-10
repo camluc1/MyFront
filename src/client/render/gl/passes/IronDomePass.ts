@@ -42,6 +42,24 @@ export function isDomeVisible(
   return Math.max(rx * viewportW, ry * viewportH) >= 2.5;
 }
 
+/** Select the closest active same-owner shield covering an actual interception. */
+export function protectingDomeOffset(
+  domes: readonly number[], tileX: number, tileY: number, ownerID: number,
+): number {
+  const x = tileX + 0.5, y = tileY + 0.5;
+  let best = -1, bestDistance = Infinity;
+  for (let i = 0; i < domes.length; i += FIELDS) {
+    if (domes[i + 2] !== ownerID) continue;
+    const dx = x - domes[i], dy = y - domes[i + 1];
+    const distance = dx * dx + dy * dy;
+    if (distance <= domes[i + 3] ** 2 && distance < bestDistance) {
+      best = i;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
 export class IronDomePass {
   private readonly program: WebGLProgram;
   private readonly vao: WebGLVertexArrayObject;
@@ -113,18 +131,7 @@ export class IronDomePass {
 
   /** Pulse precisely the closest same-owner dome that covers the real block. */
   triggerInterception(tileX: number, tileY: number, ownerID: number): void {
-    const x = tileX + 0.5, y = tileY + 0.5;
-    let best = -1, bestDistance = Infinity;
-    for (let i = 0; i < this.domes.length; i += FIELDS) {
-      if (this.domes[i + 2] !== ownerID) continue;
-      const dx = x - this.domes[i], dy = y - this.domes[i + 1];
-      const distance = dx * dx + dy * dy;
-      if (distance <= this.domes[i + 3] ** 2 &&
-          distance < bestDistance) {
-        best = i;
-        bestDistance = distance;
-      }
-    }
+    const best = protectingDomeOffset(this.domes, tileX, tileY, ownerID);
     if (best === -1) return;
     // Simulation has already confirmed the interception; this is only a
     // short client-side visual timestamp stored in the existing instance.

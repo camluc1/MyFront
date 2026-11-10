@@ -37,3 +37,12 @@ El quality gate de desarrollo ejecuta: TypeScript integral; compilación Vite; v
 ## Restricciones
 
 El factor defensivo (1,35 y 1,25) es un valor de balance inicial. Después de observar partidas humanas, medir cuánto tarda un ataque comparable con y sin fortificación, oro gastado, uso por IA y si desincentiva guerras. No tocar Classic ni el algoritmo de conquista para equilibrar una decisión del castillo.
+
+## Defensa seleccionada e interceptaciones visibles
+
+- La selección de un castillo propio o rival revela su cobertura real de 60 casillas reutilizando el pase GPU existente para radios de construcción. El contorno cambia de color según propiedad y fortificación; la protección temporal no altera la forma del frente de conquista.
+- Los castillos rivales reforzados indican su estado y cuenta regresiva con marcador, pero no ofrecen botones de gasto al jugador. El clic preciso sobre una defensa es una consulta, no un ataque. El selector también funciona desde el menú contextual.
+- La Cúpula de Hierro seleccionada revela su radio real por nivel; los anillos existentes permanecen visibles con culling. No se añade contador de derribos ni mantenimiento.
+- Solo cuando NukeExecution confirma un bloqueo real dentro de una cúpula se emite IronDomeInterception. El cliente encuentra la cúpula propia más cercana que cubre ese punto y aplica un destello de ~1 s en la geometría de anillo ya existente. Los fragmentos de una explosión exterior que solo reciben protección no crean eventos de interceptación falsos.
+- La IA no cambia su cola de construcción: Castle e IronDome permanecen fuera del buildOrder habitual. Su lógica de activar castillos capturados, pagos y cooldown sigue igual. Por lo tanto, esta iteración mejora su legibilidad, no le asigna prioridades económicas nuevas.
+- Classic queda sin las interfaces adicionales; las pruebas verifican la inspección de rivales, la selección por cobertura, la señal de bloqueo real y el protocolo de eventos.

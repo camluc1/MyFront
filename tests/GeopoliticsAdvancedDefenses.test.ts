@@ -7,8 +7,8 @@ import {
   createBlastIronDomeCoverage,
 } from "@openfront/engine/execution/IronDomeProtection";
 import { NukeExecution } from "@openfront/engine/execution/NukeExecution";
+import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { CASTLE_DEFENSE_LOSS_MULTIPLIER } from "@openfront/engine-api/game/CastleDefense";
-import { executeTicks } from "./util/utils";
 import { setup } from "./util/Setup";
 
 const human = (name: string) =>
@@ -91,7 +91,15 @@ describe("Geopolitics advanced defenses", () => {
       warheads.push(warhead);
       game.addExecution(warhead);
     }
-    executeTicks(game, 300);
+    let realInterceptions = 0;
+    for (let tick = 0; tick < 300; tick++) {
+      const events = game.executeNextTick()[GameUpdateType.IronDomeInterception];
+      for (const event of events) {
+        expect(event.ownerID).toBe(defender.smallID());
+        realInterceptions++;
+      }
+    }
+    expect(realInterceptions).toBe(warheads.length);
     expect(warheads.every((w) => w.getNuke()?.isActive() === false)).toBe(true);
     expect(dome.isActive()).toBe(true);
     expect(city.isActive()).toBe(true);
