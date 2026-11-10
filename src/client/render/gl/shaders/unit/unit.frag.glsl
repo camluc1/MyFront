@@ -35,6 +35,7 @@ flat in float vFlags;
 flat in float vResearchHull;
 flat in float vResearchGuns;
 flat in float vBismarck;
+flat in float vAircraftType;
 flat in float vHash;
 flat in float vStrategic;
 flat in float vGlow;
@@ -111,7 +112,7 @@ vec4 vehicleSprite(vec2 q, float col, out float signedHullDistance) {
   if (col < 2.5) {
     bool cargo=col>0.5 && col<1.5;
     bool warship=col>1.5;
-    bool repairCarrier=warship && abs(vFlags-FLAG_SUPPORT_SHIP)<0.1;
+    bool repairCarrier=warship && abs(vFlags-FLAG_SUPPORT_SHIP)<0.1 && vAircraftType<0.5;
     // A repair carrier needs a broad, long service deck; a battleship's
     // narrow hull made the support unit look like an empty destroyer.
     float stern=repairCarrier ? -0.75 : (vBismarck>0.5 ? -0.91 : (warship ? -0.62 : (cargo ? -0.37 : -0.29)));
@@ -149,7 +150,29 @@ vec4 vehicleSprite(vec2 q, float col, out float signedHullDistance) {
       if(detail>.1 && q.x>-.20 && q.x<-.17 && abs(q.y)<.10)gray=.275;
       if(detail>.1 && q.x>.29 && q.x<.34 && abs(q.y)<.025)gray=.92;
     } else if(warship) {
-      if (repairCarrier) {
+      if(vAircraftType>0.5) {
+        // Three lightweight top-down silhouettes in the existing GPU batch.
+        // +X is the nose. The bomber is wide; the fighter is delta swept.
+        float bomber=step(1.5,vAircraftType)*(1.0-step(2.5,vAircraftType));
+        float fighter=step(2.5,vAircraftType);
+        float bodyBeam=mix(0.063,0.105,bomber);
+        float body=max(abs(q.y)-bodyBeam,max(-0.81-q.x,q.x-0.82));
+        float wingSpan=mix(0.335,0.485,bomber);
+        wingSpan=mix(wingSpan,0.405,fighter);
+        float wingSweep=mix(0.72,0.25,bomber);
+        wingSweep=mix(wingSweep,1.07,fighter);
+        float wingX=q.x+mix(0.08,0.02,bomber);
+        float wing=max(abs(q.y)-max(0.0,wingSpan-wingSweep*abs(wingX)),
+                       abs(wingX)-0.38);
+        float tail=max(abs(q.y)-mix(0.20,0.255,bomber),
+                       max(-0.69-q.x,q.x+0.43));
+        d=min(body,min(wing,tail));
+        gray=abs(q.y)>bodyBeam*0.72 ? 0.706 : 0.51;
+        if(q.x>0.34 && q.x<0.51 && abs(q.y)<0.04)gray=0.92;
+        if(bomber>0.5 && q.x> -0.34 && q.x< -0.11 &&
+           abs(abs(q.y)-0.11)<0.047)gray=0.275;
+        if(fighter>0.5 && q.x>0.05 && q.x<0.19 && abs(q.y)<0.06)gray=0.275;
+      } else if (repairCarrier) {
 #ifdef FRONTIER_CINEMATIC_ULTRA
         // Ultra Portabuques: big service deck, two drydock bays and bridge.
         // Keep the broad carrier silhouette and existing logical quad.
@@ -298,7 +321,7 @@ void main() {
     bool warship = vAtlasCol > 1.5 && vAtlasCol < 2.5;
     bool transport = vAtlasCol < 0.5;
     bool supportCarrier=warship && abs(vFlags-FLAG_SUPPORT_SHIP)<0.1;
-    if ((warship || transport) && !supportCarrier && uAltView == 0) {
+    if ((warship || transport) && !supportCarrier && vAircraftType < 0.5 && uAltView == 0) {
       float phase = fract(uTime / max(uNavalPulse.z, 0.1) + fract(vOwnerID * 0.173));
       float radius = uNavalPulse.w * (warship ? 1.0 : 0.68);
       float r = length(q) / radius;
@@ -322,7 +345,7 @@ void main() {
 #ifdef FRONTIER_CINEMATIC
     // Opt-in wake stays inside the existing vessel quad: constant work per
     // visible vessel, no particles, history buffers or additional draw call.
-    if (vessel && vHash > 0.01 && texel.a < 0.05 && uAltView == 0) {
+    if (vessel && vAircraftType < 0.5 && vHash > 0.01 && texel.a < 0.05 && uAltView == 0) {
       float aa = max(fwidth(q.x), fwidth(q.y));
       float lod = 1.0-smoothstep(0.075,0.21,aa);
       if (lod > 0.01) {
@@ -381,7 +404,7 @@ void main() {
     }
 #else
     // A short, tapered V wake fades out at distant zoom. No particles or history buffers.
-    if (vessel && vHash > 0.01 && texel.a < 0.05 && uAltView == 0) {
+    if (vessel && vAircraftType < 0.5 && vHash > 0.01 && texel.a < 0.05 && uAltView == 0) {
       float stern = vAtlasCol > 1.5 ? -0.64 : (vAtlasCol > 0.5 ? -0.40 : -0.30);
       float behind = stern - q.x;
       float aa = max(fwidth(q.x), fwidth(q.y));
@@ -403,7 +426,7 @@ void main() {
     // Ultra only: project a faint water shadow one screen pixel down/right,
     // approximated from the existing hull distance. Nothing grows the unit
     // quad, creates extra geometry, or affects hit testing or normal modes.
-    if (vessel && uAltView == 0) {
+    if (vessel && vAircraftType < 0.5 && uAltView == 0) {
       float px = max(fwidth(hullSignedDistance), 0.0001);
       float displaced = hullSignedDistance
         - 0.58 * dFdx(hullSignedDistance)
@@ -472,7 +495,9 @@ void main() {
   // Alt-view: solid affiliation color, no gray-replacement bands
   if (uAltView != 0) {
     // Trade ships: green if self is on either end, yellow if an ally is
-    vec3 ac = abs(vFlags - FLAG_TRADE_SELF) < 0.1
+    vec3 ac = vAircraftType > 0.5
+      ? texelFetch(uAffiliation, ivec2(int(vOwnerID), 1), 0).rgb
+      : abs(vFlags - FLAG_TRADE_SELF) < 0.1
       ? uSelfColor
       : abs(vFlags - FLAG_TRADE_FRIENDLY) < 0.1
         ? uAllyColor
@@ -624,6 +649,10 @@ void main() {
       float box = max(abs(q.x-0.04)-0.23,abs(q.y)-0.21);
       mark = 1.0-smoothstep(-aa,aa,box);
       accent = vec3(1.0,0.85,0.32);
+    } else if (vAircraftType > 0.5) {
+      float stripe=abs(q.x+0.05);
+      mark=1.0-smoothstep(0.028,0.060+aa,stripe);
+      accent=vec3(0.92,0.96,0.99);
     } else if (abs(vFlags-FLAG_SUPPORT_SHIP) < 0.1) {
       // Distinct broad hospital-ship style service lanes (not crosshairs).
       float lanes = max(abs(q.x)-0.43, abs(abs(q.y)-0.104)-0.027);
@@ -640,7 +669,7 @@ void main() {
     // distinguishable at medium zoom without obscuring national affiliation.
     // Drawn in the EXISTING hull fragment, not extra geometry or textures.
     if (vAtlasCol > 1.5 && vAtlasCol < 2.5 &&
-        abs(vFlags-FLAG_SUPPORT_SHIP) > 0.1 &&
+        abs(vFlags-FLAG_SUPPORT_SHIP) > 0.1 && vAircraftType < 0.5 &&
         (vResearchHull > 0.1 || vResearchGuns > 0.1)) {
       float deck = 1.0-smoothstep(0.01,0.02+aa,
         abs(abs(q.y)-0.205));
