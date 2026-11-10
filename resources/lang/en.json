@@ -1939,6 +1939,8 @@
   "player_stats_table": {
     "arrived": "Arrived",
     "attack_stats": "Attack Statistics",
+    "aircraft_stats": "Aircraft Statistics",
+    "aircraft_type": "Aircraft",
     "betrayals": "Betrayals",
     "building": "Building",
     "building_stats": "Building Statistics",
