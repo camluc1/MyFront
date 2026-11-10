@@ -64,6 +64,7 @@ jobs:
             tests/core/game/PackedUnitUpdates.test.ts \
             tests/GeopoliticsDefenseWire.test.ts \
             tests/GeopoliticsAdvancedDefenses.test.ts \
+            tests/FunctionalGeopoliticsCapital.test.ts \
             tests/CastleDefense.test.ts \
             tests/Geopolitics.test.ts
       - name: Check responsive HUD regression tests
@@ -73,6 +74,7 @@ jobs:
             tests/client/UnitDisplay.test.ts \
             tests/client/FrontierHudLayout.test.ts \
             tests/client/CastleDefensePanel.test.ts \
+            tests/client/SinglePlayerModalStart.test.ts \
             tests/client/NavalStatusPanel.test.ts
       - name: Check defense gameplay, build shortcuts, HUD and GPU regressions
         run: |

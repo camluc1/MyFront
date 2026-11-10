@@ -145,3 +145,15 @@ format checks, and manual gameplay at all four difficulty settings. In
 particular, observe responsiveness on the World map and verify audio settings,
 port deployment, exact land painting, pause/resume and old saved games. The
 code and intentional design are not by themselves a measured 10/10 experience.
+
+## Functional mode (experimental, opt-in) — phase 0
+
+The Singleplayer Geopolitics setup offers **Functional mode (test)** below graphics. The optional `GameConfig.geopoliticsFunctional` flag defaults to absent/false. `Config.isFunctionalGeopolitics()` requires Singleplayer, Geopolitics and the opt-in flag together. Classic and normal Geopolitics keep their existing simulation and presentation.
+
+A nation or human receives one free palace (`UnitType.Capital`) at its definitive spawn center. Re-spawning during the initial selection phase replaces the previous palace. Palaces are not available in construction menus and cannot be deleted through player intent. A normal land conquest of the palace tile eliminates the country and transfers every remaining land tile to the conqueror in canonical tile order. The existing conquerPlayer statistics and death cleanup are reused. Nuclear blast damage and direct tile relinquishment never remove a palace; a palace is defeated only by land conquest.
+
+Diplomatic validation rejects an offer whose exact tile mask includes the palace, even if the palace is omitted from its building IDs. Eliminated countries are removed from live treaties and coalitions, pending offers involving them are invalidated and the territorial-victory countdown resets. Historical records remain available. The palace has its own new icon in the shared structure renderer; old packed IDs 1–22 have not changed, and the new type occupies appended ID 23.
+
+Functional mode does **not** yet enable the later shipyard, Bismarck, Tsar Bomba or airfield features; these are staged independently so disabling the flag preserves the prior game. Legacy snapshots lack the optional flag and therefore remain in normal mode.
+
+Verification: `tests/FunctionalGeopoliticsCapital.test.ts` covers off-mode isolation, automatic palace spawn, diplomatic exclusion, elimination/territory transfer, and save/restore. New and existing CI checks must pass before release.
