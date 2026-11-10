@@ -70,6 +70,7 @@ const STRUCTURE_ORDER = [
   UT_IRON_DOME,
   UT_CAPITAL,
   UT_SHIPYARD,
+  UT_AIRFIELD,
 ] as const;
 
 const ATLAS_COLS = STRUCTURE_ORDER.length;
@@ -169,10 +170,6 @@ export class StructurePass {
         this.typeToAtlasCol.set(header.unitTypes[i], col);
       }
     }
-
-    // Functional airfield reuses an existing factory atlas slot until the
-    // original runway glyph is GPU-programmatic; no extra atlas width or pass.
-    this.typeToAtlasCol.set(UT_AIRFIELD, STRUCTURE_ORDER.indexOf(UT_FACTORY));
 
     // Compile shaders
     this.program = createProgram(
@@ -368,6 +365,7 @@ export class StructurePass {
         "OilWellIconWhite.svg", "GasPlantIconWhite.svg",
         "CastleIconWhite.svg", "IronDomeIconWhite.svg",
         "CapitalIconWhite.svg", "ShipyardIconWhite.svg",
+        "AirfieldIconWhite.svg",
       ];
       const images = await Promise.all(names.map(async (name): Promise<HTMLImageElement | null> => {
         const img = new Image();
