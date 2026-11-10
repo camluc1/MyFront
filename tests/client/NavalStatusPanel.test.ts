@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { UnitType } from "@openfront/engine-api/game/GameTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { UnitSelectionEvent } from "../../src/client/InputHandler";
 import { NavalStatusPanel } from "../../src/client/hud/NavalStatusPanel";
@@ -8,7 +9,8 @@ describe("Geopolitics naval selection HUD", () => {
   it("reacts to existing selection events without creating movement commands", async () => {
     const bus = new EventBus();
     const warship = {
-      id: () => 27, isActive: () => true, health: () => 83,
+      id: () => 27, type: () => UnitType.Warship,
+      isActive: () => true, health: () => 83,
       veterancy: () => 2, tile: () => 120,
       warshipState: () => ({
         state: "patrolling", patrolTile: 340, supportShip: false,
