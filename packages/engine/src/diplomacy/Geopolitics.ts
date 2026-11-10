@@ -1132,6 +1132,10 @@ export class Geopolitics {
     // Keep the existing single 3-second diplomacy slot and all pair/inbox
     // cooldowns: this only changes who may use an already available slot.
     const emergencies = nations.flatMap((nation) => {
+      // Respect the existing country-level cooldown before using a shared
+      // initiative slot, so one exhausted nation cannot starve diplomacy.
+      if ((this.state.cooldowns[`initiative:${nation.id()}`] ?? 0) > tick)
+        return [];
       if (this.state.offers.some((offer) =>
         offer.status === "pending" &&
         (offer.from === nation.id() || offer.to === nation.id()))) return [];
