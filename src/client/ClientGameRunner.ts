@@ -33,6 +33,7 @@ import { isDesktopShell } from "./DesktopShell";
 import { GameMetrics } from "./GameMetrics";
 import { createRenderer, GameRenderer } from "./hud/GameRenderer";
 import { mountGeopolitics } from "./hud/GeopoliticsPanel";
+import { mountCastleDefense } from "./hud/CastleDefensePanel";
 import { goldRateTracker } from "./hud/layers/lib/GoldRateTracker";
 import { OnboardingOverlay } from "./hud/layers/OnboardingOverlay";
 import { UnitDisplay } from "./hud/layers/UnitDisplay";
@@ -899,10 +900,14 @@ async function createClientGame(
       eventBus,
       gameRenderer.transformHandler,
     );
+    const disposeCastleDefense = mountCastleDefense(
+      gameView, eventBus, gameRenderer.transformHandler, gameRenderer.uiState,
+    );
     let rendererDisposed = false;
     const disposeRenderer = (): void => {
       if (rendererDisposed) return;
       rendererDisposed = true;
+      disposeCastleDefense();
       disposeGeopolitics();
       gameRenderer.dispose();
       stopFrameLoop();

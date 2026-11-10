@@ -63,6 +63,10 @@ import { describeSocketClose } from "./SocketClose";
 import { homeHref, translateText } from "./Utils";
 import { PlayerView } from "./view";
 
+export class SendCastleDefenseIntentEvent implements GameEvent {
+  constructor(public readonly unitId: number) {}
+}
+
 export class SendDiplomacyIntentEvent implements GameEvent {
   constructor(public diplomacy: DiplomacyAction) {}
 }
@@ -312,6 +316,9 @@ export class Transport {
       this.lobbyConfig.gameRecord !== undefined ||
       this.lobbyConfig.gameStartInfo?.config.gameType === GameType.Singleplayer;
 
+    this.subscribe(SendCastleDefenseIntentEvent, (e) =>
+      this.sendIntent({ type: "castle_defense", unitId: e.unitId }),
+    );
     this.subscribe(SendDiplomacyIntentEvent, (e) =>
       this.sendIntent({ type: "diplomacy", diplomacy: e.diplomacy }),
     );

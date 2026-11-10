@@ -128,6 +128,9 @@ export interface UnitState {
   samUpgradeStartRange: number | null;
   samUpgradeTargetLevel: number | null;
   samUpgradeDuration: number | null;
+  /** Geopolitics castle temporary protection, carried on the original compact unit wire. */
+  castleActiveUntilTick?: number;
+  castleCooldownUntilTick?: number;
 }
 
 /** Minimal dead-unit data needed by the FX pass. */
