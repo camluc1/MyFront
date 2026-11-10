@@ -58,6 +58,7 @@ const UNIT_LABEL_KEYS = {
   bism: "unit_type.bismarck",
   abomb: "unit_type.atom_bomb",
   hbomb: "unit_type.hydrogen_bomb",
+  tsar: "unit_type.tsar_bomba",
   mirv: "unit_type.mirv",
   mirvw: "player_stats_table.unit.mirvw",
   trade: "player_stats_table.unit.trade",
