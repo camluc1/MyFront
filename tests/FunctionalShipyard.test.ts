@@ -29,9 +29,10 @@ describe("functional Shipyard research and serialization", () => {
     a.conquer(home);
     a.addGold(20_000_000n);
     const yard = a.buildUnit(UnitType.Shipyard, home, {});
-    const baselineGold = a.gold();
     const ship = a.buildUnit(UnitType.Warship, game.ref(30, 30),
       { patrolTile: game.ref(30, 30) });
+    // The ship itself costs gold. Isolate shipyard research spending.
+    const baselineGold = a.gold();
     expect(ship.maxHealth()).toBe(1000);
     for (let i = 0; i < SHIPYARD_MAX_LEVEL; i++) {
       game.addExecution(new UpgradeStructureExecution(
