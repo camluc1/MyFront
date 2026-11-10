@@ -1,5 +1,6 @@
 import { TileRef } from "@openfront/engine-api/game/GameMap";
 import { Aircraft, UnitType } from "@openfront/engine-api/game/GameTypes";
+import { AIRCRAFT_FUEL_RESERVE, AIRCRAFT_CARRIER_CAPACITY } from "@openfront/engine-api/game/Aircraft";
 import { zNum, zPlayerRef } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
 import { Execution, Game, Player } from "../game/Game";
@@ -30,10 +31,35 @@ export class MoveWarshipExecution implements Execution {
         if (!selected.has(aircraft.id()) || !aircraft.isActive()) continue;
         const state = aircraft.aircraftState();
         if (!state) continue;
+        const returnOrder = this.position === state.homeTile;
+        if (!returnOrder) {
+          // A mission is accepted only if the plane can reach its objective,
+          // then land at an operational friendly base with its fuel reserve.
+          // An unreachable order must not silently sacrifice the aircraft.
+          let minimumReturn = Number.POSITIVE_INFINITY;
+          for (const field of this.owner.units(UnitType.Airfield)) {
+            if (!field.isActive() || field.isUnderConstruction()) continue;
+            minimumReturn = Math.min(minimumReturn,
+              mg.manhattanDist(this.position, field.tile()));
+          }
+          for (const carrier of this.owner.units(UnitType.Warship)) {
+            if (!carrier.isActive() || !carrier.warshipState().supportShip) continue;
+            const booked = this.owner.units(Aircraft.types).filter((unit) =>
+              unit.id() !== aircraft.id() &&
+              unit.aircraftState()?.carrierId === carrier.id()).length;
+            if (booked < AIRCRAFT_CARRIER_CAPACITY) {
+              minimumReturn = Math.min(minimumReturn,
+                mg.manhattanDist(this.position, carrier.tile()));
+            }
+          }
+          const requiredFuel = mg.manhattanDist(aircraft.tile(), this.position) +
+            minimumReturn + AIRCRAFT_FUEL_RESERVE;
+          if (requiredFuel > state.fuel) continue;
+        }
         aircraft.updateAircraftState({
           targetTile: this.position,
           carrierId: undefined,
-          phase: this.position === state.homeTile ? "returning" : "outbound",
+          phase: returnOrder ? "returning" : "outbound",
         });
       }
     }
