@@ -192,7 +192,7 @@ export class Config {
 
   isUnitDisabled(unitType: UnitType): boolean {
     if ((unitType === UnitType.Capital || unitType === UnitType.Shipyard ||
-         unitType === UnitType.Bismarck) &&
+         unitType === UnitType.Bismarck || unitType === UnitType.TsarBomba) &&
         !this.isFunctionalGeopolitics())
       return true;
     if ((unitType === UnitType.Castle || unitType === UnitType.IronDome) &&
@@ -298,6 +298,7 @@ export class Config {
       case UnitType.SAMMissile:
       case UnitType.AtomBomb:
       case UnitType.HydrogenBomb:
+      case UnitType.TsarBomba:
       case UnitType.MIRV:
       case UnitType.MIRVWarhead:
       case UnitType.TradeShip:
@@ -474,6 +475,8 @@ export class Config {
         return { inner: 12, outer: 30 };
       case UnitType.HydrogenBomb:
         return { inner: 80, outer: 100 };
+      case UnitType.TsarBomba:
+        return { inner: 160, outer: 200 };
     }
     throw new Error(`Unknown nuke type: ${unitType}`);
   }
