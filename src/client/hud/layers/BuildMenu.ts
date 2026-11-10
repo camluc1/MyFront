@@ -51,6 +51,7 @@ const missileSiloIcon = assetUrl("images/MissileSiloIconWhite.svg");
 const hydrogenBombIcon = assetUrl("images/MushroomCloudIconWhite.svg");
 const atomBombIcon = assetUrl("images/NukeIconWhite.svg");
 const portIcon = assetUrl("images/PortIcon.svg");
+const shipyardIcon = assetUrl("images/ShipyardIconWhite.svg");
 const samlauncherIcon = assetUrl("images/SamLauncherIconWhite.svg");
 const shieldIcon = assetUrl("images/ShieldIconWhite.svg");
 const castleIcon = assetUrl("images/CastleIconWhite.svg");
@@ -99,6 +100,13 @@ const buildTable: BuildItemDisplay[][] = [
       icon: portIcon,
       description: "build_menu.desc.port",
       key: "unit_type.port",
+      countable: true,
+    },
+    {
+      unitType: UnitType.Shipyard,
+      icon: shipyardIcon,
+      description: "geopolitics.shipyard_help",
+      key: "geopolitics.shipyard_title",
       countable: true,
     },
     {
