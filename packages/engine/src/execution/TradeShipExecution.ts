@@ -10,6 +10,7 @@ import {
 import { findClosestBy } from "@openfront/engine-lib/Util";
 import { z } from "zod";
 import { Execution, Game, Player, Unit } from "../game/Game";
+import { shipyardLevel } from "../game/ShipyardUpgrades";
 import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
@@ -24,6 +25,30 @@ import type {
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
 
+/**
+ * A merchant travels one tile per tick normally. Experimental research adds
+ * 3/25, 6/25 or 9/25 second steps on a fixed absolute-tick schedule.
+ * Project the same schedule into the existing compact grid motion plan so
+ * render interpolation, replays and authoritative simulation remain aligned.
+ */
+export function merchantStepsAtTick(tick: number, level: number): number {
+  return 1 + (level > 0 && tick % 25 < Math.min(3, level) * 3 ? 1 : 0);
+}
+export function merchantAcceleratedPath(
+  path: readonly TileRef[], startTick: number, level: number,
+): TileRef[] {
+  if (level === 0) return Array.from(path);
+  if (path.length === 0) return [];
+  const projected: TileRef[] = [path[0]];
+  let index = 0, tick = startTick;
+  while (index < path.length - 1) {
+    tick++;
+    index = Math.min(path.length - 1, index + merchantStepsAtTick(tick, level));
+    projected.push(path[index]);
+  }
+  return projected;
+}
+
 export class TradeShipExecution implements Execution {
   private active = true;
   private mg: Game;
@@ -33,6 +58,7 @@ export class TradeShipExecution implements Execution {
   private tilesTraveled = 0;
   private motionPlanId = 1;
   private motionPlanDst: TileRef | null = null;
+  private motionPlanSpeedLevel = 0;
 
   constructor(
     private origOwner: Player,
@@ -141,42 +167,46 @@ export class TradeShipExecution implements Execution {
     }
 
     const dst = this._dstPort.tile();
-    const result = this.pathFinder.next(curTile, dst);
-
-    switch (result.status) {
-      case PathStatus.NEXT:
-        if (dst !== this.motionPlanDst) {
-          this.motionPlanId++;
-          const from = result.node;
-          const path = this.pathFinder.pathForTraversal(from, dst);
-
-          this.mg.recordMotionPlan({
-            kind: "grid",
-            unitId: this.tradeShip.id(),
-            planId: this.motionPlanId,
-            startTick: ticks + 1,
-            ticksPerStep: 1,
-            path,
-          });
-          this.motionPlanDst = dst;
-        }
-        // Update safeFromPirates status
-        if (this.mg.isWater(result.node) && this.mg.isShoreline(result.node)) {
-          this.tradeShip.setSafeFromPirates();
-        }
-        this.tradeShip.move(result.node);
-        this.tilesTraveled++;
-        break;
-      case PathStatus.COMPLETE:
-        this.complete();
-        return;
-      case PathStatus.NOT_FOUND:
-        console.warn("captured trade ship cannot find route");
-        if (this.tradeShip.isActive()) {
-          this.tradeShip.delete(false);
-        }
-        this.active = false;
-        return;
+    const level = this.mg.config().isFunctionalGeopolitics()
+      ? shipyardLevel(tradeShipOwner, "merchantSpeed") : 0;
+    let current = curTile;
+    for (let step = 0; step < merchantStepsAtTick(ticks, level); step++) {
+      const result = this.pathFinder.next(current, dst);
+      switch (result.status) {
+        case PathStatus.NEXT:
+          if (this.mg.isWater(result.node) &&
+              this.mg.isShoreline(result.node)) {
+            this.tradeShip.setSafeFromPirates();
+          }
+          this.tradeShip.move(result.node);
+          this.tilesTraveled++;
+          current = result.node;
+          break;
+        case PathStatus.COMPLETE:
+          this.complete();
+          return;
+        case PathStatus.NOT_FOUND:
+          console.warn("captured trade ship cannot find route");
+          if (this.tradeShip.isActive()) this.tradeShip.delete(false);
+          this.active = false;
+          return;
+      }
+    }
+    // A newly purchased upgrade applies immediately to ships already at sea.
+    if (dst !== this.motionPlanDst || level !== this.motionPlanSpeedLevel) {
+      this.motionPlanId++;
+      const fullPath = this.pathFinder.pathForTraversal(current, dst);
+      const path = merchantAcceleratedPath(fullPath, ticks + 1, level);
+      this.mg.recordMotionPlan({
+        kind: "grid",
+        unitId: this.tradeShip.id(),
+        planId: this.motionPlanId,
+        startTick: ticks + 1,
+        ticksPerStep: 1,
+        path,
+      });
+      this.motionPlanDst = dst;
+      this.motionPlanSpeedLevel = level;
     }
   }
 
@@ -247,6 +277,7 @@ export class TradeShipExecution implements Execution {
       tilesTraveled: this.tilesTraveled,
       motionPlanId: this.motionPlanId,
       motionPlanDst: this.motionPlanDst,
+      motionPlanSpeedLevel: this.motionPlanSpeedLevel,
       origOwner: w.player(this.origOwner),
       srcPort: w.unit(this.srcPort),
       dstPort: w.unit(this._dstPort),
@@ -264,6 +295,7 @@ export class TradeShipExecution implements Execution {
     this.tilesTraveled = s.tilesTraveled;
     this.motionPlanId = s.motionPlanId;
     this.motionPlanDst = s.motionPlanDst;
+    this.motionPlanSpeedLevel = s.motionPlanSpeedLevel ?? 0;
     this.origOwner = r.player(s.origOwner);
     this.srcPort = r.unit(s.srcPort);
     this._dstPort = r.unit(s.dstPort);
@@ -280,6 +312,7 @@ const TradeShipExecutionStateSchema = z.object({
   tilesTraveled: zInt(),
   motionPlanId: zInt(),
   motionPlanDst: zTile().nullable(),
+  motionPlanSpeedLevel: zInt().optional(),
   origOwner: zPlayerRef(),
   srcPort: zRef(),
   dstPort: zRef(),
