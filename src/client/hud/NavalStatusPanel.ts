@@ -1,4 +1,6 @@
-import { GameType, UnitType } from "@openfront/engine-api/game/GameTypes";
+import { Aircraft, GameType, UnitType } from "@openfront/engine-api/game/GameTypes";
+import { AIRCRAFT_MAX_FUEL } from "@openfront/engine-api/game/Aircraft";
+import { MoveWarshipIntentEvent } from "../Transport";
 import { EventBus } from "@openfront/shared/EventBus";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -6,6 +8,9 @@ import { UnitSelectionEvent } from "../InputHandler";
 import { GameView, UnitView } from "../view";
 
 function vesselStatus(unit: UnitView): string {
+  const air = unit.aircraftState();
+  if (air) return air.phase === "returning" ? "Regresando a base" :
+    air.phase === "docked" ? "Reabasteciendo" : "En misión";
   const state = unit.warshipState();
   if (state.isInCombat) return "En combate";
   if (state.state === "retreating") return "Retirándose";
@@ -61,24 +66,31 @@ export class NavalStatusPanel extends LitElement {
     @media(max-width:740px){:host{left:12px;bottom:66px}.panel{padding:10px 12px;width:min(270px,calc(100vw - 24px))}}
   `;
   render() {
-    const selected = this.game.units(UnitType.Warship, UnitType.Bismarck)
+    const selected = this.game.units(UnitType.Warship, UnitType.Bismarck, ...Aircraft.types)
       .filter((unit) => this.selectedIds.includes(unit.id()));
     if (selected.length === 0) return nothing;
     const single = selected.length === 1 ? selected[0] : null;
-    const state = single?.warshipState();
+    const air = single?.aircraftState();
+    const state = single && !air ? single.warshipState() : undefined;
     const patrolTile = state?.patrolTile;
     const destination = patrolTile === undefined ? "Sin destino fijado" :
       `${this.game.x(patrolTile)}, ${this.game.y(patrolTile)}`;
     const totalHealth = selected.reduce((s, u) => s + Math.max(0,u.health()),0);
-    const inCombat = selected.filter((u) => u.warshipState().isInCombat).length;
-    const support = selected.filter((u) => u.warshipState().supportShip).length;
+    const inCombat = selected.filter((u) =>
+      u.aircraftState() === undefined && u.warshipState().isInCombat).length;
+    const support = selected.filter((u) =>
+      u.aircraftState() === undefined && u.warshipState().supportShip).length;
+    const aircraft = selected.filter((u) => u.aircraftState() !== undefined);
+    const craftName = single?.type() === UnitType.AttackAircraft ? "Avión de ataque" :
+      single?.type() === UnitType.BomberAircraft ? "Bombardero" :
+      single?.type() === UnitType.FighterAircraft ? "Caza" : undefined;
     return html`
-      <section class="panel" role="region" aria-label="Estado de los barcos seleccionados">
+      <section class="panel" role="region" aria-label="Estado de las unidades navales y aéreas seleccionadas">
         <div class="row">
-          <div><div class="eyebrow">Geopolítica · Naval</div>
-            <div class="title">⚓ ${single
-              ? state?.supportShip ? "Barco de apoyo" : single.type() === UnitType.Bismarck ? "Bismarck" : "Buque de guerra"
-              : `Flota seleccionada · ${selected.length}`}
+          <div><div class="eyebrow">Geopolítica · ${air ? "Aviación" : "Naval"}</div>
+            <div class="title">${air ? "✈️" : "⚓"} ${single
+              ? craftName ?? (state?.supportShip ? "Barco de apoyo" : single.type() === UnitType.Bismarck ? "Bismarck" : "Buque de guerra")
+              : `Unidades seleccionadas · ${selected.length}`}
             </div></div>
           <button class="close" aria-label="Cerrar ficha naval"
             @click=${() => this.selectedIds = []}>✕</button>
@@ -91,16 +103,26 @@ export class NavalStatusPanel extends LitElement {
         <div class="grid">
           <div class="metric"><span>${single ? "Integridad" : "Integridad total"}</span>
             <strong>${Math.round(totalHealth).toLocaleString("es-AR")}</strong></div>
-          <div class="metric"><span>${single ? "Experiencia" : "Barcos de apoyo"}</span>
-            <strong>${single ? `Nivel ${single.veterancy()}` : support}</strong></div>
+          <div class="metric"><span>${air ? "Combustible" : single ? "Experiencia" : "Barcos de apoyo"}</span>
+            <strong>${air ? `${air.fuel.toLocaleString("es-AR")} / ${AIRCRAFT_MAX_FUEL}` : single ? `Nivel ${single.veterancy()}` : support}</strong></div>
           <div class="metric"><span>${single ? "Destino / patrulla" : "Buques"}</span>
             <strong>${single ? destination : selected.length}</strong></div>
           <div class="metric"><span>Posición${single ? "" : " de referencia"}</span>
             <strong>${this.game.x(selected[0].tile())}, ${this.game.y(selected[0].tile())}</strong></div>
         </div>
-        <div class="hint">Seleccioná el buque y pulsá una zona de agua para
-          dar una orden de movimiento. También podés seleccionar varios
-          buques con el recuadro de selección existente.</div>
+        <div class="hint">${aircraft.length > 0
+          ? "Seleccioná un avión y pulsá un objetivo en el mapa; el avión regresará a repostar cuando complete la misión."
+          : "Seleccioná el buque y pulsá una zona de agua para darle una orden. Podés seleccionar varios buques usando el recuadro."}
+        </div>
+        ${aircraft.length > 0 ? html`<button class="close"
+          aria-label="Ordenar regreso de aviones"
+          @click=${() => {
+            for (const plane of aircraft) {
+              const home = plane.aircraftState()?.homeTile;
+              if (home !== undefined)
+                this.bus.emit(new MoveWarshipIntentEvent([plane.id()], home));
+            }
+          }}>↩ Regresar a base</button>` : nothing}
       </section>
     `;
   }
