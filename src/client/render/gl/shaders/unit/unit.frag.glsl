@@ -316,6 +316,23 @@ void main() {
   float hullSignedDistance = 1.0;
   if (vessel || train) {
     texel = vehicleSprite(q, vAtlasCol, hullSignedDistance);
+    if (vAircraftType > 0.5 && uAltView == 0) {
+      // Faint altitude shadow and short engine contrail are composited into
+      // the same transparent airplane quad — never extra particles/passes.
+      vec2 shadowQ=(q-vec2(-0.10,-0.14))/vec2(0.88,0.68);
+      float shadow=(1.0-smoothstep(0.63,1.0,length(shadowQ)))*0.12;
+      float behind=1.0-smoothstep(-0.88,-0.35,q.x);
+      float contrail=behind*exp(-q.y*q.y/0.013)*0.23;
+#ifdef FRONTIER_REDUCED_MOTION
+      contrail*=0.6;
+#endif
+      float alpha=(shadow+contrail)*(1.0-texel.a);
+      if(alpha>0.001) {
+        vec3 tone=mix(vec3(0.035,0.051,0.065),vec3(0.77,0.89,0.95),
+          contrail/max(shadow+contrail,0.001));
+        waterEffect=vec4(tone,alpha);
+      }
+    }
     // Unit-local pulse, composed behind the hull in this same instance.
     // No terrain modification, accumulated stain, particles or extra draw call.
     bool warship = vAtlasCol > 1.5 && vAtlasCol < 2.5;
