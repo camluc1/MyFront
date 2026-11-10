@@ -230,6 +230,11 @@ export enum UnitType {
   Bismarck = "Bismarck",
   /** Functional Geopolitics only: twice the hydrogen blast radius. */
   TsarBomba = "Tsar Bomba",
+  /** Functional-only air station, plus three manually controllable aircraft. */
+  Airfield = "Airfield",
+  AttackAircraft = "Attack Aircraft",
+  BomberAircraft = "Bomber Aircraft",
+  FighterAircraft = "Fighter Aircraft",
 }
 
 export enum TrainType {
@@ -253,6 +258,9 @@ export const BuildableAttacks = unitTypeGroup([
   UnitType.MIRV,
   UnitType.Warship,
   UnitType.Bismarck,
+  UnitType.AttackAircraft,
+  UnitType.BomberAircraft,
+  UnitType.FighterAircraft,
 ] as const);
 
 export const Structures = unitTypeGroup([
@@ -261,6 +269,7 @@ export const Structures = unitTypeGroup([
   UnitType.Castle,
   UnitType.IronDome,
   UnitType.Shipyard,
+  UnitType.Airfield,
   UnitType.SAMLauncher,
   UnitType.MissileSilo,
   UnitType.Port,
