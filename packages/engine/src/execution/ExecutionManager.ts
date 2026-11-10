@@ -137,6 +137,7 @@ export class Executor {
           player,
           intent.unitId,
           intent.amount,
+          intent.shipyardTrack,
         );
       case "delete_unit":
         return new DeleteUnitExecution(player, intent.unitId);

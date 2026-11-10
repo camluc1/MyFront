@@ -10,6 +10,7 @@ import {
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
 import { Execution, Game, Player, Unit } from "../game/Game";
+import { shipyardLevel } from "../game/ShipyardUpgrades";
 import { PathFinding } from "../pathfinding/PathFinder";
 import { PathStatus, SteppingPathFinder } from "../pathfinding/types";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
@@ -111,6 +112,16 @@ export class ShellExecution implements Execution {
       );
     }
 
+    // A purchased functional shipyard improves EVERY non-support warship's
+    // existing shells (including vessels spawned before the research).
+    if (this.mg.config().isFunctionalGeopolitics() &&
+        this.ownerUnit.type() === UnitType.Warship &&
+        !this.ownerUnit.warshipState().supportShip) {
+      damageMultiplier = Math.floor(
+        damageMultiplier *
+        (100 + 10 * shipyardLevel(this.ownerUnit.owner(), "warshipDamage")) / 100,
+      );
+    }
     return Math.round((baseDamage / 250) * damageMultiplier);
   }
 
