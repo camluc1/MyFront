@@ -1,5 +1,5 @@
 import { TileRef } from "@openfront/engine-api/game/GameMap";
-import { Cell, UnitType } from "@openfront/engine-api/game/GameTypes";
+import { Aircraft, Cell, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { Controller } from "../Controller";
 import {
@@ -143,7 +143,7 @@ export class WarshipSelectionController implements Controller {
     const myPlayer = this.game.myPlayer();
     if (!myPlayer) return [];
     return this.game
-      .units(UnitType.Warship, UnitType.Bismarck)
+      .units(UnitType.Warship, UnitType.Bismarck, ...Aircraft.types)
       .filter(
         (unit) =>
           unit.isActive() &&
@@ -182,8 +182,18 @@ export class WarshipSelectionController implements Controller {
       if (!this.game.isValidCoord(cell.x, cell.y)) return;
       clickRef = this.game.ref(cell.x, cell.y);
     }
-    if (!this.game.isWater(clickRef)) return;
-
+    const isWater = this.game.isWater(clickRef);
+    const hasSelectedPlane = this.selectedUnit?.aircraftState() !== undefined ||
+      this.multiSelectedWarships.some((unit) => unit.aircraftState() !== undefined);
+    // Keep the original water-only warship flow. On land, a plane can be
+    // selected or ordered, but naval units cannot receive invalid land orders.
+    if (!isWater && !hasSelectedPlane) {
+      nearbyWarships ??= this.findWarshipsNearCell(clickRef)
+        .filter((unit) => unit.aircraftState() !== undefined);
+      if (nearbyWarships.length > 0)
+        this.eventBus.emit(new UnitSelectionEvent(nearbyWarships[0], true));
+      return;
+    }
     if (this.multiSelectedWarships.length > 0) {
       const myPlayer = this.game.myPlayer();
       const activeIds = this.multiSelectedWarships
@@ -235,7 +245,15 @@ export class WarshipSelectionController implements Controller {
       return;
     }
     if (!this.game.isWater(clickRef)) {
-      this.eventBus.emit(new ContextMenuEvent(event.x, event.y));
+      const nearbyAircraft = this.findWarshipsNearCell(clickRef)
+        .filter((unit) => unit.aircraftState() !== undefined);
+      if (this.selectedUnit?.aircraftState() !== undefined ||
+          this.multiSelectedWarships.some((u) => u.aircraftState() !== undefined) ||
+          nearbyAircraft.length > 0) {
+        this.onMouseUp(new MouseUpEvent(event.x, event.y), clickRef, nearbyAircraft);
+      } else {
+        this.eventBus.emit(new ContextMenuEvent(event.x, event.y));
+      }
       return;
     }
     if (this.selectedUnit || this.multiSelectedWarships.length > 0) {
@@ -267,7 +285,7 @@ export class WarshipSelectionController implements Controller {
     const myPlayer = this.game.myPlayer();
     if (!myPlayer) return;
 
-    const selected = this.game.units(UnitType.Warship, UnitType.Bismarck).filter((unit) => {
+    const selected = this.game.units(UnitType.Warship, UnitType.Bismarck, ...Aircraft.types).filter((unit) => {
       if (!unit.isActive() || unit.owner() !== myPlayer) return false;
       const screen = this.transformHandler.worldToScreenCoordinates(
         new Cell(this.game.x(unit.tile()), this.game.y(unit.tile())),
