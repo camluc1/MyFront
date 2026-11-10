@@ -1749,6 +1749,10 @@ export class PlayerImpl implements Player {
         }
         return false;
       }
+      case UnitType.Capital:
+        // Palace placement is reserved for SpawnExecution and is never a
+        // player action, even if a forged construction intent reaches core.
+        return false;
       case UnitType.MissileSilo:
       case UnitType.DefensePost:
       case UnitType.Castle:
