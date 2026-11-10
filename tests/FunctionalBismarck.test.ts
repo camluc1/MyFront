@@ -51,14 +51,14 @@ describe("Functional Geopolitics Bismarck", () => {
       instantBuild: true, infiniteGold: true,
     }, [human("a"), human("b")]);
     const a = game.player("a"), b = game.player("b");
-    a.conquer(game.ref(5, 10)); b.conquer(game.ref(5, 30));
-    const capitalShipTile = game.ref(18, 20);
+    a.conquer(game.ref(5, 10)); b.conquer(game.ref(5, 12));
+    const capitalShipTile = game.ref(12, 12);
     const flagship = a.buildUnit(UnitType.Bismarck, capitalShipTile,
       { patrolTile: capitalShipTile });
     game.addExecution(new WarshipExecution(flagship));
     const opponents = [];
     for (let i = 0; i < numberOfOpponents; i++) {
-      const tile = game.ref(19, 19 + i);
+      const tile = game.ref(13, 11 + i);
       const enemy = b.buildUnit(UnitType.Warship, tile, { patrolTile: tile });
       opponents.push(enemy);
       game.addExecution(new WarshipExecution(enemy));
@@ -87,7 +87,7 @@ describe("Functional Geopolitics Bismarck", () => {
     a.buildUnit(UnitType.Port, game.ref(7, 10), {});
     const ship = a.buildUnit(UnitType.Bismarck, tile, { patrolTile: tile });
     game.addExecution(new WarshipExecution(ship));
-    game.executeNextTick();
+    for (let i = 0; i < 55; i++) game.executeNextTick();
     ship.modifyHealth(-2550);
     for (let i = 0; i < 15; i++) game.executeNextTick();
     expect(ship.warshipState().state).not.toBe("patrolling");
