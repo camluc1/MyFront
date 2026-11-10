@@ -35,6 +35,7 @@ export function getDefaultKeybinds(isMac: boolean): Record<string, string> {
     buildBismarck: "Shift+KeyB",
     buildAtomBomb: "Digit8",
     buildHydrogenBomb: "Digit9",
+    buildTsarBomba: "Shift+KeyN",
     buildMIRV: "Digit0",
     // DLC/economy structures: previously mouse-only. These letters do not
     // conflict with the existing default movement/combat/camera bindings.
