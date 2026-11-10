@@ -9,7 +9,10 @@ export const AIRCRAFT_GROUND_STRIKE_TROOPS = 500_000;
 export const AIRCRAFT_BOMBER_BOMBS = 5;
 export const AIRCRAFT_BOMBER_TROOPS_PER_BOMB = 70_000;
 
-export function isAircraftType(type: UnitType): boolean {
+export function isAircraftType(type: UnitType): type is
+  | UnitType.AttackAircraft
+  | UnitType.BomberAircraft
+  | UnitType.FighterAircraft {
   return type === UnitType.AttackAircraft ||
     type === UnitType.BomberAircraft ||
     type === UnitType.FighterAircraft;
