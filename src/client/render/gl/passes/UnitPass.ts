@@ -524,8 +524,8 @@ export class UnitPass {
     this.groundMotions.length = 0;
     // Resolve physical shipyard research once before emitting vessel instances.
     // Reuse this map to avoid repeated owner lookups per ship.
-    this.researchByOwner.clear();
     if (this.functionalShipyard) {
+      this.researchByOwner.clear();
       for (const unit of units.values()) {
         if (unit.unitType !== UT_SHIPYARD ||
             !unit.isActive || unit.underConstruction ||
