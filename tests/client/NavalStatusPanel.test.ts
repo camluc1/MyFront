@@ -10,6 +10,7 @@ describe("Geopolitics naval selection HUD", () => {
     const bus = new EventBus();
     const warship = {
       id: () => 27, type: () => UnitType.Warship,
+      aircraftState: () => undefined,
       isActive: () => true, health: () => 83,
       veterancy: () => 2, tile: () => 120,
       warshipState: () => ({
@@ -44,6 +45,7 @@ describe("Geopolitics naval selection HUD", () => {
     const bus = new EventBus();
     const bismarck = {
       id: () => 91, type: () => UnitType.Bismarck,
+      aircraftState: () => undefined,
       isActive: () => true, health: () => 4800,
       veterancy: () => 0, tile: () => 210,
       warshipState: () => ({
