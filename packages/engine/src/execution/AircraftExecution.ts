@@ -112,6 +112,16 @@ export class AircraftExecution implements Execution {
     return nearby[0]?.unit;
   }
 
+  /** Reuse the existing shell-impact FX event rather than introducing a
+   * custom rendering pass or non-deterministic client-only fake explosions.
+   * The zero-cost shell is born, marked as landed and retired in this tick;
+   * its authoritative death update triggers one mini-explosion on clients. */
+  private emitImpactFx(plane: Unit, tile: TileRef): void {
+    const impact = plane.owner().buildUnit(UnitType.Shell, tile, {});
+    impact.setReachedTarget();
+    impact.delete(false);
+  }
+
   private strike(plane: Unit, target: TileRef): void {
     if (plane.type() === UnitType.FighterAircraft) {
       const hostile = this.enemyPlane(plane);
@@ -123,6 +133,7 @@ export class AircraftExecution implements Execution {
       if (owner.isPlayer() && owner !== plane.owner() &&
           !plane.owner().isFriendly(owner)) {
         owner.removeTroops(AIRCRAFT_GROUND_STRIKE_TROOPS);
+        this.emitImpactFx(plane, target);
       }
       return;
     }
@@ -140,6 +151,7 @@ export class AircraftExecution implements Execution {
         if (owner.isPlayer() && owner !== plane.owner() &&
             !plane.owner().isFriendly(owner)) {
           owner.removeTroops(AIRCRAFT_BOMBER_TROOPS_PER_BOMB);
+          this.emitImpactFx(plane, this.mg.ref(px, py));
         }
       }
     }
