@@ -1,5 +1,7 @@
 import { TileRef } from "@openfront/engine-api/game/GameMap";
+import { AIRCRAFT_MAX_FUEL, isAircraftType } from "@openfront/engine-api/game/Aircraft";
 import {
+  AircraftState,
   MessageType,
   NukeState,
   SamLauncherState,
@@ -49,6 +51,7 @@ export class UnitImpl implements Unit {
   private _transportShipState: TransportShipState | undefined = undefined;
   private _warshipState: WarshipState | undefined = undefined;
   private _nukeState: NukeState | undefined = undefined;
+  private _aircraftState: AircraftState | undefined;
   private _reachedTarget = false;
   private _wasDestroyedByEnemy: boolean = false;
   private _destroyer: Player | undefined = undefined;
@@ -101,6 +104,13 @@ export class UnitImpl implements Unit {
       this._transportShipState = { isRetreating: false, troops: 0 };
     }
     if (this._type === UnitType.Shipyard) this._shipyardLevels = emptyShipyardLevels();
+    if (isAircraftType(this._type)) {
+      const homeTile = "homeTile" in params && params.homeTile !== undefined
+        ? params.homeTile : _tile;
+      this._aircraftState = {
+        fuel: AIRCRAFT_MAX_FUEL, homeTile, phase: "docked", targetedBySAM: false,
+      };
+    }
     if (this._type === UnitType.SAMLauncher) {
       this._samLauncherState = {
         startRange: this.mg.config().samRange(1),
@@ -172,6 +182,16 @@ export class UnitImpl implements Unit {
     this.mg.addUpdate(this.toUpdate());
   }
 
+  aircraftState(): AircraftState | undefined {
+    return this._aircraftState ? { ...this._aircraftState } : undefined;
+  }
+
+  updateAircraftState(update: Partial<AircraftState>): void {
+    if (!this._aircraftState || !this.isActive() || !this.mg.config().isFunctionalGeopolitics()) return;
+    this._aircraftState = { ...this._aircraftState, ...update };
+    this.mg.addUpdate(this.toUpdate());
+  }
+
   shipyardLevels(): ShipyardLevels | undefined {
     return this._shipyardLevels ? { ...this._shipyardLevels } : undefined;
   }
@@ -222,6 +242,7 @@ export class UnitImpl implements Unit {
         this._warshipState !== undefined
           ? { ...this.warshipState() }
           : undefined,
+      aircraftState: this.aircraftState(),
       transportShipState:
         this._transportShipState !== undefined
           ? this.transportShipState()
@@ -711,11 +732,15 @@ export class UnitImpl implements Unit {
   }
 
   setTargetedBySAM(targeted: boolean): void {
-    this._nukeState!.targetedBySam = targeted;
+    if (this._aircraftState) {
+      this.updateAircraftState({ targetedBySAM: targeted });
+    } else if (this._nukeState) {
+      this._nukeState.targetedBySam = targeted;
+    }
   }
 
   targetedBySAM(): boolean {
-    return this._nukeState!.targetedBySam;
+    return this._aircraftState?.targetedBySAM ?? this._nukeState?.targetedBySam ?? false;
   }
 
   setReachedTarget(): void {
@@ -918,6 +943,7 @@ export class UnitImpl implements Unit {
             veterancyProgress: this._warshipState.veterancyProgress,
           }
         : null,
+      aircraftState: this._aircraftState ? { ...this._aircraftState } : null,
       nukeState: nuke
         ? {
             trajectoryTiles: Uint32Array.from(nuke.trajectory ?? []),
@@ -973,6 +999,7 @@ export class UnitImpl implements Unit {
       : undefined;
     this._warshipState = s.warshipState ? { ...s.warshipState } : undefined;
     const nuke = s.nukeState;
+    this._aircraftState = s.aircraftState ?? undefined;
     this._nukeState = nuke
       ? {
           trajectory: Array.from(nuke.trajectoryTiles),
@@ -1035,6 +1062,14 @@ export const UnitSnapshot = snapshotType({
         veterancyProgress: zInt(),
       })
       .nullable(),
+    aircraftState: z.object({
+      fuel: zInt(),
+      homeTile: zTile(),
+      targetTile: zTile().optional(),
+      carrierId: zInt().optional(),
+      phase: z.enum(["docked", "outbound", "returning"]),
+      targetedBySAM: z.boolean(),
+    }).nullable().optional(),
     nukeState: z
       .object({
         trajectoryTiles: zTiles(),
