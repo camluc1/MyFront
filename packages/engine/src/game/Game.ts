@@ -1,6 +1,7 @@
 import { GameMap, TileRef } from "@openfront/engine-api/game/GameMap";
 import type { ShipyardLevels, ShipyardTrack } from "@openfront/engine-api/game/Shipyard";
 import {
+  AircraftState,
   AllianceInfo,
   AllPlayers,
   BuildableUnit,
@@ -272,6 +273,8 @@ export interface Unit extends UnitLike {
 
   // Health
   hasHealth(): boolean;
+  aircraftState(): AircraftState | undefined;
+  updateAircraftState(update: Partial<AircraftState>): void;
   warshipState(): WarshipState;
   updateWarshipState(update: Partial<WarshipState>): void;
   transportShipState(): TransportShipState;
