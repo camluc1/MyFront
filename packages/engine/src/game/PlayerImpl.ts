@@ -1696,6 +1696,17 @@ export class PlayerImpl implements Player {
         return this.nukeSpawn(targetTile, unitType);
       case UnitType.MIRVWarhead:
         return targetTile;
+      case UnitType.AttackAircraft:
+      case UnitType.BomberAircraft:
+      case UnitType.FighterAircraft: {
+        // Aircraft deploy only from a completed, owned, operational runway.
+        const fields = this.units(UnitType.Airfield).filter((field) =>
+          field.isActive() && !field.isUnderConstruction());
+        fields.sort((a, b) =>
+          this.mg.manhattanDist(a.tile(), targetTile) -
+          this.mg.manhattanDist(b.tile(), targetTile) || a.id() - b.id());
+        return fields[0]?.tile() ?? false;
+      }
       case UnitType.Port:
       case UnitType.Shipyard:
         return this.portSpawn(targetTile, validTiles);
@@ -1756,6 +1767,7 @@ export class PlayerImpl implements Player {
         // Palace placement is reserved for SpawnExecution and is never a
         // player action, even if a forged construction intent reaches core.
         return false;
+      case UnitType.Airfield:
       case UnitType.MissileSilo:
       case UnitType.DefensePost:
       case UnitType.Castle:
