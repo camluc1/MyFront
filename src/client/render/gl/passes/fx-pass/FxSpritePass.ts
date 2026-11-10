@@ -2,7 +2,7 @@
 import type { Config } from "@openfront/engine-lib/configuration/Config";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import type { ConquestFx, DeadUnitFx, RendererConfig } from "../../../types";
-import { STRUCTURE_TYPES, UT_SHELL, UT_TRAIN, UT_WARSHIP, UT_MIRV_WARHEAD, UT_ATOM_BOMB } from "../../../types";
+import { STRUCTURE_TYPES, UT_SHELL, UT_TRAIN, UT_WARSHIP, UT_BISMARCK, UT_MIRV_WARHEAD, UT_ATOM_BOMB, UT_TSAR_BOMBA, UT_ATTACK_AIRCRAFT, UT_BOMBER_AIRCRAFT, UT_FIGHTER_AIRCRAFT } from "../../../types";
 import { DynamicInstanceBuffer } from "../../DynamicBuffer";
 import { cinematicQualityBudget, enhancedVisualsEnabled, ENHANCED_SHADER_MARKER } from "../../EnhancedVisuals";
 import type { RenderSettings } from "../../RenderSettings";
@@ -271,7 +271,7 @@ export class FxSpritePass {
     if (radius !== undefined) {
       if (unit.reachedTarget) {
         // MIRV WARHEADS detonate; the carrier splits and must not create a fake ground blast.
-        const scale=type === UT_MIRV_WARHEAD ? .56 : type === UT_ATOM_BOMB ? .80 : 1;
+        const scale=type === UT_MIRV_WARHEAD ? .56 : type === UT_ATOM_BOMB ? .80 : type === UT_TSAR_BOMBA ? 1.75 : 1;
         this.pushFx(x,y,FX_NUKE,now,scale);
         let debrisIdx=0;
         for (const {type: debrisType,radiusFactor,density} of DEBRIS_PLAN) {
@@ -286,7 +286,14 @@ export class FxSpritePass {
       } else this.pushFx(x,y,FX_SAM_EXPLOSION,now);
       return;
     }
-    if(type===UT_WARSHIP) {this.pushFx(x,y,FX_UNIT_EXPLOSION,now);this.pushFx(x,y,FX_SINKING_SHIP,now);}
+    if(type===UT_WARSHIP || type===UT_BISMARCK) {
+      this.pushFx(x,y,FX_UNIT_EXPLOSION,now);
+      this.pushFx(x,y,FX_SINKING_SHIP,now);
+    } else if(type===UT_ATTACK_AIRCRAFT || type===UT_BOMBER_AIRCRAFT ||
+      type===UT_FIGHTER_AIRCRAFT) {
+      // A shot-down aircraft explodes in air; it must never sink like a ship.
+      this.pushFx(x,y,FX_UNIT_EXPLOSION,now);
+    }
     else if((type===UT_SHELL && unit.reachedTarget)||(type===UT_TRAIN && !unit.reachedTarget)) this.pushFx(x,y,FX_MINI_EXPLOSION,now);
     else if(STRUCTURE_TYPES.has(type)) this.pushFx(x,y,FX_BUILDING_EXPLOSION,now);
   }
