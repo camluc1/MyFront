@@ -20,12 +20,16 @@ describe("Geopolitics advanced defenses", () => {
     expect(game.config().isUnitDisabled(UnitType.IronDome)).toBe(true);
   });
 
-  it("uses fixed 1.5M / 10M costs and 60 / 84 tile ranges", async () => {
+  it("uses progressive Castle costs, fixed Iron Dome cost and 60 / 84 tile ranges", async () => {
     const game = await setup("plains", { geopolitics: true }, [human("a")], undefined, EngineConfig);
     const player = game.player("a");
     expect(game.config().isUnitDisabled(UnitType.Castle)).toBe(false);
     expect(game.config().isUnitDisabled(UnitType.IronDome)).toBe(false);
-    expect(game.unitInfo(UnitType.Castle).cost(game, player)).toBe(1_500_000n);
+    const castleCost = game.unitInfo(UnitType.Castle).cost;
+    expect(castleCost(game, player)).toBe(500_000n);
+    expect(castleCost(game, player, 1)).toBe(1_000_000n);
+    expect(castleCost(game, player, 2)).toBe(1_500_000n);
+    expect(castleCost(game, player, 3)).toBe(2_000_000n);
     expect(game.unitInfo(UnitType.IronDome).cost(game, player)).toBe(10_000_000n);
     expect(game.config().castleRange()).toBe(game.config().defensePostRange() * 2);
     expect(game.config().ironDomeRange()).toBe(Math.round(game.config().samRange(1) * 1.2));
