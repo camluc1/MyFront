@@ -44,6 +44,38 @@ describe("Functional Geopolitics Bismarck", () => {
     expect(copied.warshipState().patrolTile).toBe(target);
   });
 
+  it.each([2, 3])("resolves Bismarck versus %i ordinary warships in the actual engine", async (numberOfOpponents) => {
+    const game = await setup("half_land_half_ocean", {
+      geopolitics: true, geopoliticsFunctional: true,
+      instantBuild: true, infiniteGold: true,
+    }, [human("a"), human("b")]);
+    const a = game.player("a"), b = game.player("b");
+    a.conquer(game.ref(5, 10)); b.conquer(game.ref(5, 30));
+    const capitalShipTile = game.ref(18, 20);
+    const flagship = a.buildUnit(UnitType.Bismarck, capitalShipTile,
+      { patrolTile: capitalShipTile });
+    game.addExecution(new WarshipExecution(flagship));
+    const opponents = [];
+    for (let i = 0; i < numberOfOpponents; i++) {
+      const tile = game.ref(19, 19 + i);
+      const enemy = b.buildUnit(UnitType.Warship, tile, { patrolTile: tile });
+      opponents.push(enemy);
+      game.addExecution(new WarshipExecution(enemy));
+    }
+    for (let tick = 0; tick < 900; tick++) {
+      game.executeNextTick();
+      if (!flagship.isActive() || opponents.every((ship) => !ship.isActive())) break;
+    }
+    if (numberOfOpponents === 2) {
+      expect(flagship.isActive()).toBe(true);
+      expect(opponents.every((ship) => !ship.isActive())).toBe(true);
+      expect(flagship.health()).toBeGreaterThan(400);
+    } else {
+      expect(flagship.isActive()).toBe(false);
+      expect(opponents.some((ship) => ship.isActive())).toBe(true);
+    }
+  });
+
   it("uses the existing repair-port retreat threshold at 40 percent", async () => {
     const game = await setup("half_land_half_ocean", {
       geopolitics: true, geopoliticsFunctional: true,
