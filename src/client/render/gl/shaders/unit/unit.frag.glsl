@@ -636,6 +636,24 @@ void main() {
       color = mix(color,vec3(0.77,0.94,0.99),deck*hullStrength);
       color = mix(color,vec3(0.99,0.84,0.42),gunEmblem*gunStrength);
     }
+    // Functional shipyard merchant/transport research has its own discrete
+    // deck identifiers. These use the existing flag bits and vary by tier;
+    // ownership color stays dominant at normal and strategic map zoom.
+    if (vResearchHull > 0.1 && vAtlasCol < 1.5) {
+      float tier = clamp(vResearchHull, 1.0, 3.0);
+      float stripe = 0.0;
+      if (vAtlasCol < 0.5) {
+        // Reinforced troop ramps: two short transverse capacity marks.
+        stripe = (1.0-smoothstep(0.012,0.024+aa,abs(q.x+0.16))) *
+          (1.0-smoothstep(0.10,0.16,abs(q.y)));
+      } else {
+        // Merchant speed upgrade: narrow foredeck chevron.
+        stripe = (1.0-smoothstep(0.016,0.033+aa,
+          abs(q.x-(0.22-abs(q.y)*0.9)))) *
+          (1.0-smoothstep(0.11,0.19,abs(q.y)));
+      }
+      color=mix(color,vec3(0.83,0.94,0.99),stripe*min(0.62,tier*0.21));
+    }
     // In place of the old sonar circles, subtle green deck-service strips
     // slowly breathe while the mobile dock is active. No external halo.
     if (vAtlasCol > 1.5 && vAtlasCol < 2.5 &&

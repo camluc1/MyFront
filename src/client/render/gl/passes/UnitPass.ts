@@ -264,7 +264,9 @@ export class UnitPass {
   /** Simulation tick duration in ms (Config.msPerTick). */
   private tickIntervalMs: number;
   private functionalSupportScale = 1.0;
-  private readonly researchByOwner = new Map<number, {hull: number, guns: number}>();
+  private readonly researchByOwner = new Map<number, {
+    hull: number; guns: number; merchant: number; transport: number;
+  }>();
   private functionalShipyard = false;
 
   private quadBuf: WebGLBuffer;
@@ -534,10 +536,14 @@ export class UnitPass {
         if (current) {
           current.hull = Math.max(current.hull, unit.shipyardLevels.warshipHealth);
           current.guns = Math.max(current.guns, unit.shipyardLevels.warshipDamage);
+          current.merchant = Math.max(current.merchant, unit.shipyardLevels.merchantSpeed);
+          current.transport = Math.max(current.transport, unit.shipyardLevels.transportCapacity);
         } else {
           this.researchByOwner.set(unit.ownerID, {
             hull: unit.shipyardLevels.warshipHealth,
             guns: unit.shipyardLevels.warshipDamage,
+            merchant: unit.shipyardLevels.merchantSpeed,
+            transport: unit.shipyardLevels.transportCapacity,
           });
         }
       }
@@ -615,11 +621,16 @@ export class UnitPass {
       // Existing flag byte: low 3 bits retain old combat/retreat/cargo flags,
       // upper four bits carry two 0-3 shipyard tiers. No extra instance VBO,
       // no new draw call, and the classic path preserves its exact bytes.
-      if (this.functionalShipyard && unit.unitType === UT_WARSHIP &&
-          unit.supportShip !== true) {
+      if (this.functionalShipyard) {
         const research = this.researchByOwner.get(unit.ownerID);
-        if (research) flags |= ((research.guns & 3) << 3) |
-          ((research.hull & 3) << 5);
+        if (research) {
+          if (unit.unitType === UT_WARSHIP && unit.supportShip !== true)
+            flags |= ((research.guns & 3) << 3) | ((research.hull & 3) << 5);
+          else if (unit.unitType === UT_TRADE_SHIP)
+            flags |= (research.merchant & 3) << 5;
+          else if (unit.unitType === UT_TRANSPORT)
+            flags |= (research.transport & 3) << 5;
+        }
       }
       const isMissile = MISSILE_TYPES.has(unit.unitType);
 
