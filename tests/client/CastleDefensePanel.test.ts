@@ -45,7 +45,7 @@ describe("interactive Geopolitics Castle panel", () => {
       expect(marker).toBeTruthy();
       marker!.click();
       await el.updateComplete;
-      expect(coverage.at(-1)).toMatchObject({ radius: 60, hostile: false });
+      expect(coverage[coverage.length - 1]).toMatchObject({ radius: 60, hostile: false });
       expect(el.shadowRoot?.textContent).toContain("$150.000");
       const options = el.shadowRoot!.querySelectorAll<HTMLButtonElement>(".choice");
       expect(options).toHaveLength(3);
@@ -126,7 +126,7 @@ describe("interactive Geopolitics Castle panel", () => {
       expect(el.shadowRoot?.textContent).toContain("Resistencia extrema activa");
       expect(el.shadowRoot?.textContent).toContain("Nación rival");
       expect(el.shadowRoot?.querySelector(".activate")).toBeNull();
-      expect(coverage.at(-1)).toMatchObject({
+      expect(coverage[coverage.length - 1]).toMatchObject({
         radius: 60, hostile: true, fortified: true,
       });
       bus.emit(new InspectDefenseEvent(18));
@@ -134,7 +134,7 @@ describe("interactive Geopolitics Castle panel", () => {
       expect(el.shadowRoot?.textContent).toContain("Cúpula de Hierro");
       expect(el.shadowRoot?.textContent).toContain("100 casillas");
       expect(el.shadowRoot?.querySelector(".activate")).toBeNull();
-      expect(coverage.at(-1)).toMatchObject({
+      expect(coverage[coverage.length - 1]).toMatchObject({
         radius: 100, hostile: true, fortified: false,
       });
     } finally {
