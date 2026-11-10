@@ -24,6 +24,7 @@ export const BUILD_KEYBIND_ACTIONS: ReadonlyArray<{
   { action: "buildBismarck", type: UnitType.Bismarck },
   { action: "buildAtomBomb", type: UnitType.AtomBomb },
   { action: "buildHydrogenBomb", type: UnitType.HydrogenBomb },
+  { action: "buildTsarBomba", type: UnitType.TsarBomba },
   { action: "buildMIRV", type: UnitType.MIRV },
   { action: "buildFarm", type: UnitType.Farm },
   { action: "buildMine", type: UnitType.Mine },
