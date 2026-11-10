@@ -266,7 +266,8 @@ export class NukeExecution implements Execution {
             MessageType.NUKE_INBOUND,
             target.id(),
           );
-        } else if (this.nukeType === UnitType.HydrogenBomb) {
+        } else if (this.nukeType === UnitType.HydrogenBomb ||
+                   this.nukeType === UnitType.TsarBomba) {
           this.mg.displayIncomingUnit(
             this.nuke.id(),
             "events_display.hydrogen_bomb_inbound",
@@ -493,6 +494,7 @@ export class NukeExecution implements Execution {
       if (
         type === UnitType.AtomBomb ||
         type === UnitType.HydrogenBomb ||
+        type === UnitType.TsarBomba ||
         type === UnitType.MIRVWarhead ||
         type === UnitType.MIRV ||
         type === UnitType.SAMMissile ||
@@ -516,7 +518,8 @@ export class NukeExecution implements Execution {
 
     if (
       this.nukeType === UnitType.AtomBomb ||
-      this.nukeType === UnitType.HydrogenBomb
+      this.nukeType === UnitType.HydrogenBomb ||
+      this.nukeType === UnitType.TsarBomba
     ) {
       const messageKey =
         this.nukeType === UnitType.AtomBomb
