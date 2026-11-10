@@ -121,7 +121,11 @@ it("uses the supplied navigation centerline in the actual fleet buffer", () => {
     const f = new Float32Array(h.bytes.buffer);
     expect(f[0]).toBeCloseTo(1.25);
     expect(f[1]).toBeCloseTo(1.25);
-    expect(h.bytes[15]).toBe(32);
+    // Initial route projection follows the centerline, but the bow preserves
+    // the prior northward orientation and turns toward the 45-degree course
+    // progressively rather than snapping to heading byte 32 in one frame.
+    expect(h.bytes[15]).toBeGreaterThan(32);
+    expect(h.bytes[15]).toBeLessThanOrEqual(64);
   } finally {
     clock.mockRestore();
   }
