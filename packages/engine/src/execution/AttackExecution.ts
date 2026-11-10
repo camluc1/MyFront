@@ -489,6 +489,11 @@ export class AttackExecution implements Execution {
   }
 
   private handleDeadDefender() {
+    // Functional Geopolitics has a single decisive elimination trigger:
+    // capturing the real palace tile in GameImpl.conquer(). The classic
+    // <100-tile annexation shortcut here must not execute first or pay the
+    // conquered player's gold a second time after palace capture.
+    if (this.mg.config().isFunctionalGeopolitics()) return;
     if (!(this.target.isPlayer() && this.target.numTilesOwned() < 100)) return;
     const target: Player = this.target;
 
