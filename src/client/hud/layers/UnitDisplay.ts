@@ -68,7 +68,7 @@ const BUILD_CATEGORIES: ReadonlyArray<{
 }> = [
   { id: "economy", label: "Economía", types: [UnitType.City, UnitType.Factory, UnitType.Farm, UnitType.Mine, UnitType.OilWell, UnitType.GasPlant] },
   { id: "defense", label: "Defensa", types: [UnitType.DefensePost, UnitType.MissileSilo, UnitType.SAMLauncher, UnitType.Castle, UnitType.IronDome] },
-  { id: "naval", label: "Naval", types: [UnitType.Port, UnitType.Warship, UnitType.Shipyard] },
+  { id: "naval", label: "Naval", types: [UnitType.Port, UnitType.Warship, UnitType.Shipyard, UnitType.Bismarck] },
 ];
 
 @customElement("unit-display")
@@ -491,6 +491,7 @@ export class UnitDisplay extends LitElement implements Controller {
           (player?.units(UnitType.MissileSilo).length ?? 0) > 0
         );
       case UnitType.Warship:
+      case UnitType.Bismarck:
         return (
           this.cost(item) <= (player?.gold() ?? 0n) &&
           (player?.units(UnitType.Port).length ?? 0) > 0
@@ -697,6 +698,7 @@ export class UnitDisplay extends LitElement implements Controller {
           ${this.renderUnitItem(portIcon, this._port, UnitType.Port, "port", this.getHotkey("buildPort", "Digit3"))}
           ${this.renderUnitItem(shipyardIcon, this._shipyard, UnitType.Shipyard, "shipyard", this.getHotkey("buildShipyard", ""))}
           ${this.renderUnitItem(warshipIcon, this._warships, UnitType.Warship, "warship", this.getHotkey("buildWarship", "Digit7"))}
+          ${this.game.config().isFunctionalGeopolitics?.() ? this.renderUnitItem(warshipIcon, null, UnitType.Bismarck, "bismarck", this.getHotkey("buildBismarck", ""), "Bismarck") : nothing}
           ${this.renderMobileShipyard()}
         `;
       case "arsenal":
@@ -890,7 +892,7 @@ export class UnitDisplay extends LitElement implements Controller {
     if (!player) return "No disponible";
     if ((unitType === UnitType.AtomBomb || unitType === UnitType.HydrogenBomb || unitType === UnitType.MIRV) &&
         player.units(UnitType.MissileSilo).length === 0) return "Requiere silo";
-    if (unitType === UnitType.Warship && player.units(UnitType.Port).length === 0) return "Requiere puerto";
+    if ((unitType === UnitType.Warship || unitType === UnitType.Bismarck) && player.units(UnitType.Port).length === 0) return "Requiere puerto";
     if (this.cost(unitType) > player.gold() && !this.game.config().gameConfig().infiniteGold) return "Oro insuficiente";
     return "No disponible en este momento";
   }

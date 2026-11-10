@@ -21,6 +21,7 @@ export const BUILD_KEYBIND_ACTIONS: ReadonlyArray<{
   { action: "buildMissileSilo", type: UnitType.MissileSilo },
   { action: "buildSamLauncher", type: UnitType.SAMLauncher },
   { action: "buildWarship", type: UnitType.Warship },
+  { action: "buildBismarck", type: UnitType.Bismarck },
   { action: "buildAtomBomb", type: UnitType.AtomBomb },
   { action: "buildHydrogenBomb", type: UnitType.HydrogenBomb },
   { action: "buildMIRV", type: UnitType.MIRV },

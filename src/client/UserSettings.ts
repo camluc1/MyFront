@@ -32,6 +32,7 @@ export function getDefaultKeybinds(isMac: boolean): Record<string, string> {
     buildMissileSilo: "Digit5",
     buildSamLauncher: "Digit6",
     buildWarship: "Digit7",
+    buildBismarck: "Shift+KeyB",
     buildAtomBomb: "Digit8",
     buildHydrogenBomb: "Digit9",
     buildMIRV: "Digit0",

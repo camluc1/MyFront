@@ -96,6 +96,13 @@ const buildTable: BuildItemDisplay[][] = [
       countable: true,
     },
     {
+      unitType: UnitType.Bismarck,
+      icon: warshipIcon,
+      description: "build_menu.desc.bismarck",
+      key: "unit_type.bismarck",
+      countable: true,
+    },
+    {
       unitType: UnitType.Port,
       icon: portIcon,
       description: "build_menu.desc.port",

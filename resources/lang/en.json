@@ -207,7 +207,8 @@
       "farm": "Produces gold on fertile soil",
       "mine": "Extracts minerals and gains 40% with a connected factory",
       "oil_well": "Produces gold on oil fields",
-      "gas_plant": "Produces gold on natural gas fields"
+      "gas_plant": "Produces gold on natural gas fields",
+      "bismarck": "An armored capital ship. Heavy hull and 20% more naval firepower; withdraws below 40% hull. Functional Geopolitics only."
     },
     "not_enough_money": "Not enough money",
     "upgrade_amount": "x{amount}",
@@ -2683,7 +2684,8 @@
     "farm": "Farm",
     "mine": "Mine",
     "oil_well": "Oil Well",
-    "gas_plant": "Gas Plant"
+    "gas_plant": "Gas Plant",
+    "bismarck": "Bismarck"
   },
   "update_available": {
     "desktop": "A new version of OpenFront is available. It will download in the background; reload from the update bar once it is ready.",
