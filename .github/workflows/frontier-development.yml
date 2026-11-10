@@ -47,7 +47,8 @@ jobs:
           npx vitest run --project client \
             tests/client/render/gl/UltraNavalVisualContract.test.ts \
             tests/client/render/gl/UnitPassFleet.test.ts \
-            tests/client/render/gl/VesselMotionDynamics.test.ts
+            tests/client/render/gl/VesselMotionDynamics.test.ts \
+            tests/client/render/gl/NavalWaypoint.test.ts
       - name: Check carrier rendering and pre-game player colors
         run: |
           npx vitest run --project node --project client \
@@ -62,7 +63,9 @@ jobs:
           npx vitest run --project node \
             tests/core/game/PackedUnitUpdates.test.ts \
             tests/GeopoliticsDefenseWire.test.ts \
-            tests/GeopoliticsAdvancedDefenses.test.ts
+            tests/GeopoliticsAdvancedDefenses.test.ts \
+            tests/CastleDefense.test.ts \
+            tests/Geopolitics.test.ts
       - name: Check responsive HUD regression tests
         run: |
           npx vitest run --project client \
