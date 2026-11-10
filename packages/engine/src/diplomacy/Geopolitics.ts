@@ -31,6 +31,26 @@ const STRUCTURES = new Set([
   UnitType.OilWell,
   UnitType.GasPlant,
 ]);
+/**
+ * How much of a threatened nation's treasury it is rational to offer to end a
+ * real invasion. A negotiating nation cannot buy an instant win: acceptance
+ * remains up to the defender, and payment uses the existing atomic contract.
+ */
+export function survivalPeaceGold(
+  treasury: number, pressure: number, aggressorPowerRatio: number,
+  imminentCollapse: boolean,
+): number {
+  const gold = Math.max(0, Math.trunc(treasury));
+  if (gold === 0) return 0;
+  const severity = Math.max(0, Math.min(1, (pressure - 8) / 32));
+  const disadvantage = Math.max(0, Math.min(1, (aggressorPowerRatio - 1) / 2.5));
+  // A real military crisis may justify most of the cash, not a flat 1/12.
+  const fraction = imminentCollapse && pressure >= 34 &&
+    aggressorPowerRatio >= 2.5 ? 1
+    : Math.min(0.9, 0.08 + 0.48 * severity + 0.34 * disadvantage);
+  return Math.min(gold, Math.trunc(gold * fraction));
+}
+
 export class Geopolitics {
   state: DiplomacyState = emptyDiplomacy();
   private lastEmission = "";
@@ -1144,12 +1164,17 @@ export class Geopolitics {
       target = activeAttackers[0];
       kind = "peace";
       proposalReason = "survival_peace";
-      give.gold = Math.min(Number(a.gold()), Math.max(0, Math.trunc(Number(a.gold()) / 12)));
+      const severity = this.militaryPressure(a, target);
+      const relativeStrength = power(target) / Math.max(1, power(a));
+      const nearElimination = a.numTilesOwned() < Math.max(40, target.numTilesOwned() / 3) &&
+        a.units(UnitType.City).length <= 1;
+      give.gold = survivalPeaceGold(
+        Number(a.gold()), severity, relativeStrength, nearElimination,
+      );
       give.troops = Math.min(a.troops(), Math.trunc(a.troops() / 30));
       // When defeat is imminent, a nation can proactively offer a less vital
       // harbor as the price of ending the offensive. Harder AI resists until
       // the military situation is considerably more desperate.
-      const severity = this.militaryPressure(a, target);
       const threshold: Record<Difficulty, number> = {
         [Difficulty.Easy]: 12,
         [Difficulty.Medium]: 19,

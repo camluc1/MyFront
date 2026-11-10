@@ -13,6 +13,7 @@ import {
   DiplomacyIntentSchema,
 } from "@openfront/engine-api/Schemas";
 import { DiplomacyExecution } from "@openfront/engine/execution/DiplomacyExecution";
+import { survivalPeaceGold } from "@openfront/engine/diplomacy/Geopolitics";
 import { Game, Player } from "@openfront/engine/game/Game";
 import { zb } from "@openfront/zbin";
 import { setup } from "./util/Setup";
@@ -51,6 +52,24 @@ beforeEach(async () => {
     p.addGold(1000000n);
     p.addTroops(10000);
   }
+});
+describe("survival diplomacy treasury consequences", () => {
+  it("starts with modest terms and scales with military disadvantage", () => {
+    const treasury = 3_000_000;
+    const initial = survivalPeaceGold(treasury, 8, 1, false);
+    const losing = survivalPeaceGold(treasury, 27, 2.1, false);
+    const desperate = survivalPeaceGold(treasury, 40, 4, false);
+    expect(initial).toBe(240_000);
+    expect(initial).toBeLessThan(losing);
+    expect(losing).toBeLessThan(desperate);
+    expect(desperate).toBeLessThan(treasury);
+  });
+  it("can offer all remaining gold only near elimination", () => {
+    expect(survivalPeaceGold(1_250_000, 40, 3, true)).toBe(1_250_000);
+    expect(survivalPeaceGold(1_250_000, 22, 3, true)).toBeLessThan(1_250_000);
+    expect(survivalPeaceGold(1_250_000, 40, 1, true)).toBeLessThan(1_250_000);
+    expect(survivalPeaceGold(0, 40, 4, true)).toBe(0);
+  });
 });
 it("creates a bilateral alliance without creating a shared-victory coalition", () => {
   const o = offer(a, b, "alliance");

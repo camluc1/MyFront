@@ -1142,6 +1142,14 @@ export class GeopoliticsPanel extends LitElement {
         </span>`)}
         ${thirdParty ? html`<p>${t("deal_block_vote")}</p>` : nothing}
       </div>` : nothing}
+      ${o?.kind === "peace" && o.reason === "survival_peace" &&
+        o.from !== myID ? html`<div class="treaty-note" role="status">
+          <strong>⚖ Propuesta de supervivencia</strong>
+          <div>La nación está bajo presión militar y ofrece
+            <strong>${Number(o.give.gold).toLocaleString("es-AR")} de oro</strong>
+            para detener la guerra. Podés aceptar, negociar o continuar el ataque.
+          </div>
+        </div>` : nothing}
       <div class="war-context">
         <div class="row"><strong>${t("deal_military")}</strong><span class="muted">
           ${activeOffensive ? t("deal_active") : t("deal_inactive")}
