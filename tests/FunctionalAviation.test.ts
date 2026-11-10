@@ -2,6 +2,7 @@ import { PlayerInfo, PlayerType, UnitType } from "@openfront/engine-api/game/Gam
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { AIRCRAFT_MAX_FUEL } from "@openfront/engine-api/game/Aircraft";
 import { PACKED_UNIT_TYPES, packUnitUpdates, unpackUnitUpdates } from "@openfront/engine-lib/game/PackedUnitUpdates";
+import { ConstructionExecution } from "@openfront/engine/execution/ConstructionExecution";
 import { AircraftExecution } from "@openfront/engine/execution/AircraftExecution";
 import { MoveWarshipExecution } from "@openfront/engine/execution/MoveWarshipExecution";
 import { setup } from "./util/Setup";
@@ -64,6 +65,42 @@ describe("Functional Geopolitics aviation", () => {
     const { restored } = await roundTrip(game, "plains");
     expect(restored.player("a").units(UnitType.AttackAircraft)[0].aircraftState())
       .toEqual(plane.aircraftState());
+  });
+
+  it("plays the full paid construction-menu route: runway, plane, sortie and save", async () => {
+    const game = await setup("plains", {
+      geopolitics: true, geopoliticsFunctional: true,
+      instantBuild: true, infiniteGold: false,
+    }, [human("a")]);
+    const a = game.player("a");
+    const runwayTile = game.ref(30, 30), objective = game.ref(38, 30);
+    a.conquer(runwayTile);
+    a.addGold(10_000_000n);
+    const startingGold = a.gold();
+
+    // No direct buildUnit calls: the same construction executions used by
+    // player build intents must charge real gold and register flight logic.
+    game.addExecution(new ConstructionExecution(a, UnitType.Airfield, runwayTile));
+    for (let i = 0; i < 3; i++) game.executeNextTick();
+    expect(a.units(UnitType.Airfield)).toHaveLength(1);
+    expect(a.gold()).toBe(startingGold - 3_000_000n);
+
+    game.addExecution(new ConstructionExecution(a, UnitType.AttackAircraft, objective));
+    for (let i = 0; i < 4; i++) game.executeNextTick();
+    expect(a.units(UnitType.AttackAircraft)).toHaveLength(1);
+    expect(a.gold()).toBe(startingGold - 4_000_000n);
+    const aircraft = a.units(UnitType.AttackAircraft)[0];
+    expect(aircraft.aircraftState()?.phase).toBe("docked");
+    expect(aircraft.tile()).toBe(runwayTile);
+
+    game.addExecution(new MoveWarshipExecution(a, [aircraft.id()], objective));
+    for (let i = 0; i < 20; i++) game.executeNextTick();
+    expect(aircraft.isActive()).toBe(true);
+    expect(aircraft.aircraftState()?.phase).toBe("docked");
+    const { restored } = await roundTrip(game, "plains");
+    expect(restored.player("a").gold()).toBe(a.gold());
+    expect(restored.player("a").units(UnitType.AttackAircraft)[0].aircraftState())
+      .toEqual(aircraft.aircraftState());
   });
 
   it("rejects an unsafe sortie, then completes a safe mission and refuels", async () => {
