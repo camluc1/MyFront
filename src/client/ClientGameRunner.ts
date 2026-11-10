@@ -35,6 +35,7 @@ import { createRenderer, GameRenderer } from "./hud/GameRenderer";
 import { mountGeopolitics } from "./hud/GeopoliticsPanel";
 import { mountNavalStatus } from "./hud/NavalStatusPanel";
 import { defenseAtScreenPoint, mountCastleDefense } from "./hud/CastleDefensePanel";
+import { mountShipyard, shipyardAtScreenPoint } from "./hud/ShipyardPanel";
 import { goldRateTracker } from "./hud/layers/lib/GoldRateTracker";
 import { OnboardingOverlay } from "./hud/layers/OnboardingOverlay";
 import { UnitDisplay } from "./hud/layers/UnitDisplay";
@@ -905,12 +906,16 @@ async function createClientGame(
       gameView, eventBus, gameRenderer.transformHandler, gameRenderer.uiState,
       view,
     );
+    const disposeShipyard = mountShipyard(
+      gameView, eventBus, gameRenderer.transformHandler, gameRenderer.uiState,
+    );
     const disposeNavalStatus = mountNavalStatus(gameView, eventBus);
     let rendererDisposed = false;
     const disposeRenderer = (): void => {
       if (rendererDisposed) return;
       rendererDisposed = true;
       disposeCastleDefense();
+      disposeShipyard();
       disposeNavalStatus();
       disposeGeopolitics();
       gameRenderer.dispose();
@@ -1294,6 +1299,8 @@ export class ClientGameRunner {
     // Selecting a castle or Iron Dome opens its defense dossier and coverage;
     // do not interpret that precise building click as a territorial attack.
     if (defenseAtScreenPoint(
+      this.gameView, this.renderer.transformHandler, event.x, event.y,
+    ) || shipyardAtScreenPoint(
       this.gameView, this.renderer.transformHandler, event.x, event.y,
     )) return;
     console.log(`clicked cell ${cell}`);

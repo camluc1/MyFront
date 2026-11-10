@@ -27,6 +27,7 @@ const swordIcon = assetUrl("images/SwordIconWhite.svg");
 
 import { CloseViewEvent, ContextMenuEvent } from "../../InputHandler";
 import { defenseAtScreenPoint, InspectDefenseEvent } from "../CastleDefensePanel";
+import { shipyardAtScreenPoint, InspectShipyardEvent } from "../ShipyardPanel";
 
 function emptyPlayerActions(): PlayerActions {
   return {
@@ -109,6 +110,16 @@ export class MainRadialMenu implements Controller {
         if (defense) {
           this.menuRequest = null;
           this.eventBus.emit(new InspectDefenseEvent(defense.id()));
+          return;
+        }
+      }
+      if (this.uiState.ghostStructure === null) {
+        const shipyard = shipyardAtScreenPoint(
+          this.game, this.transformHandler, event.x, event.y,
+        );
+        if (shipyard) {
+          this.menuRequest = null;
+          this.eventBus.emit(new InspectShipyardEvent(shipyard.id()));
           return;
         }
       }

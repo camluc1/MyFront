@@ -3022,6 +3022,15 @@
     "contain_detail": "Seek partners against a threatening neighbor; attack only when relative strength permits."
   },
   "geopolitics": {
+    "shipyard_title": "Shipyard",
+    "shipyard_close": "Close shipyard",
+    "shipyard_help": "Four independent research tracks for all your ships. Only the highest active shipyard level of each track counts.",
+    "shipyard_merchant": "Merchant speed",
+    "shipyard_transport": "Transport capacity",
+    "shipyard_hull": "Warship hull",
+    "shipyard_firepower": "Warship damage",
+    "shipyard_level": "Level",
+    "shipyard_max": "Maximum",
     "functional_title": "Functional mode (test)",
     "functional_description": "Experimental capitals, fleets and air operations. Off by default; only for single-player Geopolitics.",
     "deal_trust_meter": "Diplomatic trust",

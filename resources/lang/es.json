@@ -2367,6 +2367,15 @@
     "youtube_tutorial": "¿Necesitas ayuda?"
   },
   "geopolitics": {
+    "shipyard_title": "Astillero",
+    "shipyard_close": "Cerrar astillero",
+    "shipyard_help": "Cuatro mejoras independientes para tus barcos. Cuenta solo el mayor nivel activo de cada mejora entre tus astilleros.",
+    "shipyard_merchant": "Velocidad mercante",
+    "shipyard_transport": "Capacidad de transporte",
+    "shipyard_hull": "Resistencia de buques",
+    "shipyard_firepower": "Daño de buques",
+    "shipyard_level": "Nivel",
+    "shipyard_max": "Máximo",
     "functional_title": "Modo funcional (prueba)",
     "functional_description": "Capitales, flotas y operaciones aéreas experimentales. Desactivado por defecto; solo Geopolítica individual.",
     "deal_trust_meter": "Confianza diplomática",
