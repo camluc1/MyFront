@@ -237,7 +237,8 @@ class SAMTargetingSystem {
 
     // Hydro unit type bonus
     // 70,000 offset balances the distance bonus between Hydro at 100 and Atom at 30
-    const typeBonus = unit.type() === UnitType.HydrogenBomb ? 70_001 : 0;
+    const typeBonus = unit.type() === UnitType.TsarBomba ? 140_001 :
+      unit.type() === UnitType.HydrogenBomb ? 70_001 : 0;
 
     // Distance bonus: Closer to silo higher score (-1,000 pts per unit distance)
     // due to manhattanDist, distToSilo can exceed 150 diagonally, 200000 starting point.
@@ -268,7 +269,7 @@ class SAMTargetingSystem {
     const nukes = this.mg.nearbyUnits(
       samTile,
       detectionRange,
-      [UnitType.AtomBomb, UnitType.HydrogenBomb, UnitType.MIRVWarhead],
+      [UnitType.AtomBomb, UnitType.HydrogenBomb, UnitType.TsarBomba, UnitType.MIRVWarhead],
       this.isTargetableNearbyUnit,
     );
 
@@ -394,6 +395,7 @@ export class SAMLauncherExecution implements Execution {
     if (
       this.mg.unitCount(UnitType.AtomBomb) === 0 &&
       this.mg.unitCount(UnitType.HydrogenBomb) === 0 &&
+      this.mg.unitCount(UnitType.TsarBomba) === 0 &&
       this.mg.unitCount(UnitType.MIRVWarhead) === 0
     ) {
       return;
