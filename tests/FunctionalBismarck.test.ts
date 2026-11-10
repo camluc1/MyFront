@@ -33,8 +33,8 @@ describe("Functional Geopolitics Bismarck", () => {
     expect(game.config().isUnitDisabled(UnitType.Bismarck)).toBe(false);
     expect(game.unitInfo(UnitType.Bismarck).cost(game, a)).toBe(10_000_000n);
     const ship = a.buildUnit(UnitType.Bismarck, tile, { patrolTile: tile });
-    expect(ship.maxHealth()).toBe(4000);
-    expect(ship.health()).toBe(4000);
+    expect(ship.maxHealth()).toBe(4800);
+    expect(ship.health()).toBe(4800);
     game.addExecution(new WarshipExecution(ship));
     game.addExecution(new MoveWarshipExecution(a, [ship.id()], target));
     game.executeNextTick();
@@ -70,7 +70,7 @@ describe("Functional Geopolitics Bismarck", () => {
     if (numberOfOpponents === 2) {
       expect(flagship.isActive()).toBe(true);
       expect(opponents.every((ship) => !ship.isActive())).toBe(true);
-      expect(flagship.health()).toBeGreaterThan(400);
+      expect(flagship.health()).toBeGreaterThan(900);
     } else {
       expect(flagship.isActive()).toBe(false);
       expect(opponents.some((ship) => ship.isActive())).toBe(true);

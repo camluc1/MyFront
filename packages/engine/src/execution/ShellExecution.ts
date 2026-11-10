@@ -127,7 +127,7 @@ export class ShellExecution implements Execution {
     // Armored battleship firepower bonus, deterministic integer scaling.
     if (this.mg.config().isFunctionalGeopolitics() &&
         this.ownerUnit.type() === UnitType.Bismarck)
-      damageMultiplier = Math.floor(damageMultiplier * 120 / 100);
+      damageMultiplier = Math.floor(damageMultiplier * 118 / 100);
     return Math.round((baseDamage / 250) * damageMultiplier);
   }
 

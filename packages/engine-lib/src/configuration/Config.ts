@@ -240,7 +240,7 @@ export class Config {
         info = { maxHealth: 1000 };
         break;
       case UnitType.Bismarck:
-        info = { maxHealth: 4000 };
+        info = { maxHealth: 4800 };
         break;
       case UnitType.Shell:
         info = { damage: 250 };
