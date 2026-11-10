@@ -26,6 +26,7 @@ flat out float vAtlasCol;
 flat out float vOwnerID;
 flat out float vResearchHull;
 flat out float vResearchGuns;
+flat out float vBismarck;
 flat out float vFlags;  // 0.0 = normal, 1.0 = flicker, 2.0 = angry
 flat out float vHash;   // per-instance hash for flicker phase offset
 flat out float vStrategic;
@@ -43,6 +44,7 @@ void main() {
   vResearchGuns = uFunctionalShipyard > 0.5 ? mod(floor(rawFlags / 8.0), 4.0) : 0.0;
   vResearchHull = uFunctionalShipyard > 0.5 ? mod(floor(rawFlags / 32.0), 4.0) : 0.0;
   vAtlasCol = atlasCol;
+  vBismarck = uFunctionalShipyard > 0.5 ? floor(rawFlags / 128.0) : 0.0;
 
   // Per-instance hash so each unit flickers independently. Computed CPU-side
   // from the tick position — hashing worldX/Y here would re-roll the phase
@@ -70,7 +72,7 @@ void main() {
     // it remains one instance with no separate textures or render pass.
     bool repairCarrier = atlasCol > 1.5 && abs(vFlags - 7.0) < 0.1;
     scale = atlasCol > 1.5
-      ? uFleetWarshipScale * (repairCarrier ? 1.32 * uFunctionalSupportScale : 1.0)
+      ? uFleetWarshipScale * (repairCarrier ? 1.32 * uFunctionalSupportScale : (vBismarck>0.5 ? 1.85 : 1.0))
       : (atlasCol > 0.5 ? 0.64 : 0.82);
     // Screen-space readability, bounded so distant fleets do not cover the map.
     float pixelsPerTile = length(uCamera[0].xy * uViewport * 0.5);

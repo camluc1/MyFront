@@ -143,16 +143,18 @@ export class WarshipSelectionController implements Controller {
     const myPlayer = this.game.myPlayer();
     if (!myPlayer) return [];
     return this.game
-      .units(UnitType.Warship)
+      .units(UnitType.Warship, UnitType.Bismarck)
       .filter(
         (unit) =>
           unit.isActive() &&
           unit.owner() === myPlayer &&
           this.game.manhattanDist(unit.tile(), clickRef) <=
             (this.game.config().isFunctionalGeopolitics() &&
-              unit.warshipState().supportShip
-                ? Math.ceil(WARSHIP_SELECTION_RADIUS * 1.25)
-                : WARSHIP_SELECTION_RADIUS),
+              unit.type() === UnitType.Bismarck
+                ? Math.ceil(WARSHIP_SELECTION_RADIUS * 1.7)
+                : unit.warshipState().supportShip
+                  ? Math.ceil(WARSHIP_SELECTION_RADIUS * 1.25)
+                  : WARSHIP_SELECTION_RADIUS),
       )
       .sort(
         (a, b) =>
@@ -265,7 +267,7 @@ export class WarshipSelectionController implements Controller {
     const myPlayer = this.game.myPlayer();
     if (!myPlayer) return;
 
-    const selected = this.game.units(UnitType.Warship).filter((unit) => {
+    const selected = this.game.units(UnitType.Warship, UnitType.Bismarck).filter((unit) => {
       if (!unit.isActive() || unit.owner() !== myPlayer) return false;
       const screen = this.transformHandler.worldToScreenCoordinates(
         new Cell(this.game.x(unit.tile()), this.game.y(unit.tile())),
@@ -286,7 +288,7 @@ export class WarshipSelectionController implements Controller {
     const myPlayer = this.game.myPlayer();
     if (!myPlayer) return [];
     return this.game
-      .units(UnitType.Warship)
+      .units(UnitType.Warship, UnitType.Bismarck)
       .filter((u) => u.isActive() && u.owner() === myPlayer);
   }
 

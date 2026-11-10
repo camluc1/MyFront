@@ -34,6 +34,7 @@ flat in float vOwnerID;
 flat in float vFlags;
 flat in float vResearchHull;
 flat in float vResearchGuns;
+flat in float vBismarck;
 flat in float vHash;
 flat in float vStrategic;
 flat in float vGlow;
@@ -113,9 +114,9 @@ vec4 vehicleSprite(vec2 q, float col, out float signedHullDistance) {
     bool repairCarrier=warship && abs(vFlags-FLAG_SUPPORT_SHIP)<0.1;
     // A repair carrier needs a broad, long service deck; a battleship's
     // narrow hull made the support unit look like an empty destroyer.
-    float stern=repairCarrier ? -0.75 : (warship ? -0.62 : (cargo ? -0.37 : -0.29));
-    float bow=repairCarrier ? 0.80 : (warship ? 0.72 : (cargo ? 0.45 : 0.34));
-    float beam=repairCarrier ? 0.265 : (warship ? 0.17 : (cargo ? 0.23 : 0.18));
+    float stern=repairCarrier ? -0.75 : (vBismarck>0.5 ? -0.91 : (warship ? -0.62 : (cargo ? -0.37 : -0.29)));
+    float bow=repairCarrier ? 0.80 : (vBismarck>0.5 ? 0.93 : (warship ? 0.72 : (cargo ? 0.45 : 0.34)));
+    float beam=repairCarrier ? 0.265 : (vBismarck>0.5 ? 0.245 : (warship ? 0.17 : (cargo ? 0.23 : 0.18)));
     // A proper tapered waterline, with a rounded stern and a distinct bow.
     float width=beam*min(clamp((bow-q.x)/(warship ? 0.32 : 0.20),0.0,1.0),clamp((q.x-stern)/0.08,0.0,1.0));
     if(col<0.5) width=beam*clamp((q.x-stern)/0.07,0.0,1.0);
@@ -196,6 +197,22 @@ vec4 vehicleSprite(vec2 q, float col, out float signedHullDistance) {
           if (abs(q.x+0.07) < 0.012 && abs(q.y) < 0.15) gray = 0.275;
         }
 #endif
+      } else if (vBismarck>0.5) {
+        // Four armored turrets and a long reinforced deck, one existing instance.
+        if(q.x> -0.42 && q.x<0.34 && abs(q.y)<0.17)gray=0.51;
+        if(q.x> -0.20 && q.x<0.14 && abs(q.y)<0.105)gray=0.92;
+        if(abs(q.x+0.22)<0.055 && abs(q.y)<0.11)gray=0.275;
+        if(abs(q.x+0.09)<0.048 && abs(q.y)<0.092)gray=0.275;
+        if(detail>0.03) {
+          float turrets=min(min(length((q-vec2(0.65,0.0))/vec2(1.4,1.0)),
+            length((q-vec2(0.43,0.0))/vec2(1.4,1.0))),
+            min(length((q+vec2(0.61,0.0))/vec2(1.4,1.0)),
+            length((q+vec2(0.40,0.0))/vec2(1.4,1.0))));
+          if(turrets<0.078)gray=0.96;
+          if((q.x>0.46 && q.x<0.84 || q.x< -0.43 && q.x> -0.83) &&
+             abs(q.y)<0.018) gray=0.275;
+          if(abs(q.x+0.12)<0.035 && abs(q.y)<0.125) gray=0.92;
+        }
       } else {
       if(q.x> -0.32 && q.x<0.30 && abs(q.y)<0.115)gray=0.51;
       if(q.x> -0.15 && q.x<0.12 && abs(q.y)<0.08)gray=0.92;

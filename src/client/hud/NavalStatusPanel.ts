@@ -61,7 +61,7 @@ export class NavalStatusPanel extends LitElement {
     @media(max-width:740px){:host{left:12px;bottom:66px}.panel{padding:10px 12px;width:min(270px,calc(100vw - 24px))}}
   `;
   render() {
-    const selected = this.game.units(UnitType.Warship)
+    const selected = this.game.units(UnitType.Warship, UnitType.Bismarck)
       .filter((unit) => this.selectedIds.includes(unit.id()));
     if (selected.length === 0) return nothing;
     const single = selected.length === 1 ? selected[0] : null;
@@ -77,7 +77,7 @@ export class NavalStatusPanel extends LitElement {
         <div class="row">
           <div><div class="eyebrow">Geopolítica · Naval</div>
             <div class="title">⚓ ${single
-              ? state?.supportShip ? "Barco de apoyo" : "Buque de guerra"
+              ? state?.supportShip ? "Barco de apoyo" : single.type() === UnitType.Bismarck ? "Bismarck" : "Buque de guerra"
               : `Flota seleccionada · ${selected.length}`}
             </div></div>
           <button class="close" aria-label="Cerrar ficha naval"

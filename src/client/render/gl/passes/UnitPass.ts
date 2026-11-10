@@ -48,6 +48,7 @@ import {
   UT_TRAIN,
   UT_TRANSPORT,
   UT_WARSHIP,
+  UT_BISMARCK,
   UT_SHIPYARD,
 } from "../../types";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
@@ -316,6 +317,8 @@ export class UnitPass {
       }
     }
 
+    this.typeToAtlasCol.set(UT_BISMARCK, WARSHIP_COL);
+
     // Compile shaders
     this.program = createProgram(
       gl,
@@ -573,9 +576,9 @@ export class UnitPass {
       if (atlasIdx === undefined) continue;
 
       const isRetreatingWarship =
-        unit.unitType === UT_WARSHIP && unit.retreating;
+        (unit.unitType === UT_WARSHIP || unit.unitType === UT_BISMARCK) && unit.retreating;
       const isAngryWarship =
-        unit.unitType === UT_WARSHIP && unit.targetUnitId !== null;
+        (unit.unitType === UT_WARSHIP || unit.unitType === UT_BISMARCK) && unit.targetUnitId !== null;
       const isFlicker = FLICKER_TYPES.has(unit.unitType);
 
       // Alt-view trade ship color from owner + destination port owner:
@@ -624,7 +627,7 @@ export class UnitPass {
       if (this.functionalShipyard) {
         const research = this.researchByOwner.get(unit.ownerID);
         if (research) {
-          if (unit.unitType === UT_WARSHIP && unit.supportShip !== true)
+          if ((unit.unitType === UT_WARSHIP || unit.unitType === UT_BISMARCK) && unit.supportShip !== true)
             flags |= ((research.guns & 3) << 3) | ((research.hull & 3) << 5);
           else if (unit.unitType === UT_TRADE_SHIP)
             flags |= (research.merchant & 3) << 5;
@@ -632,6 +635,7 @@ export class UnitPass {
             flags |= (research.transport & 3) << 5;
         }
       }
+      if (this.functionalShipyard && unit.unitType === UT_BISMARCK) flags |= 128;
       const isMissile = MISSILE_TYPES.has(unit.unitType);
 
       const x = unit.pos % this.mapW;
