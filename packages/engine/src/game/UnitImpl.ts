@@ -15,6 +15,7 @@ import {
   UnitUpdate,
 } from "@openfront/engine-api/game/GameUpdates";
 import { maxHealthWithVeterancy } from "@openfront/engine-lib/game/Veterancy";
+import { CASTLE_DEFENSE_ACTIVE_TICKS, CASTLE_DEFENSE_RECOVERY_TICKS } from "@openfront/engine-api/game/CastleDefense";
 import {
   snapshotType,
   zInt,
@@ -50,6 +51,8 @@ export class UnitImpl implements Unit {
   private _destroyer: Player | undefined = undefined;
   private _lastSetSafeFromPirates: number; // Only for trade ships
   private _underConstruction: boolean = false;
+  private _castleActiveUntilTick = 0;
+  private _castleCooldownUntilTick = 0;
   private _lastOwner: PlayerImpl | null = null;
   private _troops: number;
   // Number of missiles in cooldown, if empty all missiles are ready.
@@ -152,6 +155,18 @@ export class UnitImpl implements Unit {
   touch(): void {
     this.mg.addUpdate(this.toUpdate());
   }
+
+  castleDefenseState(): { activeUntilTick: number; cooldownUntilTick: number } {
+    return { activeUntilTick: this._castleActiveUntilTick,
+      cooldownUntilTick: this._castleCooldownUntilTick };
+  }
+
+  activateCastleDefense(tick: number): void {
+    if (this._type !== UnitType.Castle) return;
+    this._castleActiveUntilTick = tick + CASTLE_DEFENSE_ACTIVE_TICKS;
+    this._castleCooldownUntilTick = this._castleActiveUntilTick + CASTLE_DEFENSE_RECOVERY_TICKS;
+    this.touch();
+  }
   setTileTarget(tile: TileRef | undefined): void {
     this._targetTile = tile;
   }
@@ -205,6 +220,8 @@ export class UnitImpl implements Unit {
       hasTrainStation: this._hasTrainStation,
       trainType: this._trainType,
       loaded: this._loaded,
+      castleDefense: this._type === UnitType.Castle
+        ? this.castleDefenseState() : undefined,
     };
     return update;
   }
@@ -288,6 +305,11 @@ export class UnitImpl implements Unit {
     this._lastOwner._units = this._lastOwner._units.filter((u) => u !== this);
     this._lastOwner._myUnitsVersion++;
     this._owner = newOwner;
+    // A transferred fortress never inherits the previous owner\u0027s paid boost.
+    if (this._type === UnitType.Castle) {
+      this._castleActiveUntilTick = 0;
+      this._castleCooldownUntilTick = 0;
+    }
     this._owner._units.push(this);
     this._owner._myUnitsVersion++;
     this.mg.bumpUnitsVersion();
@@ -876,6 +898,8 @@ export class UnitImpl implements Unit {
       loaded: this._loaded ?? null,
       trainType: this._trainType ?? null,
       deletionAt: this._deletionAt,
+      castleActiveUntilTick: this._castleActiveUntilTick,
+      castleCooldownUntilTick: this._castleCooldownUntilTick,
       samLauncherState: this._samLauncherState
         ? {
             upgradeStartTick: this._samLauncherState.upgradeStartTick,
@@ -928,6 +952,8 @@ export class UnitImpl implements Unit {
     this._loaded = s.loaded ?? undefined;
     this._trainType = s.trainType ?? undefined;
     this._deletionAt = s.deletionAt;
+    this._castleActiveUntilTick = s.castleActiveUntilTick ?? 0;
+    this._castleCooldownUntilTick = s.castleCooldownUntilTick ?? 0;
     this._samLauncherState = s.samLauncherState
       ? { ...s.samLauncherState }
       : undefined;
@@ -936,7 +962,7 @@ export class UnitImpl implements Unit {
 
 export const UnitSnapshot = snapshotType({
   name: "Unit",
-  version: 1,
+  version: 2,
   schema: z.object({
     id: zInt(),
     type: UnitTypeSchema,
@@ -986,6 +1012,8 @@ export const UnitSnapshot = snapshotType({
     loaded: z.boolean().nullable(),
     trainType: z.enum(TrainType).nullable(),
     deletionAt: zInt().nullable(),
+    castleActiveUntilTick: zInt().optional(),
+    castleCooldownUntilTick: zInt().optional(),
     samLauncherState: z
       .object({
         upgradeStartTick: zInt().optional(),
@@ -995,5 +1023,6 @@ export const UnitSnapshot = snapshotType({
       })
       .nullable(),
   }),
+  migrations: { 1: (d) => ({ ...d, castleActiveUntilTick: 0, castleCooldownUntilTick: 0 }) },
 });
 export type UnitState = z.infer<typeof UnitSnapshot.schema>;

@@ -224,6 +224,8 @@ export interface Unit extends UnitLike {
   isActive(): boolean;
   setOwner(owner: Player): void;
   touch(): void;
+  castleDefenseState(): { activeUntilTick: number; cooldownUntilTick: number };
+  activateCastleDefense(tick: number): void;
   hash(): number;
   toUpdate(): UnitUpdate;
   hasTrainStation(): boolean;

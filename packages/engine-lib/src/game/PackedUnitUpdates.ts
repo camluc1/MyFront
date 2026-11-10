@@ -436,6 +436,11 @@ export class PackedUnitUpdateDecoder {
       trainType: this.trainType,
       loaded: this.loaded,
       samUpgrade,
+      // Castle uses the SAM-only numerical slots; no increase to 21-wide wire stride.
+      castleDefense: this.unitType === UnitType.Castle
+        ? { activeUntilTick: this.samUpgradeStartTick ?? 0,
+            cooldownUntilTick: this.samUpgradeDuration }
+        : undefined,
       missileTimerQueue: [],
     };
   }
@@ -488,7 +493,12 @@ export function packUnitUpdates(units: UnitUpdate[]): {
       packedUnitUpdates[offset + OFFSET_WARSHIP_VETERANCY_PROGRESS] = 0;
     }
 
-    if (update.samUpgrade) {
+    if (update.unitType === UnitType.Castle && update.castleDefense) {
+      packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_START_TICK] = update.castleDefense.activeUntilTick;
+      packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_DURATION] = update.castleDefense.cooldownUntilTick;
+      packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_START_RANGE] = 0;
+      packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_TARGET_LEVEL] = 0;
+    } else if (update.samUpgrade) {
       packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_START_TICK] =
         update.samUpgrade.upgradeStartTick ?? NaN;
       packedUnitUpdates[offset + OFFSET_SAM_UPGRADE_DURATION] =

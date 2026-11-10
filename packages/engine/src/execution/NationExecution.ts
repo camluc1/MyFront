@@ -58,6 +58,7 @@ import { NationWarshipBehavior } from "./nation/NationWarshipBehavior";
 import { tutorialCollapse } from "./nation/TutorialCollapse";
 import { tutorialSilo, tutorialWarship } from "./nation/TutorialSilo";
 import { SpawnExecution } from "./SpawnExecution";
+import { tryActivateCastleDefense } from "./CastleDefenseExecution";
 
 export class NationExecution implements Execution {
   private active = true;
@@ -497,6 +498,7 @@ export class NationExecution implements Execution {
 
     this.attackBehavior.followUpLandings();
     this.nukeBehavior.followUpStrikes();
+    if (ticks % this.attackRate === this.attackTick) this.maybeFortifyCastles();
 
     if (ticks % this.attackRate !== this.attackTick) {
       // Call handleStructures twice between regular attack ticks (at 1/3 and 2/3 of the interval)
@@ -538,6 +540,29 @@ export class NationExecution implements Execution {
     if (this.attackBehavior.maybeAttack()) this.recordCampaignAttempt(ticks);
     this.warshipBehavior.counterWarshipInfestation();
     this.nukeBehavior.maybeSendNuke();
+  }
+
+  /** Nations spend the same activation cost only when their castle covers an active invasion. */
+  private maybeFortifyCastles(): void {
+    if (!this.mg.config().gameConfig().geopolitics ||
+        this.mg.config().gameConfig().gameType !== GameType.Singleplayer ||
+        !this.player) return;
+    const attacks = this.player.incomingAttacks().filter((attack) =>
+      attack.isActive() && !attack.retreating() &&
+      attack.troops() >= Math.max(1000, this.player!.troops() * 0.05));
+    if (attacks.length === 0) return;
+    const rangeSq = this.mg.config().castleRange() ** 2;
+    for (const castle of this.player.units(UnitType.Castle)) {
+      if (!castle.isActive() || castle.isUnderConstruction()) continue;
+      const threatened = attacks.some((attack) => {
+        for (const tile of attack.borderTiles()) {
+          if (this.mg.euclideanDistSquared(castle.tile(), tile) <= rangeSq) return true;
+        }
+        return false;
+      });
+      if (threatened && tryActivateCastleDefense(this.mg, this.player, castle.id()))
+        return;
+    }
   }
 
   private initializeBehaviors(): void {

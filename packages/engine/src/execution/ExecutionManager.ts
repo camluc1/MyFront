@@ -13,6 +13,7 @@ import { AllianceRequestExecution } from "./alliance/AllianceRequestExecution";
 import { BreakAllianceExecution } from "./alliance/BreakAllianceExecution";
 import { AttackExecution } from "./AttackExecution";
 import { BoatRetreatExecution } from "./BoatRetreatExecution";
+import { CastleDefenseExecution } from "./CastleDefenseExecution";
 import { ConstructionExecution } from "./ConstructionExecution";
 import { DeleteUnitExecution } from "./DeleteUnitExecution";
 import { DiplomacyExecution } from "./DiplomacyExecution";
@@ -77,6 +78,8 @@ export class Executor {
       }
       case "diplomacy":
         return new DiplomacyExecution(player.id(), intent.diplomacy);
+      case "castle_defense":
+        return new CastleDefenseExecution(player, intent.unitId);
       case "cancel_attack":
         return new RetreatExecution(player, intent.attackID);
       case "cancel_boat":

@@ -229,6 +229,8 @@ export interface UnitUpdate {
   trainType?: TrainType; // Only for trains
   loaded?: boolean; // Only for trains
   samUpgrade?: SamLauncherState;
+  /** Simulation tick bounds for the Geopolitics castle defensive state. */
+  castleDefense?: { activeUntilTick: number; cooldownUntilTick: number };
 }
 
 export interface AttackUpdate {

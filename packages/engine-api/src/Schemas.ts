@@ -24,6 +24,7 @@ export type ClientID = string;
 
 export type Intent =
   | z.infer<typeof DiplomacyIntentSchema>
+  | z.infer<typeof CastleDefenseIntentSchema>
   | SpawnIntent
   | AttackIntent
   | CancelAttackIntent
@@ -575,6 +576,11 @@ export const ToggleGameStartTimerIntentSchema = z.object({
   type: z.literal("toggle_game_start_timer"),
 });
 
+export const CastleDefenseIntentSchema = z.object({
+  type: z.literal("castle_defense"),
+  unitId: zb.uint(),
+});
+
 export const DiplomacyIntentSchema = z.object({
   type: z.literal("diplomacy"),
   diplomacy: DiplomacyActionSchema,
@@ -607,6 +613,7 @@ export const IntentSchema = z.discriminatedUnion("type", [
   UpdateGameConfigIntentSchema,
   ToggleGameStartTimerIntentSchema,
   DiplomacyIntentSchema,
+  CastleDefenseIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)

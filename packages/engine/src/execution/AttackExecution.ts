@@ -381,6 +381,15 @@ export class AttackExecution implements Execution {
       this.mg.hasUnitNearby(
         tile, this.mg.config().castleRange(), UnitType.Castle, defender.id(),
       );
+    // Temporary fortification augments the original combat rules without
+    // changing tile priorities or stacking overlapping castle effects.
+    const defenderHasFortifiedCastle = defenderHasCastle &&
+      this.mg.anyUnitNearby(
+        tile, this.mg.config().castleRange(), [UnitType.Castle],
+        (unit) => unit.owner() === defender &&
+          unit.castleDefenseState().activeUntilTick > this.mg.ticks(),
+        defender!.id(),
+      );
     const defenderHasDefensePost =
       defender !== null && !defenderHasCastle &&
       defender.unitCount(UnitType.DefensePost) > 0 &&
@@ -410,6 +419,7 @@ export class AttackExecution implements Execution {
             },
       defenderHasDefensePost,
       defenderHasCastle,
+      defenderHasFortifiedCastle,
       falloutRatio: this.mg.hasFallout(tile)
         ? this.mg.numTilesWithFallout() / this.mg.numLandTiles()
         : null,

@@ -9,6 +9,7 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { PlayerLike } from "@openfront/engine-api/game/ReadViews";
+import { CASTLE_DEFENSE_LOSS_MULTIPLIER, CASTLE_DEFENSE_TIME_MULTIPLIER } from "@openfront/engine-api/game/CastleDefense";
 import { TeamCountConfig } from "@openfront/engine-api/Schemas";
 import { NukeType } from "@openfront/engine-api/StatsSchemas";
 import { Config } from "@openfront/engine-lib/configuration/Config";
@@ -37,6 +38,7 @@ export interface AttackLogicInput {
   /** A defense post owned by the defender is in range of the tile. */
   defenderHasDefensePost: boolean;
   defenderHasCastle?: boolean;
+  defenderHasFortifiedCastle?: boolean;
   /** Fraction of land tiles with fallout, or null if the tile has no fallout. */
   falloutRatio: number | null;
   /** Tiles on the attack front this tick (plus jitter); fixed for the tick. */
@@ -560,6 +562,10 @@ export class EngineConfig extends Config {
     if (defender !== null && input.defenderHasCastle) {
       mag *= this.defensePostDefenseBonus() * 2;
       tileCost *= this.defensePostSpeedBonus() * 2;
+      if (input.defenderHasFortifiedCastle) {
+        mag *= CASTLE_DEFENSE_LOSS_MULTIPLIER;
+        tileCost *= CASTLE_DEFENSE_TIME_MULTIPLIER;
+      }
     } else if (defender !== null && input.defenderHasDefensePost) {
       mag *= this.defensePostDefenseBonus();
       tileCost *= this.defensePostSpeedBonus();
