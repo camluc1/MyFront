@@ -48,6 +48,7 @@ import {
   UT_TRAIN,
   UT_TRANSPORT,
   UT_WARSHIP,
+  UT_SHIPYARD,
 } from "../../types";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import { cinematicQuality, enhancedVisualsEnabled } from "../EnhancedVisuals";
@@ -227,6 +228,7 @@ export class UnitPass {
   private uViewport: WebGLUniformLocation;
   private uFleetReadability: WebGLUniformLocation;
   private uFleetWarshipScale: WebGLUniformLocation;
+  private uFunctionalShipyard: WebGLUniformLocation;
   private uFunctionalSupportScale: WebGLUniformLocation;
   private uTrainScale: WebGLUniformLocation;
   private uUnitSize: WebGLUniformLocation;
@@ -262,6 +264,8 @@ export class UnitPass {
   /** Simulation tick duration in ms (Config.msPerTick). */
   private tickIntervalMs: number;
   private functionalSupportScale = 1.0;
+  private readonly researchByOwner = new Map<number, {hull: number, guns: number}>();
+  private functionalShipyard = false;
 
   private quadBuf: WebGLBuffer;
   private paletteTex: WebGLTexture;
@@ -340,6 +344,9 @@ export class UnitPass {
     this.uFunctionalSupportScale = gl.getUniformLocation(this.program,
       "uFunctionalSupportScale")!;
     this.functionalSupportScale = config.isFunctionalGeopolitics() ? 1.25 : 1.0;
+    this.functionalShipyard = config.isFunctionalGeopolitics();
+    this.uFunctionalShipyard = gl.getUniformLocation(this.program,
+      "uFunctionalShipyard")!;
     this.uTrainScale = gl.getUniformLocation(this.program, "uTrainScale")!;
     this.uUnitSize = gl.getUniformLocation(this.program, "uUnitSize")!;
     this.uFlickerSpeed = gl.getUniformLocation(this.program, "uFlickerSpeed")!;
@@ -515,6 +522,26 @@ export class UnitPass {
     }
     const now = performance.now();
     this.groundMotions.length = 0;
+    // Resolve physical shipyard research once before emitting vessel instances.
+    // Reuse this map to avoid repeated owner lookups per ship.
+    this.researchByOwner.clear();
+    if (this.functionalShipyard) {
+      for (const unit of units.values()) {
+        if (unit.unitType !== UT_SHIPYARD ||
+            !unit.isActive || unit.underConstruction ||
+            !unit.shipyardLevels) continue;
+        const current = this.researchByOwner.get(unit.ownerID);
+        if (current) {
+          current.hull = Math.max(current.hull, unit.shipyardLevels.warshipHealth);
+          current.guns = Math.max(current.guns, unit.shipyardLevels.warshipDamage);
+        } else {
+          this.researchByOwner.set(unit.ownerID, {
+            hull: unit.shipyardLevels.warshipHealth,
+            guns: unit.shipyardLevels.warshipDamage,
+          });
+        }
+      }
+    }
     this.groundCount = 0;
     this.missileCount = 0;
     this.smoothSegs.length = 0;
@@ -584,6 +611,15 @@ export class UnitPass {
       } else if (isFlicker) {
         // Untargetable nukes render dimmed so players can tell SAMs can't hit them
         flags = unit.targetable ? FLAG_FLICKER : FLAG_FLICKER_UNTARGETABLE;
+      }
+      // Existing flag byte: low 3 bits retain old combat/retreat/cargo flags,
+      // upper four bits carry two 0-3 shipyard tiers. No extra instance VBO,
+      // no new draw call, and the classic path preserves its exact bytes.
+      if (this.functionalShipyard && unit.unitType === UT_WARSHIP &&
+          unit.supportShip !== true) {
+        const research = this.researchByOwner.get(unit.ownerID);
+        if (research) flags |= ((research.guns & 3) << 3) |
+          ((research.hull & 3) << 5);
       }
       const isMissile = MISSILE_TYPES.has(unit.unitType);
 
@@ -737,6 +773,7 @@ export class UnitPass {
       us.fleetMaxEnlargement,
     );
     gl.uniform1f(this.uFleetWarshipScale, us.warshipScale);
+    gl.uniform1f(this.uFunctionalShipyard, this.functionalShipyard ? 1 : 0);
     gl.uniform1f(this.uFunctionalSupportScale, this.functionalSupportScale);
     gl.uniform1f(this.uFlickerSpeed, us.flickerSpeed);
     gl.uniform3f(this.uAngryColor, us.angryR, us.angryG, us.angryB);

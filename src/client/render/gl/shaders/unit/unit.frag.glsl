@@ -32,6 +32,8 @@ in vec2  vWorldPos;
 flat in float vAtlasCol;
 flat in float vOwnerID;
 flat in float vFlags;
+flat in float vResearchHull;
+flat in float vResearchGuns;
 flat in float vHash;
 flat in float vStrategic;
 flat in float vGlow;
@@ -617,6 +619,23 @@ void main() {
     }
     if (abs(vFlags-FLAG_ANGRY) > 0.1 && abs(vFlags-FLAG_RETREATING) > 0.1)
       color = mix(color,accent,mark*strategic);
+    // Small owner-colored warship plate/torret accents make researched fleets
+    // distinguishable at medium zoom without obscuring national affiliation.
+    // Drawn in the EXISTING hull fragment, not extra geometry or textures.
+    if (vAtlasCol > 1.5 && vAtlasCol < 2.5 &&
+        abs(vFlags-FLAG_SUPPORT_SHIP) > 0.1 &&
+        (vResearchHull > 0.1 || vResearchGuns > 0.1)) {
+      float deck = 1.0-smoothstep(0.01,0.02+aa,
+        abs(abs(q.y)-0.205));
+      deck *= 1.0-smoothstep(0.40,0.58,abs(q.x));
+      float gunEmblem = 1.0-smoothstep(0.018,0.038+aa,
+        abs(abs(q.x)-0.34));
+      gunEmblem *= 1.0-smoothstep(0.10,0.20,abs(q.y));
+      float hullStrength = min(0.60,vResearchHull*0.17);
+      float gunStrength = min(0.55,vResearchGuns*0.16);
+      color = mix(color,vec3(0.77,0.94,0.99),deck*hullStrength);
+      color = mix(color,vec3(0.99,0.84,0.42),gunEmblem*gunStrength);
+    }
     // In place of the old sonar circles, subtle green deck-service strips
     // slowly breathe while the mobile dock is active. No external halo.
     if (vAtlasCol > 1.5 && vAtlasCol < 2.5 &&

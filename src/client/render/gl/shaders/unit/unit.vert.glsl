@@ -16,6 +16,7 @@ uniform vec2 uViewport;
 uniform vec4 uFleetReadability; // minimum hull pixels: transport, cargo, warship; maximum enlargement
 uniform float uFleetWarshipScale;
 uniform float uFunctionalSupportScale;
+uniform float uFunctionalShipyard;
 uniform float uHBombGlowScale; // quad enlargement for the hydrogen bomb glow halo
 
 out vec2  vQuadPos;     // quad coords [0,1] — drives the radial glow falloff
@@ -23,6 +24,8 @@ out vec2  vCellUV;      // sprite cell coords; the central 1/scale region is the
 out vec2  vWorldPos;    // world-space tile coords — drives the train effect's gradient
 flat out float vAtlasCol;
 flat out float vOwnerID;
+flat out float vResearchHull;
+flat out float vResearchGuns;
 flat out float vFlags;  // 0.0 = normal, 1.0 = flicker, 2.0 = angry
 flat out float vHash;   // per-instance hash for flicker phase offset
 flat out float vStrategic;
@@ -34,7 +37,11 @@ void main() {
   vOwnerID = aInstPos.z;
 
   float atlasCol = aInstFlags.x;
-  vFlags = aInstFlags.y;
+  // Research tiers are packed into spare high bits of the existing flag byte.
+  float rawFlags = aInstFlags.y;
+  vFlags = uFunctionalShipyard > 0.5 ? mod(rawFlags, 8.0) : rawFlags;
+  vResearchGuns = uFunctionalShipyard > 0.5 ? mod(floor(rawFlags / 8.0), 4.0) : 0.0;
+  vResearchHull = uFunctionalShipyard > 0.5 ? mod(floor(rawFlags / 32.0), 4.0) : 0.0;
   vAtlasCol = atlasCol;
 
   // Per-instance hash so each unit flickers independently. Computed CPU-side
