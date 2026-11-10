@@ -1,4 +1,5 @@
 import { TileRef } from "@openfront/engine-api/game/GameMap";
+import { isAircraftType } from "@openfront/engine-api/game/Aircraft";
 import { MessageType, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { NukeType } from "@openfront/engine-api/StatsSchemas";
 import {
@@ -28,6 +29,9 @@ const INTERCEPTED_UNIT_TRANSLATION_KEYS: Partial<Record<UnitType, string>> = {
   [UnitType.HydrogenBomb]: "unit_type.hydrogen_bomb",
   [UnitType.TsarBomba]: "unit_type.tsar_bomba",
   [UnitType.MIRVWarhead]: "unit_type.mirv",
+  [UnitType.AttackAircraft]: "unit_type.attack_aircraft",
+  [UnitType.BomberAircraft]: "unit_type.bomber_aircraft",
+  [UnitType.FighterAircraft]: "unit_type.fighter_aircraft",
 };
 
 export class SAMMissileExecution implements Execution {
@@ -71,7 +75,7 @@ export class SAMMissileExecution implements Execution {
       !this.target.isActive() ||
       !this.ownerUnit.isActive() ||
       this.target.owner() === this.SAMMissile.owner() ||
-      !nukesWhitelist.includes(this.target.type())
+      (!nukesWhitelist.includes(this.target.type()) && !isAircraftType(this.target.type()))
     ) {
       // Clear the flag so other SAMs can re-target this nuke
       if (this.target.isActive()) {
@@ -81,6 +85,9 @@ export class SAMMissileExecution implements Execution {
       this.active = false;
       return;
     }
+    // Aircraft move between simulation ticks. Home on the live position rather
+    // than the tile the plane occupied when the SAM launched.
+    if (isAircraftType(this.target.type())) this.targetTile = this.target.tile();
     for (let i = 0; i < this.speed; i++) {
       const result = this.pathFinder.next(
         this.SAMMissile.tile(),
@@ -103,9 +110,9 @@ export class SAMMissileExecution implements Execution {
         this.SAMMissile.delete(false);
 
         // Record stats
-        this.mg
-          .stats()
-          .bombIntercept(this._owner, this.target.type() as NukeType, 1);
+        if (!isAircraftType(this.target.type())) {
+          this.mg.stats().bombIntercept(this._owner, this.target.type() as NukeType, 1);
+        }
         return;
       } else if (result.status === PathStatus.NEXT) {
         this.SAMMissile.move(result.node);
