@@ -56,7 +56,8 @@ export class WarshipExecution implements Execution {
   private assignedRepairShipIDs: number[] = [];
 
   constructor(
-    private input: (UnitParams<UnitType.Warship> & OwnerComp) | Unit,
+    private input: (UnitParams<UnitType.Warship> & OwnerComp &
+      { type?: UnitType.Warship | UnitType.Bismarck }) | Unit,
   ) {}
 
   init(mg: Game, ticks: number): void {
@@ -67,11 +68,13 @@ export class WarshipExecution implements Execution {
       this.warship = this.input;
     } else {
       const support = this.input.supportShip === true;
+      const type = this.input.type === UnitType.Bismarck &&
+        mg.config().isFunctionalGeopolitics() ? UnitType.Bismarck : UnitType.Warship;
       if (support && (mg.config().gameConfig().geopolitics !== true ||
           (!mg.config().infiniteGold() && this.input.owner.gold() < SUPPORT_SHIP_COST))) return;
-      const baseCost = mg.unitInfo(UnitType.Warship).cost(mg, this.input.owner);
+      const baseCost = mg.unitInfo(type).cost(mg, this.input.owner);
       const spawn = this.input.owner.canBuild(
-        UnitType.Warship,
+        type,
         this.input.patrolTile,
       );
       if (spawn === false) {
@@ -80,11 +83,9 @@ export class WarshipExecution implements Execution {
         );
         return;
       }
-      this.warship = this.input.owner.buildUnit(
-        UnitType.Warship,
-        spawn,
-        this.input,
-      );
+      this.warship = type === UnitType.Bismarck
+        ? this.input.owner.buildUnit(type, spawn, { patrolTile: this.input.patrolTile })
+        : this.input.owner.buildUnit(type, spawn, this.input);
       // buildUnit already charged the ordinary warship amount.
       if (support && !mg.config().infiniteGold()) {
         this.input.owner.removeGold(SUPPORT_SHIP_COST - baseCost);
@@ -199,7 +200,8 @@ export class WarshipExecution implements Execution {
     }
 
     // Priority 2: Fight enemy warship if in range
-    if (this.warship.targetUnit()?.type() === UnitType.Warship) {
+    if (this.warship.targetUnit()?.type() === UnitType.Warship ||
+        this.warship.targetUnit()?.type() === UnitType.Bismarck) {
       this.shootTarget();
       this.patrol();
       return;
@@ -256,7 +258,8 @@ export class WarshipExecution implements Execution {
     const radiusSquared = SUPPORT_SHIP_RADIUS * SUPPORT_SHIP_RADIUS;
     const repairHP = this.warship.tile() === this.warship.warshipState().patrolTile ? 4 : 1;
     const candidates = this.mg.nearbyUnits(
-      this.warship.tile(), SUPPORT_SHIP_RADIUS, [UnitType.Warship],
+      this.warship.tile(), SUPPORT_SHIP_RADIUS,
+      [UnitType.Warship, UnitType.Bismarck],
     ).filter(({ unit, distSquared }) =>
       unit !== this.warship && unit.owner() === owner && unit.isActive() &&
       !unit.isMarkedForDeletion() && !unit.warshipState().supportShip &&
@@ -395,7 +398,8 @@ export class WarshipExecution implements Execution {
     // retreats at the same relative health as a fresh one. Integer math.
     const retreatThreshold = Math.floor(
       (this.warship.maxHealth() *
-        this.mg.config().warshipRetreatHealthPercent()) /
+        (this.warship.type() === UnitType.Bismarck ? 40 :
+          this.mg.config().warshipRetreatHealthPercent())) /
         100,
     );
     if (healthBeforeHealing >= retreatThreshold) {
@@ -430,12 +434,14 @@ export class WarshipExecution implements Execution {
   }
 
   private findRetreatAggroTarget(): Unit | undefined {
-    return this.findBestTarget([UnitType.TransportShip, UnitType.Warship]);
+    return this.findBestTarget([UnitType.TransportShip, UnitType.Warship,
+      UnitType.Bismarck]);
   }
 
   private findTargetUnit(): Unit | undefined {
     return this.findBestTarget(
-      [UnitType.TransportShip, UnitType.Warship, UnitType.TradeShip],
+      [UnitType.TransportShip, UnitType.Warship, UnitType.Bismarck,
+        UnitType.TradeShip],
       true,
     );
   }
@@ -478,7 +484,7 @@ export class WarshipExecution implements Execution {
         unit.owner() === owner ||
         !owner.canAttackPlayer(unit.owner(), true) ||
         this.alreadySentShell.has(unit) ||
-        (unit.type() === UnitType.Warship &&
+        ((unit.type() === UnitType.Warship || unit.type() === UnitType.Bismarck) &&
           unit.warshipState().state === "docked")
       ) {
         continue;
@@ -520,7 +526,8 @@ export class WarshipExecution implements Execution {
       }
 
       const typePriority =
-        type === UnitType.TransportShip ? 0 : type === UnitType.Warship ? 1 : 2;
+        type === UnitType.TransportShip ? 0 :
+          (type === UnitType.Warship || type === UnitType.Bismarck) ? 1 : 2;
 
       if (
         bestUnit === undefined ||
@@ -744,7 +751,8 @@ export class WarshipExecution implements Execution {
     const owner = this.warship.owner();
 
     return this.mg
-      .nearbyUnits(port.tile(), dockingRadius, [UnitType.Warship])
+      .nearbyUnits(port.tile(), dockingRadius,
+        [UnitType.Warship, UnitType.Bismarck])
       .filter(({ unit: ship }) => {
         if (excludeShip && ship === excludeShip) return false;
         if (ship.owner() !== owner) return false;
@@ -1061,6 +1069,7 @@ export class WarshipExecution implements Execution {
             owner: w.player(this.input.owner),
             patrolTile: this.input.patrolTile,
             supportShip: this.input.supportShip,
+            type: this.input.type,
           },
       initialized: this.mg !== undefined,
       random: this.random === undefined ? null : w.random(this.random),
@@ -1086,7 +1095,8 @@ export class WarshipExecution implements Execution {
     this.input =
       "unit" in s.input
         ? r.unit(s.input.unit)
-        : { owner: r.player(s.input.owner), patrolTile: s.input.patrolTile, supportShip: s.input.supportShip };
+        : { owner: r.player(s.input.owner), patrolTile: s.input.patrolTile,
+            supportShip: s.input.supportShip, type: s.input.type };
     if (s.initialized) this.mg = r.game;
     if (s.random !== null) this.random = r.random(s.random);
     if (s.warship !== null) this.warship = r.unit(s.warship);
@@ -1108,7 +1118,8 @@ const WarshipExecutionStateSchema = z.object({
   /** An existing warship, or the params to build one in init(). */
   input: z.union([
     z.object({ unit: zRef() }),
-    z.object({ owner: zPlayerRef(), patrolTile: zTile(), supportShip: z.boolean().optional() }),
+    z.object({ owner: zPlayerRef(), patrolTile: zTile(), supportShip: z.boolean().optional(),
+      type: z.enum([UnitType.Warship, UnitType.Bismarck]).optional() }),
   ]),
   initialized: z.boolean(),
   random: zRandom().nullable(),

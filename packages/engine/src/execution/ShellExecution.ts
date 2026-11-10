@@ -82,7 +82,8 @@ export class ShellExecution implements Execution {
           targetWasActive &&
           !this.target.isActive() &&
           this.ownerUnit.isActive() &&
-          this.ownerUnit.type() === UnitType.Warship
+          (this.ownerUnit.type() === UnitType.Warship ||
+           this.ownerUnit.type() === UnitType.Bismarck)
         ) {
           this.ownerUnit.recordKill(targetType);
         }
@@ -115,13 +116,18 @@ export class ShellExecution implements Execution {
     // A purchased functional shipyard improves EVERY non-support warship's
     // existing shells (including vessels spawned before the research).
     if (this.mg.config().isFunctionalGeopolitics() &&
-        this.ownerUnit.type() === UnitType.Warship &&
+        (this.ownerUnit.type() === UnitType.Warship ||
+         this.ownerUnit.type() === UnitType.Bismarck) &&
         !this.ownerUnit.warshipState().supportShip) {
       damageMultiplier = Math.floor(
         damageMultiplier *
         (100 + 10 * shipyardLevel(this.ownerUnit.owner(), "warshipDamage")) / 100,
       );
     }
+    // Armored battleship firepower bonus, deterministic integer scaling.
+    if (this.mg.config().isFunctionalGeopolitics() &&
+        this.ownerUnit.type() === UnitType.Bismarck)
+      damageMultiplier = Math.floor(damageMultiplier * 120 / 100);
     return Math.round((baseDamage / 250) * damageMultiplier);
   }
 

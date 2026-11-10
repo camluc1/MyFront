@@ -141,6 +141,12 @@ export class ConstructionExecution implements Execution {
       case UnitType.MIRV:
         this.mg.addExecution(new MirvExecution(player, this.tile));
         break;
+      case UnitType.Bismarck:
+        if (!this.mg.config().isFunctionalGeopolitics()) break;
+        this.mg.addExecution(new WarshipExecution({
+          owner: player, patrolTile: this.tile, type: UnitType.Bismarck,
+        }));
+        break;
       case UnitType.Warship:
         if (this.supportShip && this.mg.config().gameConfig().geopolitics !== true) break;
         this.mg.addExecution(
