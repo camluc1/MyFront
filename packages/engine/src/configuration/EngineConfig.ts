@@ -343,6 +343,14 @@ export class EngineConfig extends Config {
     switch (type) {
       case UnitType.Bismarck:
         return this.costWrapper(() => 10_000_000, UnitType.Bismarck);
+      case UnitType.Airfield:
+        return this.costWrapper(() => 3_000_000, UnitType.Airfield);
+      case UnitType.AttackAircraft:
+        return this.costWrapper(() => 1_000_000, UnitType.AttackAircraft);
+      case UnitType.BomberAircraft:
+        return this.costWrapper(() => 2_000_000, UnitType.BomberAircraft);
+      case UnitType.FighterAircraft:
+        return this.costWrapper(() => 1_500_000, UnitType.FighterAircraft);
       case UnitType.Warship:
         return this.costWrapper(
           (numUnits: number) => Math.min(1_000_000, (numUnits + 1) * 250_000),
