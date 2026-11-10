@@ -15,6 +15,9 @@ export const UT_TRANSPORT = "Transport" as const;
 export const UT_TRADE_SHIP = "Trade Ship" as const;
 export const UT_WARSHIP = "Warship" as const;
 export const UT_BISMARCK = "Bismarck" as const;
+export const UT_ATTACK_AIRCRAFT = "Attack Aircraft" as const;
+export const UT_BOMBER_AIRCRAFT = "Bomber Aircraft" as const;
+export const UT_FIGHTER_AIRCRAFT = "Fighter Aircraft" as const;
 export const UT_ATOM_BOMB = "Atom Bomb" as const;
 export const UT_HYDROGEN_BOMB = "Hydrogen Bomb" as const;
 export const UT_TSAR_BOMBA = "Tsar Bomba" as const;
@@ -37,6 +40,7 @@ export const UT_CASTLE = "Castle" as const;
 export const UT_IRON_DOME = "Iron Dome" as const;
 export const UT_CAPITAL = "Capital" as const;
 export const UT_SHIPYARD = "Shipyard" as const;
+export const UT_AIRFIELD = "Airfield" as const;
 export const UT_SAM_LAUNCHER = "SAM Launcher" as const;
 export const UT_MISSILE_SILO = "Missile Silo" as const;
 
@@ -53,6 +57,7 @@ export const STRUCTURE_TYPES: ReadonlySet<string> = new Set([
   UT_IRON_DOME,
   UT_CAPITAL,
   UT_SHIPYARD,
+  UT_AIRFIELD,
   UT_SAM_LAUNCHER,
   UT_MISSILE_SILO,
   UT_FARM,
@@ -131,4 +136,8 @@ export const ALL_UNIT_TYPES = [
   UT_SHIPYARD,
   UT_BISMARCK,
   UT_TSAR_BOMBA,
+  UT_AIRFIELD,
+  UT_ATTACK_AIRCRAFT,
+  UT_BOMBER_AIRCRAFT,
+  UT_FIGHTER_AIRCRAFT,
 ] as const;
