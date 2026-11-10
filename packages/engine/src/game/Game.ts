@@ -84,6 +84,11 @@ export interface UnitParamsMap {
     trajectory: TileRef[];
   };
 
+  [UnitType.TsarBomba]: {
+    targetTile?: number;
+    trajectory: TileRef[];
+  };
+
   [UnitType.MIRV]: {
     targetTile?: number;
     targetPlayer?: Player | TerraNullius;
