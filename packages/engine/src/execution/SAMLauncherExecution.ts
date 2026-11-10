@@ -1,5 +1,5 @@
 import { TileRef } from "@openfront/engine-api/game/GameMap";
-import { GameType, UnitType } from "@openfront/engine-api/game/GameTypes";
+import { Aircraft, GameType, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import {
   zInt,
@@ -392,31 +392,51 @@ export class SAMLauncherExecution implements Execution {
     // them (unit ids are unique). unitCount(type) is memoised per unit-list version — one shared
     // walk a tick, not one a launcher — and unlike units(type) a hit allocates nothing. A nuke's
     // level is always 1, so a zero count is exactly an empty list.
-    if (
-      this.mg.unitCount(UnitType.AtomBomb) === 0 &&
-      this.mg.unitCount(UnitType.HydrogenBomb) === 0 &&
-      this.mg.unitCount(UnitType.TsarBomba) === 0 &&
-      this.mg.unitCount(UnitType.MIRVWarhead) === 0
-    ) {
+    const hasNukes = this.mg.unitCount(UnitType.AtomBomb) > 0 ||
+      this.mg.unitCount(UnitType.HydrogenBomb) > 0 ||
+      this.mg.unitCount(UnitType.TsarBomba) > 0 ||
+      this.mg.unitCount(UnitType.MIRVWarhead) > 0;
+    // Nuclear targets always get first shot; aircraft are considered only
+    // after the full nuclear targeting pass has reserved its interceptors.
+    if (hasNukes) {
+      const targets = this.targetingSystem.getValidTargets(ticks);
+      for (const target of targets) {
+        if (this.sam.isInCooldown()) break;
+        this.sam.launch();
+        target.unit.setTargetedBySAM(true);
+        this.mg.addExecution(new SAMMissileExecution(
+          this.sam.tile(), this.sam.owner(), this.sam,
+          target.unit, target.tile,
+        ));
+      }
+    }
+    if (!this.mg.config().isFunctionalGeopolitics() ||
+        this.sam.isInCooldown() ||
+        (this.mg.unitCount(UnitType.AttackAircraft) === 0 &&
+         this.mg.unitCount(UnitType.BomberAircraft) === 0 &&
+         this.mg.unitCount(UnitType.FighterAircraft) === 0)) {
       return;
     }
-    // target is already filtered to exclude nukes targeted by other SAMs
-    const targets = this.targetingSystem.getValidTargets(ticks);
-    for (const target of targets) {
-      if (this.sam.isInCooldown()) {
-        break;
-      }
+    // The aircraft search is bounded by the *actual* launcher range,
+    // so adding air defense never creates a global per-tick plane scan.
+    const air = this.mg.nearbyUnits(this.sam.tile(),
+      this.mg.config().dynamicSamRange(this.sam, ticks),
+      Aircraft.types,
+      ({ unit }) => {
+        if (!isUnit(unit) || !unit.isActive() || unit.targetedBySAM() ||
+            unit.owner() === this.sam!.owner()) return false;
+        return !this.sam!.owner().isFriendly(unit.owner());
+      });
+    air.sort((a, b) => a.distSquared - b.distSquared ||
+      a.unit.id() - b.unit.id());
+    for (const target of air) {
+      if (this.sam.isInCooldown()) break;
       this.sam.launch();
       target.unit.setTargetedBySAM(true);
-      this.mg.addExecution(
-        new SAMMissileExecution(
-          this.sam.tile(),
-          this.sam.owner(),
-          this.sam,
-          target.unit,
-          target.tile,
-        ),
-      );
+      this.mg.addExecution(new SAMMissileExecution(
+        this.sam.tile(), this.sam.owner(), this.sam,
+        target.unit, target.unit.tile(),
+      ));
     }
   }
 
