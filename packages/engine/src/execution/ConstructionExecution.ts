@@ -158,6 +158,7 @@ export class ConstructionExecution implements Execution {
         break;
       case UnitType.Castle:
       case UnitType.IronDome:
+      case UnitType.Shipyard:
         // Passive spatial defenses require no execution/cooldown.
         break;
       case UnitType.SAMLauncher:
@@ -192,6 +193,7 @@ export class ConstructionExecution implements Execution {
       case UnitType.DefensePost:
       case UnitType.Castle:
       case UnitType.IronDome:
+      case UnitType.Shipyard:
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:

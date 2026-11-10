@@ -1,4 +1,5 @@
 import { GameMap, TileRef } from "@openfront/engine-api/game/GameMap";
+import type { ShipyardLevels, ShipyardTrack } from "@openfront/engine-api/game/Shipyard";
 import {
   AllianceInfo,
   AllPlayers,
@@ -115,6 +116,7 @@ export interface UnitParamsMap {
   [UnitType.Castle]: Record<string, never>;
   [UnitType.IronDome]: Record<string, never>;
   [UnitType.Capital]: Record<string, never>;
+  [UnitType.Shipyard]: Record<string, never>;
 
   [UnitType.SAMLauncher]: Record<string, never>;
 
@@ -227,6 +229,8 @@ export interface Unit extends UnitLike {
   touch(): void;
   castleDefenseState(): { activeUntilTick: number; cooldownUntilTick: number };
   activateCastleDefense(tick: number): void;
+  shipyardLevels(): ShipyardLevels | undefined;
+  upgradeShipyard(track: ShipyardTrack): boolean;
   hash(): number;
   toUpdate(): UnitUpdate;
   hasTrainStation(): boolean;

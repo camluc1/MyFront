@@ -514,6 +514,8 @@ export const UpgradeStructureIntentSchema = z.object({
   unit: z.enum(UnitType),
   unitId: zb.uint(),
   amount: zb.uint({ min: 1, max: MAX_UPGRADE_AMOUNT }).optional(),
+  shipyardTrack: z.enum(["merchantSpeed", "transportCapacity",
+    "warshipHealth", "warshipDamage"]).optional(),
 });
 
 export const CancelAttackIntentSchema = z.object({

@@ -1,4 +1,5 @@
 import { DiplomacyState } from "../Geopolitics";
+import type { ShipyardLevels } from "./Shipyard";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import { TileRef } from "./GameMap";
 import {
@@ -240,6 +241,7 @@ export interface UnitUpdate {
   samUpgrade?: SamLauncherState;
   /** Simulation tick bounds for the Geopolitics castle defensive state. */
   castleDefense?: { activeUntilTick: number; cooldownUntilTick: number };
+  shipyardLevels?: ShipyardLevels;
 }
 
 export interface AttackUpdate {
