@@ -88,7 +88,7 @@ describe("Functional Geopolitics Bismarck", () => {
     const ship = a.buildUnit(UnitType.Bismarck, tile, { patrolTile: tile });
     game.addExecution(new WarshipExecution(ship));
     for (let i = 0; i < 55; i++) game.executeNextTick();
-    ship.modifyHealth(-2550);
+    ship.modifyHealth(-3300); // 1500/4800 HP, below the 40% retreat threshold
     for (let i = 0; i < 15; i++) game.executeNextTick();
     expect(ship.warshipState().state).not.toBe("patrolling");
   });
