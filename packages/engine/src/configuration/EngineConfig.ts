@@ -341,6 +341,8 @@ export class EngineConfig extends Config {
 
   private unitCost(type: UnitType): EngineUnitInfo["cost"] {
     switch (type) {
+      case UnitType.Bismarck:
+        return this.costWrapper(() => 10_000_000, UnitType.Bismarck);
       case UnitType.Warship:
         return this.costWrapper(
           (numUnits: number) => Math.min(1_000_000, (numUnits + 1) * 250_000),

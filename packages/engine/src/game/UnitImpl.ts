@@ -123,7 +123,7 @@ export class UnitImpl implements Unit {
         veterancyProgress: 0,
       };
     }
-    if (this._type === UnitType.Warship &&
+    if ((this._type === UnitType.Warship || this._type === UnitType.Bismarck) &&
         this.mg.config().isFunctionalGeopolitics() &&
         shipyardLevel(this._owner, "warshipHealth") > 0) {
       this._health = toInt(this.maxHealth());
@@ -136,6 +136,7 @@ export class UnitImpl implements Unit {
 
     switch (this._type) {
       case UnitType.Warship:
+      case UnitType.Bismarck:
       case UnitType.Port:
       case UnitType.MissileSilo:
       case UnitType.DefensePost:
@@ -306,6 +307,7 @@ export class UnitImpl implements Unit {
     this.clearPendingDeletion();
     switch (this._type) {
       case UnitType.Warship:
+      case UnitType.Bismarck:
       case UnitType.Port:
       case UnitType.MissileSilo:
       case UnitType.DefensePost:
@@ -352,7 +354,7 @@ export class UnitImpl implements Unit {
       (this._type === UnitType.Warship &&
        this._warshipState?.supportShip === true &&
        this.mg.config().isFunctionalGeopolitics() ? 5 : 1);
-    if (this._type === UnitType.Warship &&
+    if ((this._type === UnitType.Warship || this._type === UnitType.Bismarck) &&
         this._warshipState?.supportShip !== true &&
         this.mg.config().isFunctionalGeopolitics()) {
       base = Math.floor(base * (100 + 15 *

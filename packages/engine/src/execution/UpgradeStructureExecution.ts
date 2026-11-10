@@ -48,7 +48,7 @@ export class UpgradeStructureExecution implements Execution {
         const cost = shipyardUpgradePrice(current);
         if (cost === null || this.player.gold() < cost) break;
         const ships = this.shipyardTrack === "warshipHealth"
-          ? this.player.units(UnitType.Warship).filter((s) =>
+          ? this.player.units(UnitType.Warship, UnitType.Bismarck).filter((s) =>
             s.isActive() && !s.warshipState().supportShip).map((s) =>
               ({ ship: s, previousMax: s.maxHealth() })) : [];
         if (!this.structure.upgradeShipyard(this.shipyardTrack)) break;

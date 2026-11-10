@@ -1699,6 +1699,7 @@ export class PlayerImpl implements Player {
       case UnitType.Shipyard:
         return this.portSpawn(targetTile, validTiles);
       case UnitType.Warship:
+      case UnitType.Bismarck:
         return this.warshipSpawn(targetTile);
       case UnitType.Shell:
       case UnitType.SAMMissile:

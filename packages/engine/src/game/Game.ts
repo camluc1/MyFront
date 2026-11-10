@@ -64,6 +64,7 @@ export interface UnitParamsMap {
     patrolTile: TileRef;
     supportShip?: boolean;
   };
+  [UnitType.Bismarck]: { patrolTile: TileRef };
 
   [UnitType.Shell]: Record<string, never>;
 

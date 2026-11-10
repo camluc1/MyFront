@@ -191,7 +191,8 @@ export class Config {
   }
 
   isUnitDisabled(unitType: UnitType): boolean {
-    if ((unitType === UnitType.Capital || unitType === UnitType.Shipyard) &&
+    if ((unitType === UnitType.Capital || unitType === UnitType.Shipyard ||
+         unitType === UnitType.Bismarck) &&
         !this.isFunctionalGeopolitics())
       return true;
     if ((unitType === UnitType.Castle || unitType === UnitType.IronDome) &&
@@ -237,6 +238,9 @@ export class Config {
     switch (type) {
       case UnitType.Warship:
         info = { maxHealth: 1000 };
+        break;
+      case UnitType.Bismarck:
+        info = { maxHealth: 4000 };
         break;
       case UnitType.Shell:
         info = { damage: 250 };

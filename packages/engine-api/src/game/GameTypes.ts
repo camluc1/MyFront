@@ -226,6 +226,8 @@ export enum UnitType {
   Mine = "Mine",
   OilWell = "Oil Well",
   GasPlant = "Gas Plant",
+  /** Experimental functional-only armored battleship, packed ID appended. */
+  Bismarck = "Bismarck",
 }
 
 export enum TrainType {
@@ -246,6 +248,7 @@ export const BuildableAttacks = unitTypeGroup([
   UnitType.HydrogenBomb,
   UnitType.MIRV,
   UnitType.Warship,
+  UnitType.Bismarck,
 ] as const);
 
 export const Structures = unitTypeGroup([
