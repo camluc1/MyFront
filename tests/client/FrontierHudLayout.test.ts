@@ -8,7 +8,7 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-function mountHUD(options: { disabled?: UnitType[]; geopolitics?: boolean; tutorial?: boolean } = {}) {
+function mountHUD(options: { disabled?: UnitType[]; geopolitics?: boolean; functional?: boolean; tutorial?: boolean } = {}) {
   const player = {
     isAlive: () => true,
     gold: () => 50_000_000n,
@@ -19,7 +19,16 @@ function mountHUD(options: { disabled?: UnitType[]; geopolitics?: boolean; tutor
     myPlayer: () => player,
     inSpawnPhase: () => false,
     config: () => ({
-      isUnitDisabled: (unit: UnitType) => options.disabled?.includes(unit) ?? false,
+      // Production hides experimental units outside the *explicit* functional switch.
+      isUnitDisabled: (unit: UnitType) => (
+        (options.disabled?.includes(unit) ?? false) ||
+        (!options.functional || !options.geopolitics) && [
+          UnitType.TsarBomba, UnitType.Bismarck, UnitType.Airfield,
+          UnitType.AttackAircraft, UnitType.BomberAircraft,
+          UnitType.FighterAircraft,
+        ].includes(unit)
+      ),
+      isFunctionalGeopolitics: () => !!(options.functional && options.geopolitics),
       gameConfig: () => ({
         geopolitics: options.geopolitics ?? false,
         tutorial: options.tutorial ?? false,
@@ -46,9 +55,21 @@ describe("Frontier bottom HUD categories", () => {
     expect(row?.querySelectorAll(":scope > div")).toHaveLength(6);
     expect(hud.querySelectorAll(".unit-display-arsenal .unit-display-grid > div")).toHaveLength(3);
     expect(hud.querySelectorAll('[data-build-category]')).toHaveLength(4);
+    expect(hud.querySelector('[data-build-category="aviation"]')).toBeNull();
     hud.querySelector<HTMLButtonElement>('[data-build-category="defense"]')?.click();
     await hud.updateComplete;
     expect(hud.querySelectorAll(".unit-display-scroll .unit-display-grid > div")).toHaveLength(5);
+    hud.remove();
+  });
+
+  it("exposes aviation and the fourth nuclear option only when Functional Geopolitics is on", async () => {
+    const hud = mountHUD({ geopolitics: true, functional: true });
+    await hud.updateComplete;
+    expect(hud.querySelectorAll(".unit-display-arsenal .unit-display-grid > div")).toHaveLength(4);
+    expect(hud.querySelector('[data-build-category="aviation"]')).not.toBeNull();
+    hud.querySelector<HTMLButtonElement>('[data-build-category="aviation"]')?.click();
+    await hud.updateComplete;
+    expect(hud.querySelectorAll(".unit-display-scroll .unit-display-grid > div")).toHaveLength(4);
     hud.remove();
   });
 
