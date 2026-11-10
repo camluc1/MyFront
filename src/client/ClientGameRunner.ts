@@ -1083,6 +1083,15 @@ export class ClientGameRunner {
       });
       this.gameView.update(gu);
       this.webglBuilder?.update(this.gameView);
+      // A dome flash is tied to the authoritative NukeExecution block event.
+      // No synthetic missile detections or per-tick visual scans are needed.
+      for (const intercepted of gu.updates[GameUpdateType.IronDomeInterception] ?? []) {
+        this.webglBuilder?.triggerIronDomeInterception(
+          this.gameView.x(intercepted.tile),
+          this.gameView.y(intercepted.tile),
+          intercepted.ownerID,
+        );
+      }
       this.renderer.tick();
       if (gu.tickExecutionDuration !== undefined) {
         this.metrics?.recordTickExecution(gu.tickExecutionDuration);

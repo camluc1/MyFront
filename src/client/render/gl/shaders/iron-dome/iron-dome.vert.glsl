@@ -2,10 +2,13 @@
 precision highp float;
 // (x,y,ownerID,active). Two narrow contours for each protected dome.
 layout(location=0) in vec4 aDome;
+layout(location=1) in float aPulseStart;
 uniform mat3 uCamera;
+uniform float uTime;
 out float vSide;
 out float vPhase;
 out float vInner;
+out float vInterceptPulse;
 flat out float vOwner;
 const float PI2 = 6.28318530718;
 const float SEGMENTS = 128.0;
@@ -28,4 +31,7 @@ void main() {
   vPhase=phase;
   vInner=float(ring);
   vOwner=aDome.z;
+  float age=uTime-aPulseStart;
+  vInterceptPulse = (aPulseStart>0.0 && age>=0.0 && age<1.1)
+    ? 1.0-smoothstep(0.04,1.1,age) : 0.0;
 }

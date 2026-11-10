@@ -169,6 +169,11 @@ export class WebGLFrameBuilder {
     this.patternData = new Uint8Array(PALETTE_SIZE * 1024);
   }
 
+  /** Visual-only: a nuclear projectile actually blocked by an Iron Dome. */
+  triggerIronDomeInterception(tileX: number, tileY: number, ownerID: number): void {
+    this.view.triggerIronDomeInterception(tileX, tileY, ownerID);
+  }
+
   /** Drop internal caches to force a full re-upload of state on the next update(). */
   clearCaches(): void {
     this.knownSmallIDs.clear();

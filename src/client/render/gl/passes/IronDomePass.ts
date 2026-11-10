@@ -17,7 +17,7 @@ import fragSrc from "../shaders/iron-dome/iron-dome.frag.glsl?raw";
 
 const SEGMENTS = 128;
 const VERTICES = SEGMENTS * 6 * 2;
-const FIELDS = 4;
+const FIELDS = 5; // x, y, owner ID, radius, last real interception time
 
 /**
  * Camera is a column-major 3x3 world-to-clip affine transform. A world-space
@@ -50,7 +50,7 @@ export class IronDomePass {
   private readonly uTime: WebGLUniformLocation;
   private readonly uLocalPlayerID: WebGLUniformLocation;
   private readonly start = performance.now();
-  /** Flat x,y,ownerID,radius array, rebuilt only when structures change. */
+  /** Flat x,y,ownerID,radius,pulseStart array, rebuilt only on changes. */
   private readonly domes: number[] = [];
   /** Reused arrays avoid per-frame allocations. */
   private readonly visibleKeys: number[] = [];
@@ -72,14 +72,28 @@ export class IronDomePass {
     gl.bindVertexArray(this.vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuf.buffer);
     gl.enableVertexAttribArray(0);
-    gl.vertexAttribPointer(0, FIELDS, gl.FLOAT, false, FIELDS * 4, 0);
+    gl.vertexAttribPointer(0, 4, gl.FLOAT, false, FIELDS * 4, 0);
     gl.vertexAttribDivisor(0, 1);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 1, gl.FLOAT, false, FIELDS * 4, 4 * 4);
+    gl.vertexAttribDivisor(1, 1);
     gl.bindVertexArray(null);
   }
 
   setLocalPlayer(id: number): void { this.localPlayerID = id; }
 
   updateStructures(units: Map<number, UnitState>): void {
+    // Structure changes must not erase a flash that was just triggered.
+    // Keep the last start time by immutable owner-and-position identity.
+    const previous = new Map<string, number>();
+    for (let i = 0; i < this.domes.length; i += FIELDS) {
+      if (this.domes[i + 4] > 0) {
+        previous.set(
+          `${this.domes[i + 2]}:${this.domes[i]}:${this.domes[i + 1]}`,
+          this.domes[i + 4],
+        );
+      }
+    }
     this.domes.length = 0;
     for (const u of units.values()) {
       if (u.unitType !== UT_IRON_DOME || !u.isActive || u.underConstruction)
@@ -91,8 +105,32 @@ export class IronDomePass {
         y + 0.5,
         u.ownerID,
         Math.round(samRange(Math.max(1, u.level)) * 1.2),
+        previous.get(`${u.ownerID}:${x + 0.5}:${y + 0.5}`) ?? 0,
       );
     }
+    this.sourceDirty = true;
+  }
+
+  /** Pulse precisely the closest same-owner dome that covers the real block. */
+  triggerInterception(tileX: number, tileY: number, ownerID: number): void {
+    const x = tileX + 0.5, y = tileY + 0.5;
+    let best = -1, bestDistance = Infinity;
+    for (let i = 0; i < this.domes.length; i += FIELDS) {
+      if (this.domes[i + 2] !== ownerID) continue;
+      const dx = x - this.domes[i], dy = y - this.domes[i + 1];
+      const distance = dx * dx + dy * dy;
+      if (distance <= this.domes[i + 3] ** 2 &&
+          distance < bestDistance) {
+        best = i;
+        bestDistance = distance;
+      }
+    }
+    if (best === -1) return;
+    // Simulation has already confirmed the interception; this is only a
+    // short client-side visual timestamp stored in the existing instance.
+    this.domes[best + 4] = Math.max(
+      0.001, (performance.now() - this.start) / 1000,
+    );
     this.sourceDirty = true;
   }
 
@@ -133,6 +171,7 @@ export class IronDomePass {
       data[dst + 1] = this.domes[off + 1];
       data[dst + 2] = this.domes[off + 2];
       data[dst + 3] = this.domes[off + 3];
+      data[dst + 4] = this.domes[off + 4];
     }
     if (keys.length > 0) {
       const gl = this.gl;

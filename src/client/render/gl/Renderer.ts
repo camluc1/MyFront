@@ -1060,6 +1060,10 @@ export class GPURenderer {
     if (filtered.length > 0) this.worldTextPass.applyBonusEvents(filtered);
   }
 
+  triggerIronDomeInterception(tileX: number, tileY: number, ownerID: number): void {
+    this.ironDomePass.triggerInterception(tileX, tileY, ownerID);
+  }
+
   triggerBlockedFlash(tileX: number, tileY: number): void {
     this.crosshairPass.triggerBlockedFlash(tileX, tileY);
   }

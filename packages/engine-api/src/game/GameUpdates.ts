@@ -126,6 +126,14 @@ export enum GameUpdateType {
   GamePaused,
   DonateEvent,
   Diplomacy,
+  /** Visual confirmation of an actual same-owner Iron Dome interception. */
+  IronDomeInterception,
+}
+
+export interface IronDomeInterceptionUpdate {
+  type: GameUpdateType.IronDomeInterception;
+  tile: TileRef;
+  ownerID: number;
 }
 
 export interface DiplomacyUpdate {
@@ -157,7 +165,8 @@ export type GameUpdate =
   | EmbargoUpdate
   | SpawnPhaseEndUpdate
   | GamePausedUpdate
-  | DonateEventUpdate;
+  | DonateEventUpdate
+  | IronDomeInterceptionUpdate;
 
 export interface BonusEventUpdate {
   type: GameUpdateType.BonusEvent;

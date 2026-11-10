@@ -1,4 +1,5 @@
 import { TileRef } from "@openfront/engine-api/game/GameMap";
+import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import {
   MessageType,
   Structures,
@@ -326,6 +327,13 @@ export class NukeExecution implements Execution {
         const owner = this.mg.owner(this.dst);
         if (owner.isPlayer() &&
             protectedByIronDome(this.mg, this.dst, owner)) {
+          // The visual pulse is emitted only on a REAL projectile block,
+          // not for every tile protected against blast fringe damage.
+          this.mg.addUpdate({
+            type: GameUpdateType.IronDomeInterception,
+            tile: this.dst,
+            ownerID: owner.smallID(),
+          });
           this.active = false;
           this.nuke.delete(false);
         } else {

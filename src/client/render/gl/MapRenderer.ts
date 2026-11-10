@@ -263,6 +263,10 @@ export class MapRenderer {
   applyBonusEvents(events: BonusEvent[]): void {
     this.renderer?.applyBonusEvents(events);
   }
+  triggerIronDomeInterception(tileX: number, tileY: number, ownerID: number): void {
+    this.renderer?.triggerIronDomeInterception(tileX, tileY, ownerID);
+  }
+
   triggerBlockedFlash(tileX: number, tileY: number): void {
     this.renderer?.triggerBlockedFlash(tileX, tileY);
   }
