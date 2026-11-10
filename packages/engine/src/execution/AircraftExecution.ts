@@ -105,7 +105,8 @@ export class AircraftExecution implements Execution {
 
   private enemyPlane(plane: Unit): Unit | undefined {
     const nearby = this.mg.nearbyUnits(plane.tile(), 8, Aircraft.types,
-      ({ unit }) => unit.isActive() && !plane.owner().isFriendly(unit.owner()) &&
+      ({ unit }) => isUnit(unit) && unit.isActive() &&
+        !plane.owner().isFriendly(unit.owner()) &&
         unit.owner() !== plane.owner());
     nearby.sort((a, b) => a.distSquared - b.distSquared || a.unit.id() - b.unit.id());
     return nearby[0]?.unit;
