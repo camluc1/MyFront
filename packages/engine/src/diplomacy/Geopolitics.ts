@@ -406,6 +406,9 @@ export class Geopolitics {
         threat: action.threat ?? "",
         status: "pending",
         reason: "proposal",
+        // Preserve schema field order for deterministic snapshot round-trips.
+        // Later AI decisions replace this optional value without reordering keys.
+        decisionReason: undefined,
         ultimatum: action.ultimatum === true,
         enforced: false,
         durationTicks: action.kind === "peace" ? (action.durationTicks ?? 1800) : undefined,
