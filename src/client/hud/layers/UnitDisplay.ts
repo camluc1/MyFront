@@ -57,10 +57,14 @@ const mineIcon = assetUrl("images/MineIconWhite.svg");
 const oilWellIcon = assetUrl("images/OilWellIconWhite.svg");
 const gasPlantIcon = assetUrl("images/GasPlantIconWhite.svg");
 const shipyardIcon = assetUrl("images/ShipyardIconWhite.svg");
+const airfieldIcon = assetUrl("images/AirfieldIconWhite.svg");
+const attackAircraftIcon = assetUrl("images/AttackAircraftIconWhite.svg");
+const bomberAircraftIcon = assetUrl("images/BomberAircraftIconWhite.svg");
+const fighterAircraftIcon = assetUrl("images/FighterAircraftIconWhite.svg");
 const PEEK_HOLD_MS = 450;
 /** How long the details stay up after the browser cancels the touch itself. */
 const PEEK_GRACE_MS = 1200;
-type BuildCategory = "economy" | "defense" | "naval" | "arsenal";
+type BuildCategory = "economy" | "defense" | "naval" | "aviation" | "arsenal";
 const BUILD_CATEGORIES: ReadonlyArray<{
   id: Exclude<BuildCategory, "arsenal">;
   label: string;
@@ -69,6 +73,7 @@ const BUILD_CATEGORIES: ReadonlyArray<{
   { id: "economy", label: "Economía", types: [UnitType.City, UnitType.Factory, UnitType.Farm, UnitType.Mine, UnitType.OilWell, UnitType.GasPlant] },
   { id: "defense", label: "Defensa", types: [UnitType.DefensePost, UnitType.MissileSilo, UnitType.SAMLauncher, UnitType.Castle, UnitType.IronDome] },
   { id: "naval", label: "Naval", types: [UnitType.Port, UnitType.Warship, UnitType.Shipyard, UnitType.Bismarck] },
+  { id: "aviation", label: "Aviación", types: [UnitType.Airfield, UnitType.AttackAircraft, UnitType.BomberAircraft, UnitType.FighterAircraft] },
 ];
 
 @customElement("unit-display")
@@ -702,6 +707,13 @@ export class UnitDisplay extends LitElement implements Controller {
           ${this.renderUnitItem(warshipIcon, this._warships, UnitType.Warship, "warship", this.getHotkey("buildWarship", "Digit7"))}
           ${this.game.config().isFunctionalGeopolitics?.() ? this.renderUnitItem(warshipIcon, null, UnitType.Bismarck, "bismarck", this.getHotkey("buildBismarck", ""), "Bismarck") : nothing}
           ${this.renderMobileShipyard()}
+        `;
+      case "aviation":
+        return html`
+          ${this.renderUnitItem(airfieldIcon, null, UnitType.Airfield, "airfield", this.getHotkey("buildAirfield", ""))}
+          ${this.renderUnitItem(attackAircraftIcon, null, UnitType.AttackAircraft, "attack_aircraft", this.getHotkey("buildAttackAircraft", ""))}
+          ${this.renderUnitItem(bomberAircraftIcon, null, UnitType.BomberAircraft, "bomber_aircraft", this.getHotkey("buildBomberAircraft", ""))}
+          ${this.renderUnitItem(fighterAircraftIcon, null, UnitType.FighterAircraft, "fighter_aircraft", this.getHotkey("buildFighterAircraft", ""))}
         `;
       case "arsenal":
         return this.renderNuclearActions();
