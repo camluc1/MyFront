@@ -66,6 +66,69 @@ describe("Functional Geopolitics aviation", () => {
       .toEqual(plane.aircraftState());
   });
 
+  it("rejects an unsafe sortie, then completes a safe mission and refuels", async () => {
+    const game = await setup("plains", {
+      geopolitics: true, geopoliticsFunctional: true,
+      infiniteGold: true, instantBuild: true,
+    }, [human("a")]);
+    const a = game.player("a");
+    const home = game.ref(30, 30), objective = game.ref(50, 30);
+    a.conquer(home);
+    a.buildUnit(UnitType.Airfield, home, {});
+    const plane = a.buildUnit(UnitType.AttackAircraft, home, { homeTile: home });
+    game.addExecution(new AircraftExecution(plane));
+    game.executeNextTick();
+
+    // 20 tiles outbound + 20 back + 80 in reserve = 120 required.
+    plane.updateAircraftState({ fuel: 110 });
+    game.addExecution(new MoveWarshipExecution(a, [plane.id()], objective));
+    game.executeNextTick();
+    expect(plane.aircraftState()?.phase).toBe("docked");
+    expect(plane.aircraftState()?.targetTile).toBeUndefined();
+
+    // Once it has refuelled, the same command is accepted.
+    for (let i = 0; i < 3; i++) game.executeNextTick();
+    expect(plane.aircraftState()?.fuel).toBeGreaterThan(120);
+    game.addExecution(new MoveWarshipExecution(a, [plane.id()], objective));
+    game.executeNextTick();
+    expect(plane.aircraftState()?.targetTile).toBe(objective);
+    for (let i = 0; i < 30; i++) game.executeNextTick();
+    expect(plane.isActive()).toBe(true);
+    expect(plane.aircraftState()?.phase).toBe("docked");
+    expect(plane.aircraftState()?.targetTile).toBeUndefined();
+    expect(plane.aircraftState()?.fuel).toBeGreaterThan(0);
+  });
+
+  it("limits the mobile repair carrier to four docked aircraft and redirects a fifth", async () => {
+    const game = await setup("half_land_half_ocean", {
+      geopolitics: true, geopoliticsFunctional: true,
+      instantBuild: true, infiniteGold: true,
+    }, [human("a")]);
+    const a = game.player("a");
+    const home = game.ref(7, 10), carrierTile = game.ref(9, 10);
+    a.conquer(home);
+    a.buildUnit(UnitType.Airfield, home, {});
+    const carrier = a.buildUnit(UnitType.Warship, carrierTile, {
+      patrolTile: carrierTile, supportShip: true,
+    });
+    const planes = Array.from({ length: 5 }, () =>
+      a.buildUnit(UnitType.FighterAircraft, carrierTile, { homeTile: home }));
+    for (const plane of planes) {
+      plane.updateAircraftState({ phase: "returning", fuel: 500 });
+      game.addExecution(new AircraftExecution(plane));
+    }
+    for (let i = 0; i < 8; i++) game.executeNextTick();
+    expect(planes.every((plane) => plane.isActive())).toBe(true);
+    const aboard = planes.filter((plane) =>
+      plane.aircraftState()?.phase === "docked" &&
+      plane.aircraftState()?.carrierId === carrier.id());
+    expect(aboard).toHaveLength(4);
+    const remaining = planes.find((plane) => !aboard.includes(plane));
+    expect(remaining?.aircraftState()?.phase).toBe("docked");
+    expect(remaining?.aircraftState()?.carrierId).toBeUndefined();
+    expect(remaining?.tile()).toBe(home);
+  });
+
   it("ground-attack removes at most 500k soldiers but never transfers land", async () => {
     const game = await setup("plains", {
       geopolitics: true, geopoliticsFunctional: true,
