@@ -52,6 +52,10 @@ const hydrogenBombIcon = assetUrl("images/MushroomCloudIconWhite.svg");
 const atomBombIcon = assetUrl("images/NukeIconWhite.svg");
 const portIcon = assetUrl("images/PortIcon.svg");
 const shipyardIcon = assetUrl("images/ShipyardIconWhite.svg");
+const airfieldIcon = assetUrl("images/AirfieldIconWhite.svg");
+const attackAircraftIcon = assetUrl("images/AttackAircraftIconWhite.svg");
+const bomberAircraftIcon = assetUrl("images/BomberAircraftIconWhite.svg");
+const fighterAircraftIcon = assetUrl("images/FighterAircraftIconWhite.svg");
 const samlauncherIcon = assetUrl("images/SamLauncherIconWhite.svg");
 const shieldIcon = assetUrl("images/ShieldIconWhite.svg");
 const castleIcon = assetUrl("images/CastleIconWhite.svg");
@@ -107,6 +111,34 @@ const buildTable: BuildItemDisplay[][] = [
       icon: warshipIcon,
       description: "build_menu.desc.bismarck",
       key: "unit_type.bismarck",
+      countable: true,
+    },
+    {
+      unitType: UnitType.Airfield,
+      icon: airfieldIcon,
+      description: "build_menu.desc.airfield",
+      key: "unit_type.airfield",
+      countable: true,
+    },
+    {
+      unitType: UnitType.AttackAircraft,
+      icon: attackAircraftIcon,
+      description: "build_menu.desc.attack_aircraft",
+      key: "unit_type.attack_aircraft",
+      countable: true,
+    },
+    {
+      unitType: UnitType.BomberAircraft,
+      icon: bomberAircraftIcon,
+      description: "build_menu.desc.bomber_aircraft",
+      key: "unit_type.bomber_aircraft",
+      countable: true,
+    },
+    {
+      unitType: UnitType.FighterAircraft,
+      icon: fighterAircraftIcon,
+      description: "build_menu.desc.fighter_aircraft",
+      key: "unit_type.fighter_aircraft",
       countable: true,
     },
     {
