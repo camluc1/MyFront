@@ -98,8 +98,10 @@ function createRandomNations(
       if (selectedAntarctic.length === 1) {
         const second = shuffled.slice(targetCount).find((n) => n.flag === "aq");
         if (second) {
-          const displaced = selected.findLastIndex((n) => n.flag !== "aq");
-          selected[displaced] = second;
+          // Use an ES2022-compatible reverse scan (the engine targets ES2022).
+          let displaced = selected.length - 1;
+          while (displaced >= 0 && selected[displaced].flag === "aq") displaced--;
+          if (displaced >= 0) selected[displaced] = second;
         }
       }
     }
