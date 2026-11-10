@@ -3,6 +3,7 @@ import type { ShipyardLevels } from "./Shipyard";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import { TileRef } from "./GameMap";
 import {
+  AircraftState,
   EmojiMessage,
   GameUpdates,
   Gold,
@@ -224,6 +225,7 @@ export interface UnitUpdate {
   lastPos: TileRef;
   isActive: boolean;
   reachedTarget: boolean;
+  aircraftState?: AircraftState;
   warshipState?: WarshipState;
   transportShipState?: TransportShipState;
   nukeState?: NukeState;
