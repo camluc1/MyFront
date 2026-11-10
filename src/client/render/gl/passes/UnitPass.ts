@@ -227,6 +227,7 @@ export class UnitPass {
   private uViewport: WebGLUniformLocation;
   private uFleetReadability: WebGLUniformLocation;
   private uFleetWarshipScale: WebGLUniformLocation;
+  private uFunctionalSupportScale: WebGLUniformLocation;
   private uTrainScale: WebGLUniformLocation;
   private uUnitSize: WebGLUniformLocation;
   private uFlickerSpeed: WebGLUniformLocation;
@@ -260,6 +261,7 @@ export class UnitPass {
   private lastUnitsUpdateMs = 0;
   /** Simulation tick duration in ms (Config.msPerTick). */
   private tickIntervalMs: number;
+  private functionalSupportScale = 1.0;
 
   private quadBuf: WebGLBuffer;
   private paletteTex: WebGLTexture;
@@ -335,6 +337,9 @@ export class UnitPass {
       this.program,
       "uFleetWarshipScale",
     )!;
+    this.uFunctionalSupportScale = gl.getUniformLocation(this.program,
+      "uFunctionalSupportScale")!;
+    this.functionalSupportScale = config.isFunctionalGeopolitics() ? 1.25 : 1.0;
     this.uTrainScale = gl.getUniformLocation(this.program, "uTrainScale")!;
     this.uUnitSize = gl.getUniformLocation(this.program, "uUnitSize")!;
     this.uFlickerSpeed = gl.getUniformLocation(this.program, "uFlickerSpeed")!;
@@ -732,6 +737,7 @@ export class UnitPass {
       us.fleetMaxEnlargement,
     );
     gl.uniform1f(this.uFleetWarshipScale, us.warshipScale);
+    gl.uniform1f(this.uFunctionalSupportScale, this.functionalSupportScale);
     gl.uniform1f(this.uFlickerSpeed, us.flickerSpeed);
     gl.uniform3f(this.uAngryColor, us.angryR, us.angryG, us.angryB);
     gl.uniform1i(this.uAltView, this.altView ? 1 : 0);

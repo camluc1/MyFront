@@ -106,10 +106,41 @@ export class WarshipExecution implements Execution {
     const healthBeforeHealing = this.warship.health();
 
     if (this.warship.warshipState().supportShip) {
-      // Service ships do not shoot or random-patrol. Cost is one local scan/tick.
-      this.healWarship();
-      // Move first: a ship that travels this tick uses the slower underway
-      // repair rate, not the stationary rate from its previous position.
+      // Off-mode keeps the pre-existing self-heal and stationary repair rules.
+      if (!this.mg.config().isFunctionalGeopolitics()) {
+        this.healWarship();
+        this.moveSupportShip();
+        this.repairSupportedShips();
+        return;
+      }
+      // Experimental service base: no autonomous health regeneration at sea.
+      // It retreats only if an accessible friendly port is available, using
+      // the same port docking + repair logic as a regular warship.
+      if (this.warship.warshipState().state === "docked") {
+        if (!this.currentRetreatPort()) {
+          this.cancelRepairRetreat();
+        } else {
+          this.healWarship();
+          if (this.isFullyHealed()) this.cancelRepairRetreat();
+          else return;
+        }
+      }
+      if (this.warship.warshipState().state === "retreating" &&
+          this.handleRepairRetreat()) return;
+      if (!this.warship.owner().inDoomsdayClock() &&
+          this.warship.health() * 2 < this.warship.maxHealth()) {
+        const port = this.findNearestPort();
+        if (port !== undefined) {
+          this.warship.updateWarshipState({
+            state: "retreating",
+            retreatPort: port,
+            retreatSupportID: undefined,
+          });
+          if (this.handleRepairRetreat()) return;
+        }
+      }
+      // At full health, the service base resumes its original ordered post.
+      // It never randomly escorts warships.
       this.moveSupportShip();
       this.repairSupportedShips();
       return;
@@ -552,7 +583,10 @@ export class WarshipExecution implements Execution {
       return false;
     }
 
-    const retreatAggroTarget = this.findRetreatAggroTarget();
+    const retreatAggroTarget =
+      this.warship.warshipState().supportShip &&
+      this.mg.config().isFunctionalGeopolitics()
+        ? undefined : this.findRetreatAggroTarget();
     if (retreatAggroTarget) {
       this.warship.setTargetUnit(retreatAggroTarget);
       this.shootTarget();

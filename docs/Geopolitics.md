@@ -157,3 +157,7 @@ Diplomatic validation rejects an offer whose exact tile mask includes the palace
 Functional mode does **not** yet enable the later shipyard, Bismarck, Tsar Bomba or airfield features; these are staged independently so disabling the flag preserves the prior game. Legacy snapshots lack the optional flag and therefore remain in normal mode.
 
 Verification: `tests/FunctionalGeopoliticsCapital.test.ts` covers off-mode isolation, automatic palace spawn, diplomatic exclusion, elimination/territory transfer, and save/restore. New and existing CI checks must pass before release.
+
+## Experimental workshop ship — functional mode only
+
+The existing `WarshipExecution` support vessel retains its 5,000,000-gold purchase path, stationary repair duty and three repair bays. When Functional mode is enabled, its health is five times the usual warship hull; its existing GPU hull is 25% larger and its click-selection radius scales accordingly. It does not heal itself at sea. Below 50% health it chooses the nearest connected friendly port and reuses ordinary port retreat/docking/repair; when restored it returns to its ordered post. No escort navigation is added. The original service-ship logic is preserved bit-for-bit when the functional flag is missing or false. Aircraft landing capacity is reserved for the air-operations phase and is not active yet.

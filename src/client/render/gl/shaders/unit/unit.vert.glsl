@@ -15,6 +15,7 @@ uniform float uTrainScale;
 uniform vec2 uViewport;
 uniform vec4 uFleetReadability; // minimum hull pixels: transport, cargo, warship; maximum enlargement
 uniform float uFleetWarshipScale;
+uniform float uFunctionalSupportScale;
 uniform float uHBombGlowScale; // quad enlargement for the hydrogen bomb glow halo
 
 out vec2  vQuadPos;     // quad coords [0,1] — drives the radial glow falloff
@@ -62,7 +63,7 @@ void main() {
     // it remains one instance with no separate textures or render pass.
     bool repairCarrier = atlasCol > 1.5 && abs(vFlags - 7.0) < 0.1;
     scale = atlasCol > 1.5
-      ? uFleetWarshipScale * (repairCarrier ? 1.32 : 1.0)
+      ? uFleetWarshipScale * (repairCarrier ? 1.32 * uFunctionalSupportScale : 1.0)
       : (atlasCol > 0.5 ? 0.64 : 0.82);
     // Screen-space readability, bounded so distant fleets do not cover the map.
     float pixelsPerTile = length(uCamera[0].xy * uViewport * 0.5);

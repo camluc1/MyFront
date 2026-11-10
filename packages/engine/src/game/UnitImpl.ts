@@ -104,6 +104,11 @@ export class UnitImpl implements Unit {
       };
     }
     if ("patrolTile" in params) {
+      // Only the experimental service ship receives a reinforced hull.
+      if (this.mg.config().isFunctionalGeopolitics() &&
+          "supportShip" in params && params.supportShip === true) {
+        this._health *= 5;
+      }
       this._warshipState = {
         state: "patrolling",
         patrolTile: params.patrolTile,
@@ -317,7 +322,10 @@ export class UnitImpl implements Unit {
   }
 
   maxHealth(): number {
-    const base = this.info().maxHealth ?? 1;
+    const base = (this.info().maxHealth ?? 1) *
+      (this._type === UnitType.Warship &&
+       this._warshipState?.supportShip === true &&
+       this.mg.config().isFunctionalGeopolitics() ? 5 : 1);
     // veterancy() is 0 for non-warships, so this returns base for them.
     return maxHealthWithVeterancy(
       base,
