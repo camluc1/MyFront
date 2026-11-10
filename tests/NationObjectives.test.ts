@@ -551,7 +551,7 @@ test("economic campaigns consider a reachable overseas country, beyond nearby ri
 });
 
 describe("campaign direction and progress", () => {
-  test("the same land army advances nearer the selected installation", async () => {
+  test("campaign target does not change the normal territorial advance", async () => {
     const advance = async (focused: boolean) => {
       const { game, own, enemy } = await world();
       const tile = game.ref(80, 20);
@@ -566,18 +566,11 @@ describe("campaign direction and progress", () => {
       );
       attack.init(game, 0);
       for (let tick = 1; tick <= 60; tick++) attack.tick(tick);
-      const gained = Array.from(own.tiles()).filter((t) => !before.has(t));
-      return {
-        gained: gained.length,
-        distance:
-          gained.reduce((n, t) => n + game.manhattanDist(t, tile), 0) /
-          gained.length,
-      };
+      return Array.from(own.tiles())
+        .filter((t) => !before.has(t))
+        .sort((a, b) => a - b);
     };
-    const normal = await advance(false);
-    const focused = await advance(true);
-    expect(focused.gained).toBe(normal.gained);
-    expect(focused.distance).toBeLessThan(normal.distance);
+    expect(await advance(true)).toEqual(await advance(false));
   });
 
   test("passes the prize to a land attack without bypassing troop gates", async () => {
