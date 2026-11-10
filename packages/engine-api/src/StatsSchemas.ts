@@ -38,6 +38,10 @@ export const otherUnits = [
   "port",
   "wshp",
   "bism",
+  "airf",
+  "atka",
+  "boma",
+  "fita",
   "silo",
   "saml",
   "fact",
@@ -58,6 +62,10 @@ export type OtherUnitType =
   | UnitType.SAMLauncher
   | UnitType.Warship
   | UnitType.Bismarck
+  | UnitType.Airfield
+  | UnitType.AttackAircraft
+  | UnitType.BomberAircraft
+  | UnitType.FighterAircraft
   | UnitType.Factory
   | UnitType.Farm
   | UnitType.Mine
@@ -74,6 +82,10 @@ export const unitTypeToOtherUnit = {
   [UnitType.SAMLauncher]: "saml",
   [UnitType.Warship]: "wshp",
   [UnitType.Bismarck]: "bism",
+  [UnitType.Airfield]: "airf",
+  [UnitType.AttackAircraft]: "atka",
+  [UnitType.BomberAircraft]: "boma",
+  [UnitType.FighterAircraft]: "fita",
   [UnitType.Factory]: "fact",
   [UnitType.Farm]: "farm",
   [UnitType.Mine]: "mine",
