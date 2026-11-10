@@ -69,8 +69,7 @@ export class AircraftExecution implements Execution {
     for (const carrier of owner.units(UnitType.Warship)) {
       if (!carrier.isActive() || !carrier.warshipState().supportShip) continue;
       const booked = inService.filter((unit) => unit.id() !== aircraft.id() &&
-        unit.aircraftState()?.carrierId === carrier.id() &&
-        unit.aircraftState()?.phase !== "outbound").length;
+        unit.aircraftState()?.carrierId === carrier.id()).length;
       if (booked < AIRCRAFT_CARRIER_CAPACITY) {
         candidates.push({ tile: carrier.tile(), carrierId: carrier.id(), id: carrier.id() });
       }
