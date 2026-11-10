@@ -178,15 +178,15 @@ Las pruebas `tests/FunctionalBismarck.test.ts` comprueban aislamiento con el fla
 
 ## Tsar Bomba experimental — Fase 3
 
-La bomba Tsar es exclusiva de Geopolítica funcional (singleplayer). Tiene un precio de **20.000.000** de oro y utiliza el lanzamiento desde silo existente. Su radio interior/exterior es **160 / 200** casillas, el doble que la bomba de hidrógeno (80 / 100). Se integra con la Cúpula de Hierro, la detección SAM, la contabilidad de bombas, los mensajes de alerta y la restauración de partidas. Conserva el renderizador nuclear instanciado y su atlas existente; su efecto visual se basa provisionalmente en el tipo hidrógeno y todavía requiere validación artística en navegador.
+La bomba Tsar es exclusiva de Geopolítica funcional (singleplayer). Tiene un precio de **20.000.000** de oro y utiliza el lanzamiento desde silo existente. Su radio interior/exterior es **160 / 200** casillas, el doble que la bomba de hidrógeno (80 / 100). Se integra con la Cúpula de Hierro, la detección SAM, la contabilidad de bombas, los mensajes de alerta y la restauración de partidas. Su explosión visual se renderiza desde el sistema FX existente: hongo 1,75 veces mayor, onda expansiva de doble radio y dispersión de escombros controlada por el presupuesto de efectos. No agrega otro draw call; la validación artística en navegador sigue pendiente.
 
-Las pruebas `tests/FunctionalTsarBomba.test.ts` comprueban el aislamiento por modalidad, precio, magnitud de producción, lanzamiento, ID de red añadido al final y snapshot. No se cambian los IDs existentes.
+Las pruebas `tests/FunctionalTsarBomba.test.ts` y `tests/client/render/gl/TsarExplosionVisual.test.ts` comprueban el aislamiento por modalidad, precio, magnitud de producción, radio visual duplicado, lanzamiento, ID de red añadido al final y snapshot. No se cambian los IDs existentes.
 
 ## Aviación experimental — Fase 4
 
 El aeródromo de **3.000.000** de oro habilita la compra de tres aeronaves desde el nuevo apartado **Aviación**: avión de ataque (1 M), bombardero (2 M) y caza (1,5 M). El sistema utiliza órdenes de movimiento existentes con destino terrestre o marítimo, estado propio por avión, combustible máximo de 1.800 unidades, crucero de hasta seis casillas por tick, vuelta a base, repostaje, pérdida por agotamiento y desvío hacia bases operativas. El barco taller puede recibir hasta cuatro aeronaves simultáneamente. Las unidades SAM dan prioridad a amenazas nucleares antes de aviones, con reserva de objetivo y seguimiento de unidades aéreas móviles.
 
-El avión de ataque resta hasta 500.000 soldados enemigos sin capturar territorio; el bombardero aplica cinco impactos tácticos de hasta 70.000 soldados cada uno y el caza busca y daña aeronaves enemigas. Estas cifras son **valores de prueba**, no balance final.
+El avión de ataque resta hasta 500.000 soldados enemigos sin capturar territorio; el bombardero aplica cinco impactos tácticos de hasta 70.000 soldados cada uno y el caza busca y daña aeronaves enemigas. Cada impacto terrestre efectivo genera una pequeña explosión real a través de los eventos de impacto de proyectil existentes; las aeronaves destruidas generan una explosión aérea, sin efectos de hundimiento. Estas cifras son **valores de prueba**, no balance final.
 
 Los tres aviones cuentan con siluetas generadas en el shader existente y un único lote de instancias, orientación según vuelo, interpolación, sombra y estela discretas; el aeródromo posee iconografía propia en el atlas de estructuras. El HUD muestra misión, combustible y orden de regreso. Se añadieron estadística de unidades, traducciones en inglés/español y guardado/restauración de misiones mediante el formato compacto de 21 campos sin cambiar el ancho de la transmisión.
 
