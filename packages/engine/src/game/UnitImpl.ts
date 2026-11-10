@@ -147,6 +147,10 @@ export class UnitImpl implements Unit {
     switch (this._type) {
       case UnitType.Warship:
       case UnitType.Bismarck:
+      case UnitType.Airfield:
+      case UnitType.AttackAircraft:
+      case UnitType.BomberAircraft:
+      case UnitType.FighterAircraft:
       case UnitType.Port:
       case UnitType.MissileSilo:
       case UnitType.DefensePost:
@@ -329,6 +333,10 @@ export class UnitImpl implements Unit {
     switch (this._type) {
       case UnitType.Warship:
       case UnitType.Bismarck:
+      case UnitType.Airfield:
+      case UnitType.AttackAircraft:
+      case UnitType.BomberAircraft:
+      case UnitType.FighterAircraft:
       case UnitType.Port:
       case UnitType.MissileSilo:
       case UnitType.DefensePost:
@@ -489,6 +497,10 @@ export class UnitImpl implements Unit {
         case UnitType.Port:
         case UnitType.SAMLauncher:
         case UnitType.Warship:
+        case UnitType.Airfield:
+        case UnitType.AttackAircraft:
+        case UnitType.BomberAircraft:
+        case UnitType.FighterAircraft:
         case UnitType.Factory:
         case UnitType.Farm:
         case UnitType.Mine:
