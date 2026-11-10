@@ -25,9 +25,10 @@ describe("Functional Geopolitics Bismarck", () => {
   it("has a 10m purchase, a reinforced hull and preserves movement after a save", async () => {
     const game = await setup("half_land_half_ocean", {
       geopolitics: true, geopoliticsFunctional: true,
-      instantBuild: true, infiniteGold: true,
+      instantBuild: true, infiniteGold: false,
     }, [human("a")]);
     const a = game.player("a");
+    a.addGold(40_000_000n);
     const tile = game.ref(9, 10), target = game.ref(10, 10);
     expect(game.config().isUnitDisabled(UnitType.Bismarck)).toBe(false);
     expect(game.unitInfo(UnitType.Bismarck).cost(game, a)).toBe(10_000_000n);
