@@ -270,7 +270,9 @@ export class NukeExecution implements Execution {
                    this.nukeType === UnitType.TsarBomba) {
           this.mg.displayIncomingUnit(
             this.nuke.id(),
-            "events_display.hydrogen_bomb_inbound",
+            this.nukeType === UnitType.TsarBomba
+              ? "events_display.tsar_bomba_inbound"
+              : "events_display.hydrogen_bomb_inbound",
             MessageType.HYDROGEN_BOMB_INBOUND,
             target.id(),
           );
@@ -524,7 +526,9 @@ export class NukeExecution implements Execution {
       const messageKey =
         this.nukeType === UnitType.AtomBomb
           ? "events_display.atom_bomb_detonated"
-          : "events_display.hydrogen_bomb_detonated";
+          : this.nukeType === UnitType.TsarBomba
+            ? "events_display.tsar_bomba_detonated"
+            : "events_display.hydrogen_bomb_detonated";
       for (const [impactedPlayer] of tilesPerPlayers) {
         mg.displayMessage(
           messageKey,
