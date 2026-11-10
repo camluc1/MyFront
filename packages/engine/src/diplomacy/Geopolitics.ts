@@ -1124,7 +1124,30 @@ export class Geopolitics {
     // to remain visible throughout a long campaign.
     const tick = this.game.ticks();
     const slot = Math.trunc(tick / 30);
-    const a = nations[(slot + (this.game.config().gameConfig().geopoliticsSeed ?? 0)) % nations.length]!;
+    const scheduled = nations[
+      (slot + (this.game.config().gameConfig().geopoliticsSeed ?? 0)) % nations.length
+    ]!;
+    // A country being overrun by a human cannot wait an entire round-robin
+    // cycle (minutes on the World map) before offering meaningful peace.
+    // Keep the existing single 3-second diplomacy slot and all pair/inbox
+    // cooldowns: this only changes who may use an already available slot.
+    const emergencies = nations.flatMap((nation) => {
+      if (this.state.offers.some((offer) =>
+        offer.status === "pending" &&
+        (offer.from === nation.id() || offer.to === nation.id()))) return [];
+      const threats = nation.incomingAttacks()
+        .filter((attack) => attack.isActive() && !attack.retreating() &&
+          attack.attacker().type() === PlayerType.Human)
+        .map((attack) => attack.attacker())
+        .filter((human) => this.canInitiateTo(nation, human, tick));
+      const severity = threats.length
+        ? Math.max(...threats.map((human) => this.militaryPressure(nation, human)))
+        : 0;
+      return severity >= 26 ? [{ nation, severity }] : [];
+    });
+    emergencies.sort((a, b) => b.severity - a.severity ||
+      a.nation.smallID() - b.nation.smallID());
+    const a = emergencies[0]?.nation ?? scheduled;
     const initiativeKey = `initiative:${a.id()}`;
     if (
       (this.state.cooldowns[initiativeKey] ?? 0) > tick ||
