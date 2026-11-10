@@ -27,6 +27,7 @@ flat out float vOwnerID;
 flat out float vResearchHull;
 flat out float vResearchGuns;
 flat out float vBismarck;
+flat out float vAircraftType;
 flat out float vFlags;  // 0.0 = normal, 1.0 = flicker, 2.0 = angry
 flat out float vHash;   // per-instance hash for flicker phase offset
 flat out float vStrategic;
@@ -45,6 +46,11 @@ void main() {
   vResearchHull = uFunctionalShipyard > 0.5 ? mod(floor(rawFlags / 32.0), 4.0) : 0.0;
   vAtlasCol = atlasCol;
   vBismarck = uFunctionalShipyard > 0.5 ? floor(rawFlags / 128.0) : 0.0;
+  // Class 1/2/3 for the attack aircraft, bomber and fighter. This flag
+  // combination is impossible on ordinary warships, avoiding a new VBO lane.
+  vAircraftType = uFunctionalShipyard > 0.5 &&
+    abs(vFlags-6.0) < 0.1 && abs(atlasCol-2.0) < 0.5
+    ? vResearchGuns : 0.0;
 
   // Per-instance hash so each unit flickers independently. Computed CPU-side
   // from the tick position — hashing worldX/Y here would re-roll the phase
@@ -71,8 +77,9 @@ void main() {
     // but is a ship repair station (no planes). Grow the existing quad only:
     // it remains one instance with no separate textures or render pass.
     bool repairCarrier = atlasCol > 1.5 && abs(vFlags - 7.0) < 0.1;
+    bool aircraft = vAircraftType > 0.5;
     scale = atlasCol > 1.5
-      ? uFleetWarshipScale * (repairCarrier ? 1.32 * uFunctionalSupportScale : (vBismarck>0.5 ? 1.85 : 1.0))
+      ? uFleetWarshipScale * (aircraft ? 0.9 : (repairCarrier ? 1.32 * uFunctionalSupportScale : (vBismarck>0.5 ? 1.85 : 1.0)))
       : (atlasCol > 0.5 ? 0.64 : 0.82);
     // Screen-space readability, bounded so distant fleets do not cover the map.
     float pixelsPerTile = length(uCamera[0].xy * uViewport * 0.5);
