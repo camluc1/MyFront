@@ -228,6 +228,8 @@ export enum UnitType {
   GasPlant = "Gas Plant",
   /** Experimental functional-only armored battleship, packed ID appended. */
   Bismarck = "Bismarck",
+  /** Functional Geopolitics only: twice the hydrogen blast radius. */
+  TsarBomba = "Tsar Bomba",
 }
 
 export enum TrainType {
@@ -239,6 +241,7 @@ export enum TrainType {
 export const Nukes = unitTypeGroup([
   UnitType.AtomBomb,
   UnitType.HydrogenBomb,
+  UnitType.TsarBomba,
   UnitType.MIRVWarhead,
   UnitType.MIRV,
 ] as const);
@@ -246,6 +249,7 @@ export const Nukes = unitTypeGroup([
 export const BuildableAttacks = unitTypeGroup([
   UnitType.AtomBomb,
   UnitType.HydrogenBomb,
+  UnitType.TsarBomba,
   UnitType.MIRV,
   UnitType.Warship,
   UnitType.Bismarck,
