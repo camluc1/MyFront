@@ -154,13 +154,13 @@ A nation or human receives one free palace (`UnitType.Capital`) at its definitiv
 
 Diplomatic validation rejects an offer whose exact tile mask includes the palace, even if the palace is omitted from its building IDs. Eliminated countries are removed from live treaties and coalitions, pending offers involving them are invalidated and the territorial-victory countdown resets. Historical records remain available. The palace has its own new icon in the shared structure renderer; old packed IDs 1–22 have not changed, and the new type occupies appended ID 23.
 
-The shipyard (phase 1) and Bismarck (phase 2) are now separately gated behind this flag. Tsar Bomba and the airfield/aircraft remain pending. Disabling the flag continues to preserve prior game behavior. Legacy snapshots lack the optional flag and therefore remain in normal mode.
+The shipyard (phase 1), Bismarck (phase 2), Tsar Bomba (phase 3) and airfield/aircraft (phase 4) are gated behind this same flag. Disabling the flag preserves existing game behavior. Legacy snapshots lack the optional flag and therefore remain in normal mode. New unit IDs were appended without changing previous packet indexes.
 
 Verification: `tests/FunctionalGeopoliticsCapital.test.ts` covers off-mode isolation, automatic palace spawn, diplomatic exclusion, elimination/territory transfer, and save/restore. New and existing CI checks must pass before release.
 
 ## Experimental workshop ship — functional mode only
 
-The existing `WarshipExecution` support vessel retains its 5,000,000-gold purchase path, stationary repair duty and three repair bays. When Functional mode is enabled, its health is five times the usual warship hull; its existing GPU hull is 25% larger and its click-selection radius scales accordingly. It does not heal itself at sea. Below 50% health it chooses the nearest connected friendly port and reuses ordinary port retreat/docking/repair; when restored it returns to its ordered post. No escort navigation is added. The original service-ship logic is preserved bit-for-bit when the functional flag is missing or false. Aircraft landing capacity is reserved for the air-operations phase and is not active yet.
+The existing `WarshipExecution` support vessel retains its 5,000,000-gold purchase path, stationary repair duty and three repair bays. When Functional mode is enabled, its health is five times the usual warship hull; its existing GPU hull is 25% larger and its click-selection radius scales accordingly. It does not heal itself at sea. Below 50% health it chooses the nearest connected friendly port and reuses ordinary port retreat/docking/repair; when restored it returns to its ordered post. No escort navigation is added. The original service-ship logic is preserved bit-for-bit when the functional flag is missing or false. Phase 4 also considers it as a movable rearming/landing base for up to four aircraft; its repair-bay behavior for ships remains unchanged.
 
 ## Astillero experimental — Fase 1
 
@@ -176,9 +176,20 @@ Su identificación `UnitType.Bismarck` está al final de `PACKED_UNIT_TYPES` (ID
 
 Las pruebas `tests/FunctionalBismarck.test.ts` comprueban aislamiento con el flag apagado, precio, movimiento, snapshot, retirada y enfrentamientos reproducibles de 1 contra 2/3 warships. El balance es **provisional hasta pasar las pruebas y verificarlo en partidas reales**; los parámetros se fijaron inicialmente en 4,8× salud y +18% daño después de simulaciones de referencia. Una prueba de retirada se corrigió para causar daño suficiente para bajar realmente del 40% del nuevo máximo, y la ejecución más reciente de GitHub Actions todavía requiere resultado final.
 
-## Fases siguientes pendientes
+## Tsar Bomba experimental — Fase 3
 
-- Fase 3: Tsar Bomba, protección de SAM/Cúpula, grupos, estadísticas, efectos y tests de radio/rendimiento.
-- Fase 4: aeródromo, aviones de ataque/bombardeo/caza, combustible, regreso, taller con cuatro plazas, SAM antiaéreo y gráficos por instancias.
+La bomba Tsar es exclusiva de Geopolítica funcional (singleplayer). Tiene un precio de **20.000.000** de oro y utiliza el lanzamiento desde silo existente. Su radio interior/exterior es **160 / 200** casillas, el doble que la bomba de hidrógeno (80 / 100). Se integra con la Cúpula de Hierro, la detección SAM, la contabilidad de bombas, los mensajes de alerta y la restauración de partidas. Conserva el renderizador nuclear instanciado y su atlas existente; su efecto visual se basa provisionalmente en el tipo hidrógeno y todavía requiere validación artística en navegador.
 
-Estos sistemas **no están implementados ni validados** como parte de las fases anteriores; no deben presentarse como disponibles hasta pasar las pruebas del motor y la interfaz.
+Las pruebas `tests/FunctionalTsarBomba.test.ts` comprueban el aislamiento por modalidad, precio, magnitud de producción, lanzamiento, ID de red añadido al final y snapshot. No se cambian los IDs existentes.
+
+## Aviación experimental — Fase 4
+
+El aeródromo de **3.000.000** de oro habilita la compra de tres aeronaves desde el nuevo apartado **Aviación**: avión de ataque (1 M), bombardero (2 M) y caza (1,5 M). El sistema utiliza órdenes de movimiento existentes con destino terrestre o marítimo, estado propio por avión, combustible máximo de 1.800 unidades, crucero de hasta seis casillas por tick, vuelta a base, repostaje, pérdida por agotamiento y desvío hacia bases operativas. El barco taller puede recibir hasta cuatro aeronaves simultáneamente. Las unidades SAM dan prioridad a amenazas nucleares antes de aviones, con reserva de objetivo y seguimiento de unidades aéreas móviles.
+
+El avión de ataque resta hasta 500.000 soldados enemigos sin capturar territorio; el bombardero aplica cinco impactos tácticos de hasta 70.000 soldados cada uno y el caza busca y daña aeronaves enemigas. Estas cifras son **valores de prueba**, no balance final.
+
+Los tres aviones cuentan con siluetas generadas en el shader existente y un único lote de instancias, orientación según vuelo, interpolación, sombra y estela discretas; el aeródromo posee iconografía propia en el atlas de estructuras. El HUD muestra misión, combustible y orden de regreso. Se añadieron estadística de unidades, traducciones en inglés/español y guardado/restauración de misiones mediante el formato compacto de 21 campos sin cambiar el ancho de la transmisión.
+
+Las pruebas `tests/FunctionalAviation.test.ts` cubren aislamiento, compra, despliegue, consumo de combustible, ataque, ausencia de conquista territorial, serialización compacta y snapshot. Las regresiones de UI verifican el arsenal con flag apagado y encendido.
+
+**Estado de calidad:** el motor y la interfaz tienen implementación y pruebas automatizadas. No dar por terminadas ni publicar las cinco fases hasta lograr el Quality Gate completo en verde, comprobar el shader real en cada perfil, verificar partidas en navegador con controles táctiles/teclado, y balancear en mapas pequeños y grandes. La equivalencia de partida clásica y las animaciones finales de bombardeo/Tsar requieren revisión visual y de regresiones antes de liberar.
