@@ -33,6 +33,16 @@ export type WarshipState = {
   veterancyProgress: number;
 };
 
+/** Authoritative single-player aircraft state, saved and transmitted as numeric lanes. */
+export interface AircraftState {
+  fuel: number;
+  homeTile: TileRef;
+  targetTile?: TileRef;
+  carrierId?: number;
+  phase: "docked" | "outbound" | "returning";
+  targetedBySAM: boolean;
+}
+
 export type TransportShipState = {
   isRetreating: boolean;
   troops: number;
@@ -258,6 +268,12 @@ export const BuildableAttacks = unitTypeGroup([
   UnitType.MIRV,
   UnitType.Warship,
   UnitType.Bismarck,
+  UnitType.AttackAircraft,
+  UnitType.BomberAircraft,
+  UnitType.FighterAircraft,
+] as const);
+
+export const Aircraft = unitTypeGroup([
   UnitType.AttackAircraft,
   UnitType.BomberAircraft,
   UnitType.FighterAircraft,
