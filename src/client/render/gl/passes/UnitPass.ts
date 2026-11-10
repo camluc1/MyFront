@@ -155,7 +155,19 @@ const FLICKER_TYPES: ReadonlySet<string> = new Set([
 
 /** Missile/projectile types — rendered on top of structures in the layer order.
  *  Ground/sea units (boats, trains) render below structures. */
+// Airplanes use the already-existing upper-unit pass: they must cross over
+// cities and defenses rather than be obscured like ships sailing below them.
+// Both VBOs and the total number of draw calls remain unchanged.
+const AIRCRAFT_RENDER_TYPES: ReadonlySet<string> = new Set([
+  UT_ATTACK_AIRCRAFT,
+  UT_BOMBER_AIRCRAFT,
+  UT_FIGHTER_AIRCRAFT,
+]);
+
 const MISSILE_TYPES: ReadonlySet<string> = new Set([
+  UT_ATTACK_AIRCRAFT,
+  UT_BOMBER_AIRCRAFT,
+  UT_FIGHTER_AIRCRAFT,
   UT_ATOM_BOMB,
   UT_HYDROGEN_BOMB,
   UT_TSAR_BOMBA,
@@ -663,7 +675,8 @@ export class UnitPass {
 
       if (isMissile) {
         if (
-          SMOOTHED_NUKE_TYPES.has(unit.unitType) &&
+          (SMOOTHED_NUKE_TYPES.has(unit.unitType) ||
+            AIRCRAFT_RENDER_TYPES.has(unit.unitType)) &&
           unit.lastPos !== unit.pos
         ) {
           const lx = unit.lastPos % this.mapW;
@@ -671,7 +684,8 @@ export class UnitPass {
           this.smoothSegs.push(this.missileCount, lx, ly, x, y);
         }
         const heading = unit.unitType === UT_SAM_MISSILE ||
-            unit.unitType === UT_SHELL
+            unit.unitType === UT_SHELL ||
+            AIRCRAFT_RENDER_TYPES.has(unit.unitType)
           ? this.projectileHeading(unit.pos, unit.lastPos) : 0;
         this.emitMissile(x, y, unit.ownerID, atlasIdx, flags, heading);
 
@@ -873,7 +887,7 @@ export class UnitPass {
     );
   }
 
-  /** Draw missiles/projectiles (nukes, shells, SAM, MIRV warheads). Render above structures. */
+  /** Draw missiles/projectiles and aircraft above structures; still one GPU draw call. */
   drawMissiles(cameraMatrix: Float32Array): void {
     if (this.missileCount === 0) return;
     this.applyMissileSmoothing();
@@ -883,7 +897,7 @@ export class UnitPass {
     gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this.missileCount);
   }
 
-  /** Lerp smoothed nukes lastPos→pos by wall-clock progress through the
+  /** Lerp smoothed nukes and airplanes lastPos→pos through the
    *  current tick and re-upload the (small) missile instance buffer. */
   private applyMissileSmoothing(): void {
     const segs = this.smoothSegs;
