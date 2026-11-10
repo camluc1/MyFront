@@ -358,6 +358,8 @@ export class EngineConfig extends Config {
         return this.costWrapper(() => 750_000, UnitType.AtomBomb);
       case UnitType.HydrogenBomb:
         return this.costWrapper(() => 5_000_000, UnitType.HydrogenBomb);
+      case UnitType.TsarBomba:
+        return this.costWrapper(() => 20_000_000, UnitType.TsarBomba);
       case UnitType.MIRV:
         return (game: Game, player: Player) => {
           if (
@@ -727,6 +729,7 @@ export class EngineConfig extends Config {
     switch (unitType) {
       case UnitType.AtomBomb:
       case UnitType.HydrogenBomb:
+      case UnitType.TsarBomba:
         return 10;
       case UnitType.MIRV:
         return 15;
