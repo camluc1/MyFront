@@ -485,6 +485,7 @@ export class UnitDisplay extends LitElement implements Controller {
     switch (item) {
       case UnitType.AtomBomb:
       case UnitType.HydrogenBomb:
+      case UnitType.TsarBomba:
       case UnitType.MIRV:
         return (
           this.cost(item) <= (player?.gold() ?? 0n) &&
@@ -564,7 +565,7 @@ export class UnitDisplay extends LitElement implements Controller {
     ) {
       return null;
     }
-    const showNuclear = this.isUnitDisplayed(UnitType.AtomBomb) || this.isUnitDisplayed(UnitType.HydrogenBomb) || this.isUnitDisplayed(UnitType.MIRV);
+    const showNuclear = this.isUnitDisplayed(UnitType.AtomBomb) || this.isUnitDisplayed(UnitType.HydrogenBomb) || this.isUnitDisplayed(UnitType.TsarBomba) || this.isUnitDisplayed(UnitType.MIRV);
     const availableCategory = BUILD_CATEGORIES.find((cat) => cat.types.some((type) => this.isUnitDisplayed(type)));
     const selectedCategory = BUILD_CATEGORIES.find((cat) => cat.id === this.activeBuildCategory);
     const activeCategory: BuildCategory = this.tutorialMode ? "arsenal" :
@@ -635,6 +636,7 @@ export class UnitDisplay extends LitElement implements Controller {
     return html`
       ${this.renderUnitItem(atomBombIcon, null, UnitType.AtomBomb, "atom_bomb", this.getHotkey("buildAtomBomb", "Digit8"), "Atómica")}
       ${this.renderUnitItem(hydrogenBombIcon, null, UnitType.HydrogenBomb, "hydrogen_bomb", this.getHotkey("buildHydrogenBomb", "Digit9"), "Hidrógeno")}
+      ${this.renderUnitItem(hydrogenBombIcon, null, UnitType.TsarBomba, "tsar_bomba", this.getHotkey("buildTsarBomba", "Shift+KeyN"), translateText("unit_type.tsar_bomba"))}
       ${this.renderUnitItem(mirvIcon, null, UnitType.MIRV, "mirv", this.getHotkey("buildMIRV", "Digit0"), "MIRV")}
     `;
   }
@@ -890,7 +892,7 @@ export class UnitDisplay extends LitElement implements Controller {
     if (!this.playerBuildables) return "Cargando costos";
     const player = this.game.myPlayer();
     if (!player) return "No disponible";
-    if ((unitType === UnitType.AtomBomb || unitType === UnitType.HydrogenBomb || unitType === UnitType.MIRV) &&
+    if ((unitType === UnitType.AtomBomb || unitType === UnitType.HydrogenBomb || unitType === UnitType.TsarBomba || unitType === UnitType.MIRV) &&
         player.units(UnitType.MissileSilo).length === 0) return "Requiere silo";
     if ((unitType === UnitType.Warship || unitType === UnitType.Bismarck) && player.units(UnitType.Port).length === 0) return "Requiere puerto";
     if (this.cost(unitType) > player.gold() && !this.game.config().gameConfig().infiniteGold) return "Oro insuficiente";
