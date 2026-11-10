@@ -6,6 +6,7 @@
 import {
   UT_ATOM_BOMB,
   UT_HYDROGEN_BOMB,
+  UT_TSAR_BOMBA,
   UT_MIRV_WARHEAD,
 } from "../../../types";
 import type { RenderSettings } from "../../RenderSettings";
@@ -23,6 +24,10 @@ export function nukeExplosionRadius(
       return fx.nukeRadiusAtom;
     case UT_HYDROGEN_BOMB:
       return fx.nukeRadiusHydro;
+    case UT_TSAR_BOMBA:
+      // A Tsar detonation must visibly exceed hydrogen as well as
+      // doubling its authoritative damage rings. No additional FX pass.
+      return fx.nukeRadiusHydro * 2;
     case UT_MIRV_WARHEAD:
       return fx.nukeRadiusMirv;
     default:
