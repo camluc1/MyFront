@@ -3021,6 +3021,8 @@
     "contain_detail": "Seek partners against a threatening neighbor; attack only when relative strength permits."
   },
   "geopolitics": {
+    "functional_title": "Functional mode (test)",
+    "functional_description": "Experimental capitals, fleets and air operations. Off by default; only for single-player Geopolitics.",
     "deal_trust_meter": "Diplomatic trust",
     "deal_trust_low": "Fragile relationship",
     "deal_trust_high": "Trusting relationship",

@@ -211,6 +211,7 @@ export class SinglePlayerModal extends BaseModal {
   @state() private randomSpawn: boolean = DEFAULT_OPTIONS.randomSpawn;
   @state() private useRandomMap: boolean = DEFAULT_OPTIONS.useRandomMap;
   @state() private geopolitics = false;
+  @state() private geopoliticsFunctional = false;
   @state() private gameMode: GameMode = DEFAULT_OPTIONS.gameMode;
   @state() private teamCount: TeamCountConfig = DEFAULT_OPTIONS.teamCount;
   @state() private showAchievements: boolean = false;
@@ -705,6 +706,7 @@ export class SinglePlayerModal extends BaseModal {
                   gameMode: {
                     selected: this.geopolitics ? GameMode.FFA : this.gameMode,
                     geopolitics: this.geopolitics,
+                    functional: this.geopolitics && this.geopoliticsFunctional,
                   },
                   teamCount: {
                     selected: this.teamCount,
@@ -769,6 +771,7 @@ export class SinglePlayerModal extends BaseModal {
                   this.handleConfigDoomsdayClockSpeedSelected
                 }
                 @game-mode-selected=${this.handleConfigGameModeSelected}
+                @geopolitics-functional-changed=${this.handleFunctionalGeopoliticsChanged}
                 @team-count-selected=${this.handleConfigTeamCountSelected}
                 @bots-changed=${this.handleBotsChange}
                 @nations-changed=${this.handleNationsChange}
@@ -809,6 +812,7 @@ export class SinglePlayerModal extends BaseModal {
   // Check if any options other than map and difficulty have been changed from defaults
   private hasOptionsChanged(): boolean {
     return (
+      (this.geopolitics && this.geopoliticsFunctional) ||
       this.nations !== this.defaultNationCount ||
       this.nationPeaceTimeMinutes !== DEFAULT_OPTIONS.nationPeaceTimeMinutes ||
       this.bots !== DEFAULT_OPTIONS.bots ||
@@ -936,6 +940,7 @@ export class SinglePlayerModal extends BaseModal {
     this.selectedDifficulty = DEFAULT_OPTIONS.selectedDifficulty;
     this.nationPeaceTimeMinutes = DEFAULT_OPTIONS.nationPeaceTimeMinutes;
     this.gameMode = DEFAULT_OPTIONS.gameMode;
+    this.geopoliticsFunctional = false;
     this.useRandomMap = DEFAULT_OPTIONS.useRandomMap;
     this.bots = DEFAULT_OPTIONS.bots;
     this.nations = 0;
@@ -964,6 +969,7 @@ export class SinglePlayerModal extends BaseModal {
 
   protected onOpen(args?: Record<string, unknown>): void {
     this.geopolitics = args?.geopolitics === true;
+    this.geopoliticsFunctional = false;
     const map = args?.map;
     if (listedMaps.some((entry) => entry.type === map)) {
       this.handleMapSelection(map as GameMapType);
@@ -1015,6 +1021,11 @@ export class SinglePlayerModal extends BaseModal {
   private handleConfigDoomsdayClockSpeedSelected = (e: Event) => {
     const customEvent = e as CustomEvent<{ speed: DoomsdayClockSpeed }>;
     this.doomsdayClockSpeed = customEvent.detail.speed;
+  };
+
+  private handleFunctionalGeopoliticsChanged = (e: Event) => {
+    const event = e as CustomEvent<{ checked: boolean }>;
+    this.geopoliticsFunctional = this.geopolitics && event.detail.checked;
   };
 
   private handleConfigGameModeSelected = (e: Event) => {
@@ -1377,6 +1388,7 @@ export class SinglePlayerModal extends BaseModal {
             gameType: GameType.Singleplayer,
             gameMode: this.geopolitics ? GameMode.FFA : this.gameMode,
             geopolitics: this.geopolitics,
+            geopoliticsFunctional: this.geopolitics && this.geopoliticsFunctional,
             geopoliticsSeed: this.geopolitics
               ? simpleHash(gameID) >>> 0
               : undefined,

@@ -183,6 +183,13 @@ export class Config {
     return 30;
   }
 
+  /** Experimental features are isolated from Classic, multiplayer and old saves. */
+  isFunctionalGeopolitics(): boolean {
+    return this._gameConfig.gameType === GameType.Singleplayer &&
+      this._gameConfig.geopolitics === true &&
+      this._gameConfig.geopoliticsFunctional === true;
+  }
+
   isUnitDisabled(unitType: UnitType): boolean {
     if ((unitType === UnitType.Castle || unitType === UnitType.IronDome) &&
         this._gameConfig.geopolitics !== true) return true;

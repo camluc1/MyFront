@@ -2366,6 +2366,8 @@
     "youtube_tutorial": "¿Necesitas ayuda?"
   },
   "geopolitics": {
+    "functional_title": "Modo funcional (prueba)",
+    "functional_description": "Capitales, flotas y operaciones aéreas experimentales. Desactivado por defecto; solo Geopolítica individual.",
     "deal_trust_meter": "Confianza diplomática",
     "deal_trust_low": "Relación frágil",
     "deal_trust_high": "Relación confiable",

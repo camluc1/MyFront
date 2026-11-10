@@ -206,6 +206,7 @@ export interface GameConfigSettingsData {
   gameMode: {
     selected: GameMode;
     geopolitics?: boolean;
+    functional?: boolean;
   };
   teamCount: {
     selected: TeamCountConfig;
@@ -547,6 +548,24 @@ export class GameConfigSettings extends LitElement {
           `,
         )}
         <enhanced-visuals-toggle></enhanced-visuals-toggle>
+        ${settings.gameMode.geopolitics ? html`
+          <button
+            type="button"
+            class="${cardClass(settings.gameMode.functional === true,
+              "w-full mt-3 p-4 flex items-center justify-between gap-3 text-left")}"
+            role="switch"
+            aria-checked=${settings.gameMode.functional === true}
+            @click=${() => this.emit("geopolitics-functional-changed", {
+              checked: !settings.gameMode.functional,
+            })}
+          >
+            <span>
+              <strong class="block text-sm">${translateText("geopolitics.functional_title")}</strong>
+              <small class="block mt-1 opacity-75">${translateText("geopolitics.functional_description")}</small>
+            </span>
+            <span aria-hidden="true" class="text-xl">${settings.gameMode.functional ? "✓" : "○"}</span>
+          </button>
+        ` : nothing}
         ${
           settings.gameMode.selected === GameMode.FFA
             ? nothing
