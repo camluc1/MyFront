@@ -50,6 +50,9 @@ import {
   UT_TRANSPORT,
   UT_WARSHIP,
   UT_BISMARCK,
+  UT_ATTACK_AIRCRAFT,
+  UT_BOMBER_AIRCRAFT,
+  UT_FIGHTER_AIRCRAFT,
   UT_SHIPYARD,
 } from "../../types";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
@@ -323,6 +326,11 @@ export class UnitPass {
     this.typeToAtlasCol.set(UT_BISMARCK, WARSHIP_COL);
     // Reuse the hydrogen atlas glyph, keeping the existing 12-column GPU batch.
     this.typeToAtlasCol.set(UT_TSAR_BOMBA, HYDROGEN_BOMB_COL);
+    // Three fully procedural aircraft silhouettes share the existing naval
+    // instance column. Class identity is carried in unused flag patterns.
+    this.typeToAtlasCol.set(UT_ATTACK_AIRCRAFT, WARSHIP_COL);
+    this.typeToAtlasCol.set(UT_BOMBER_AIRCRAFT, WARSHIP_COL);
+    this.typeToAtlasCol.set(UT_FIGHTER_AIRCRAFT, WARSHIP_COL);
 
     // Compile shaders
     this.program = createProgram(
@@ -613,8 +621,15 @@ export class UnitPass {
         }
       }
 
+      const aircraftClass = this.functionalShipyard && unit.unitType === UT_ATTACK_AIRCRAFT ? 1 :
+        this.functionalShipyard && unit.unitType === UT_BOMBER_AIRCRAFT ? 2 :
+        this.functionalShipyard && unit.unitType === UT_FIGHTER_AIRCRAFT ? 3 : 0;
       let flags = FLAG_NORMAL;
-      if (tradeFlag !== FLAG_NORMAL) {
+      if (aircraftClass > 0) {
+        // The low-bit trade-self flag is impossible on a warship atlas column;
+        // its reserved upper tiers distinguish all three aircraft types.
+        flags = FLAG_TRADE_SELF | (aircraftClass << 3);
+      } else if (tradeFlag !== FLAG_NORMAL) {
         flags = tradeFlag;
       } else if (unit.unitType === UT_WARSHIP && unit.supportShip === true) {
         flags = FLAG_SUPPORT_SHIP;
