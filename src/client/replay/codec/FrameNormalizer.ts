@@ -83,6 +83,8 @@ const UPDATE_TYPE_ROUTING: Record<
   GamePaused: "misc",
   DonateEvent: "misc",
   Diplomacy: "misc",
+  // Preserve the actual projectile-block event for deterministic replay data.
+  IronDomeInterception: "misc",
 };
 
 /**
