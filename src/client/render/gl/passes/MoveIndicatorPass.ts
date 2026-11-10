@@ -15,6 +15,7 @@ export class MoveIndicatorPass {
   private settings: RenderSettings;
   private program: WebGLProgram;
   private vao: WebGLVertexArrayObject;
+  private quadBuffer: WebGLBuffer;
 
   private uCamera: WebGLUniformLocation;
   private uCenter: WebGLUniformLocation;
@@ -54,8 +55,8 @@ export class MoveIndicatorPass {
     // Unit quad [0,1]
     this.vao = gl.createVertexArray()!;
     gl.bindVertexArray(this.vao);
-    const buf = gl.createBuffer()!;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    this.quadBuffer = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
     gl.bufferData(
       gl.ARRAY_BUFFER,
       new Float32Array([0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1]),
@@ -111,5 +112,6 @@ export class MoveIndicatorPass {
     const gl = this.gl;
     gl.deleteProgram(this.program);
     gl.deleteVertexArray(this.vao);
+    gl.deleteBuffer(this.quadBuffer);
   }
 }

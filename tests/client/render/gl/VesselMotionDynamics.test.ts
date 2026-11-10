@@ -12,6 +12,20 @@ const straightRoute = {
 };
 
 describe("presentation-only naval inertia", () => {
+  it("does not snap to a newly assigned heading on the first route frame", () => {
+    const vessel = new VesselMotion(1, 0, 0, 0, 0, 100);
+    const verticalRoute = {
+      planId: 23, startTick: 0, ticksPerStep: 1, lastStep: 12,
+      segments: [{ start: 0, end: 12, ax: 0, ay: 0, cx: 0, cy: 6, bx: 0, by: 12 }],
+    };
+    vessel.setRoute(verticalRoute, 1, 100);
+    vessel.sample(150);
+    // The previous heading is east; the new course is north. It must turn
+    // with bounded angular speed rather than teleport its orientation.
+    expect(vessel.angle).toBeGreaterThan(0);
+    expect(vessel.angle).toBeLessThan(0.1);
+  });
+
   it("accelerates at departure, cruises in the middle and brakes at arrival", () => {
     const vessel = new VesselMotion(0, 0, 0, 0, 0, 100);
     vessel.setRoute(straightRoute, 0, 0);

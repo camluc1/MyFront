@@ -188,11 +188,12 @@ export class VesselMotion {
       // its rotational speed accelerates and brakes instead of snapping.
       this.angle = lastHeading;
       if (!this.routeHeadingInitialized) {
-        this.angle = desired;
+        // Preserve the vessel\u0027s visible prior bearing on the first planned
+        // frame. A vertical route ordered from an east-facing vessel must not
+        // instantly rotate its hull by ninety degrees.
         this.turnVelocity = 0;
-      } else {
-        this.steerToward(desired, dt);
       }
+      this.steerToward(desired, dt);
       this.routeHeadingInitialized = true;
       this.sampledAt = now;
       return;

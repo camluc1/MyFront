@@ -38,7 +38,10 @@ void main() {
   // Scale factor (matches game: grows above zoom 10)
   float sc = uPxPerTile > 10.0 ? 1.0 + (uPxPerTile - 10.0) / 10.0 : 1.0;
 
-  float radius = uStartRadius * sc * (1.0 - t * uConverge);
+  // Smooth deceleration at the destination. Only presentation changes;
+  // warship navigation and its authoritative target remain untouched.
+  float converge = t * t * (3.0 - 2.0 * t);
+  float radius = uStartRadius * sc * (1.0 - converge * uConverge);
   float cs = uChevronSize * sc;
   float tipOff = cs * 0.4;
   float wingOff = cs * 0.6;
@@ -55,8 +58,15 @@ void main() {
   float aa = 1.0;
   float mask = 1.0 - smoothstep(half_w - aa, half_w + aa, d);
 
+  // A restrained confirmation beacon anchors the chevrons to the exact
+  // selected water tile; fade together without a permanently blinking icon.
+  float centerDist = length(vec2(px, py));
+  float beaconRadius = (2.7 + 1.5 * sin(3.1415926 * t)) * sc;
+  float beacon = 1.0 - smoothstep(0.65 * sc, 2.0 * sc,
+    abs(centerDist - beaconRadius));
+  mask = max(mask, beacon * 0.36);
   if (mask < 0.01) discard;
 
-  float alpha = 1.0 - t;
+  float alpha = smoothstep(0.0, 0.10, t) * (1.0 - smoothstep(0.72, 1.0, t));
   fragColor = vec4(uColor, alpha * mask);
 }
