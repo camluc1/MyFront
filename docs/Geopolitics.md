@@ -154,7 +154,7 @@ A nation or human receives one free palace (`UnitType.Capital`) at its definitiv
 
 Diplomatic validation rejects an offer whose exact tile mask includes the palace, even if the palace is omitted from its building IDs. Eliminated countries are removed from live treaties and coalitions, pending offers involving them are invalidated and the territorial-victory countdown resets. Historical records remain available. The palace has its own new icon in the shared structure renderer; old packed IDs 1–22 have not changed, and the new type occupies appended ID 23.
 
-Functional mode does **not** yet enable the later shipyard, Bismarck, Tsar Bomba or airfield features; these are staged independently so disabling the flag preserves the prior game. Legacy snapshots lack the optional flag and therefore remain in normal mode.
+The shipyard (phase 1) and Bismarck (phase 2) are now separately gated behind this flag. Tsar Bomba and the airfield/aircraft remain pending. Disabling the flag continues to preserve prior game behavior. Legacy snapshots lack the optional flag and therefore remain in normal mode.
 
 Verification: `tests/FunctionalGeopoliticsCapital.test.ts` covers off-mode isolation, automatic palace spawn, diplomatic exclusion, elimination/territory transfer, and save/restore. New and existing CI checks must pass before release.
 
@@ -167,3 +167,18 @@ The existing `WarshipExecution` support vessel retains its 5,000,000-gold purcha
 Estructura costera de oro, 2.000.000 iniciales. Solo disponible con geopoliticsFunctional=true. Cuatro ramas permanentes e independientes, hasta nivel 3, con precios de 500.000, 1.000.000 y 2.000.000 por nivel: mercantes +12% velocidad, transportes +15% capacidad, warships +15% salud y +10% daño. El mejor astillero operativo de cada dueño aplica su nivel a las embarcaciones existentes y nuevas; los astilleros no acumulan mejoras del mismo tipo. El motor valida owner/costo/estado/flag, almacena niveles en UnitSnapshot y en las ranuras SAM no usadas del mismo formato compacto de 21 campos. Interfaz de mejoras bilingüe y disponible al tocar/clic en el astillero. La IA no lo tiene en su orden de construcción.
 
 La visualización de Fase 1 usa las mismas instancias de barcos y los bits libres del indicador existente. Los mercantes muestran una marca de proa proporcional a su investigación de velocidad; los transportes, dos marcas de rampa asociadas a la capacidad. Los warships ya muestran sus placas de casco y torretas por mejora. El color del país se mantiene dominante; no se agregan draw calls ni texturas.
+
+## Bismarck experimental — Fase 2
+
+El **Bismarck** es un acorazado exclusivo del modo funcional singleplayer. Se adquiere por 10.000.000 de oro desde la categoría naval y el menú de construcción, con el atajo Shift+B. Tiene 4.800 puntos de integridad (4,8 veces un warship estándar), daño base de proyectil +18% y retirada automática al bajar del 40% de salud, siempre que exista un puerto o unidad taller accesible. No incorpora una IA naval alternativa: reutiliza `WarshipExecution`, `MoveWarshipExecution`, la selección múltiple y el sistema de proyectiles habitual. Los astilleros también lo mejoran y el taller puede repararlo.
+
+Su identificación `UnitType.Bismarck` está al final de `PACKED_UNIT_TYPES` (ID 25), sin reordenar las unidades previas. La visualización usa la columna naval, renderizado instanciado, silueta alargada y torretas nuevas dentro del shader existente; no requiere texturas ni draw calls por unidad adicionales. La IA de naciones no lo construye en esta fase.
+
+Las pruebas `tests/FunctionalBismarck.test.ts` comprueban aislamiento con el flag apagado, precio, movimiento, snapshot, retirada y enfrentamientos reproducibles de 1 contra 2/3 warships. El balance es **provisional hasta pasar las pruebas y verificarlo en partidas reales**; los parámetros se fijaron inicialmente en 4,8× salud y +18% daño después de simulaciones de referencia. Una prueba de retirada se corrigió para causar daño suficiente para bajar realmente del 40% del nuevo máximo, y la ejecución más reciente de GitHub Actions todavía requiere resultado final.
+
+## Fases siguientes pendientes
+
+- Fase 3: Tsar Bomba, protección de SAM/Cúpula, grupos, estadísticas, efectos y tests de radio/rendimiento.
+- Fase 4: aeródromo, aviones de ataque/bombardeo/caza, combustible, regreso, taller con cuatro plazas, SAM antiaéreo y gráficos por instancias.
+
+Estos sistemas **no están implementados ni validados** como parte de las fases anteriores; no deben presentarse como disponibles hasta pasar las pruebas del motor y la interfaz.
