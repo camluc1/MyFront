@@ -5,7 +5,7 @@ import {
   UT_TSAR_BOMBA,
   UT_MIRV_WARHEAD,
 } from "../../../../src/client/render/types/UnitType";
-import { nukeExplosionRadius } from "../../../../src/client/render/gl/passes/fx-pass/FxSettings";
+import { effectiveNukeExplosionParams, nukeExplosionRadius } from "../../../../src/client/render/gl/passes/fx-pass/FxSettings";
 import type { RenderSettings } from "../../../../src/client/render/gl/RenderSettings";
 
 describe("functional Tsar Bomba visual blast contract", () => {
@@ -20,5 +20,18 @@ describe("functional Tsar Bomba visual blast contract", () => {
     expect(nukeExplosionRadius(fx, UT_TSAR_BOMBA)).toBe(110);
     expect(nukeExplosionRadius(fx, UT_MIRV_WARHEAD)).toBe(8);
     expect(nukeExplosionRadius(fx, "City")).toBeUndefined();
+
+    const cosmetic = {
+      type: "shockwave" as const,
+      maxRadius: 25,
+      speed: 5,
+      colors: [[1, 0.3, 0] as const],
+      transitionSpeed: 0,
+    };
+    expect(effectiveNukeExplosionParams(UT_TSAR_BOMBA, cosmetic)).toEqual({
+      ...cosmetic, maxRadius: 50,
+    });
+    expect(effectiveNukeExplosionParams(UT_HYDROGEN_BOMB, cosmetic)).toBe(cosmetic);
+    expect(cosmetic.maxRadius).toBe(25); // never mutate equipped cosmetics
   });
 });
