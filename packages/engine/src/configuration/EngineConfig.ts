@@ -372,7 +372,10 @@ export class EngineConfig extends Config {
           UnitType.DefensePost,
         );
       case UnitType.Castle:
-        return this.costWrapper(() => 1_500_000, UnitType.Castle);
+        return this.costWrapper(
+          (numUnits: number) => (numUnits + 1) * 500_000,
+          UnitType.Castle,
+        );
       case UnitType.IronDome:
         return this.costWrapper(() => 10_000_000, UnitType.IronDome);
       case UnitType.SAMLauncher:
