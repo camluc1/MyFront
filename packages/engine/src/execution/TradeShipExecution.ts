@@ -35,7 +35,7 @@ export function merchantStepsAtTick(tick: number, level: number): number {
   return 1 + (level > 0 && tick % 25 < Math.min(3, level) * 3 ? 1 : 0);
 }
 export function merchantAcceleratedPath(
-  path: readonly TileRef[], startTick: number, level: number,
+  path: ArrayLike<TileRef>, startTick: number, level: number,
 ): TileRef[] {
   if (level === 0) return Array.from(path);
   if (path.length === 0) return [];
