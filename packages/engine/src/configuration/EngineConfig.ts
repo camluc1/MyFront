@@ -380,6 +380,8 @@ export class EngineConfig extends Config {
         );
       case UnitType.IronDome:
         return this.costWrapper(() => 8_000_000, UnitType.IronDome);
+      case UnitType.Capital:
+        return () => 0n;
       case UnitType.SAMLauncher:
         return this.costWrapper(
           (numUnits: number) => Math.min(3_000_000, (numUnits + 1) * 1_500_000),

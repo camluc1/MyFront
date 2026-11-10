@@ -20,6 +20,7 @@ import {
   UT_DEFENSE_POST,
   UT_CASTLE,
   UT_IRON_DOME,
+  UT_CAPITAL,
   UT_FACTORY,
   UT_FARM,
   UT_MINE,
@@ -65,6 +66,7 @@ const STRUCTURE_ORDER = [
   UT_GAS_PLANT,
   UT_CASTLE,
   UT_IRON_DOME,
+  UT_CAPITAL,
 ] as const;
 
 const ATLAS_COLS = STRUCTURE_ORDER.length;
@@ -351,13 +353,14 @@ export class StructurePass {
     }
   }
 
-  /** Six 64x64 cells, independent of the original six classic icons. */
+  /** Extendable frontier glyph atlas, separate from six original classic icons. */
   private async loadFrontierAtlas(): Promise<void> {
     try {
       const names = [
         "FarmIconWhite.svg", "MineIconWhite.svg",
         "OilWellIconWhite.svg", "GasPlantIconWhite.svg",
         "CastleIconWhite.svg", "IronDomeIconWhite.svg",
+        "CapitalIconWhite.svg",
       ];
       const images = await Promise.all(names.map(async (name): Promise<HTMLImageElement | null> => {
         const img = new Image();

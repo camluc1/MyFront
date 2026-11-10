@@ -1,4 +1,4 @@
-import { MessageType } from "@openfront/engine-api/game/GameTypes";
+import { MessageType, UnitType } from "@openfront/engine-api/game/GameTypes";
 import {
   zInt,
   zPlayerRef,
@@ -42,6 +42,10 @@ export class DeleteUnitExecution implements Execution {
       return;
     }
 
+    if (unit.type() === UnitType.Capital) {
+      this.active = false;
+      return;
+    }
     if (!unit.isActive()) {
       console.warn(`SECURITY: unit ${this.unitId} is not active`);
       this.active = false;

@@ -214,6 +214,7 @@ export enum UnitType {
   DefensePost = "Defense Post",
   Castle = "Castle",
   IronDome = "Iron Dome",
+  Capital = "Capital",
   SAMLauncher = "SAM Launcher",
   City = "City",
   MIRV = "MIRV",

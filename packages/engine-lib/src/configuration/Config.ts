@@ -191,6 +191,8 @@ export class Config {
   }
 
   isUnitDisabled(unitType: UnitType): boolean {
+    if (unitType === UnitType.Capital && !this.isFunctionalGeopolitics())
+      return true;
     if ((unitType === UnitType.Castle || unitType === UnitType.IronDome) &&
         this._gameConfig.geopolitics !== true) return true;
     return this._gameConfig.disabledUnits?.includes(unitType) ?? false;
@@ -255,6 +257,9 @@ export class Config {
         break;
       case UnitType.Castle:
         info = { constructionDuration: this.instantBuild() ? 0 : 15 * 10 };
+        break;
+      case UnitType.Capital:
+        info = { constructionDuration: 0, maxHealth: 1 };
         break;
       case UnitType.IronDome:
         info = {

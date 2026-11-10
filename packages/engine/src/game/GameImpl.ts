@@ -931,6 +931,21 @@ export class GameImpl implements Game {
     this.updateBorders(tile);
     this._map.setFallout(tile, false);
     this.recordTileUpdate(tile);
+    // Only real territorial conquest may eliminate a nation by taking its
+    // original palace. Reuse the existing conquerPlayer death/statistics path.
+    if (this._config.isFunctionalGeopolitics() && !this.inSpawnPhase() &&
+        previousOwner.isPlayer() && previousOwner !== owner) {
+      const capital = previousOwner.units(UnitType.Capital).find((u) =>
+        u.isActive() && u.tile() === tile);
+      if (capital) {
+        capital.delete(false);
+        // Canonical order keeps resumed games bit-identical.
+        const territory = Array.from(previousOwner.tiles()).sort((a, b) => a - b);
+        for (const otherTile of territory) this.conquer(owner, otherTile);
+        this.diplomacy.onCapitalEliminated(previousOwner.id());
+        this.conquerPlayer(owner, previousOwner);
+      }
+    }
   }
 
   relinquish(tile: TileRef) {
@@ -942,6 +957,9 @@ export class GameImpl implements Game {
     }
 
     const previousOwner = this.owner(tile) as PlayerImpl;
+    if (this._config.isFunctionalGeopolitics() &&
+        previousOwner.units(UnitType.Capital).some((u) =>
+          u.isActive() && u.tile() === tile)) return;
     previousOwner._lastTileChange = this._ticks;
     previousOwner._tileChangeVersion++;
     previousOwner._tiles.delete(tile);

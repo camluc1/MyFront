@@ -208,6 +208,11 @@ export class Geopolitics {
     );
   }
   private validAssets(owner: Player, assets: DiplomaticAssets) {
+    // A tile-only offer must not bypass the non-negotiable palace.
+    if (this.game.config().isFunctionalGeopolitics() &&
+        owner.units(UnitType.Capital).some((unit) =>
+          unit.isActive() && (assets.tiles.includes(unit.tile()) ||
+            assets.buildings.includes(unit.id())))) return false;
     if (owner.gold() < BigInt(assets.gold) || owner.troops() < assets.troops)
       return false;
     const tiles = new Set(assets.tiles);
@@ -1349,6 +1354,26 @@ export class Geopolitics {
     if (ultimatum && this.state.offers.length > before)
       this.state.cooldowns[`ultimatum:${a.id()}`] = tick + 1800;
   }
+  /** Remove invalid diplomacy and reset victory progress on capital loss. */
+  onCapitalEliminated(id: string): void {
+    if (!this.game.config().isFunctionalGeopolitics()) return;
+    for (const offer of this.state.offers) {
+      if (offer.status === "pending" &&
+          (offer.from === id || offer.to === id ||
+            offer.required.includes(id))) {
+        offer.status = "invalid";
+        offer.reason = "changed";
+      }
+    }
+    this.state.treaties = this.state.treaties.filter((t) =>
+      t.a !== id && t.b !== id);
+    this.state.coalitions = this.state.coalitions
+      .map((c) => ({ ...c, members: c.members.filter((m) => m !== id) }))
+      .filter((c) => c.members.length > 1);
+    this.state.victory = null;
+    this.emit();
+  }
+
   checkVictory() {
     if (!this.enabled() || this.state.winner.length) return;
     const players = this.game.players();

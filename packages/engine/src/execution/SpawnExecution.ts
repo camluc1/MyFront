@@ -3,6 +3,7 @@ import {
   GameType,
   PlayerInfo,
   PlayerType,
+  UnitType,
   SpawnArea,
 } from "@openfront/engine-api/game/GameTypes";
 import { GameID } from "@openfront/engine-api/Schemas";
@@ -114,6 +115,14 @@ export class SpawnExecution implements Execution {
       }
     }
 
+    // Nation placement can hop during spawn; never leave old palaces behind.
+    if (this.mg.config().isFunctionalGeopolitics() &&
+        player.type() !== PlayerType.Bot) {
+      for (const old of player.units(UnitType.Capital)) {
+        if (old.isActive()) old.delete(false);
+      }
+      player.buildUnit(UnitType.Capital, spawn.center, {});
+    }
     player.setSpawnTile(spawn.center);
     this.mg.stats().recordSpawnTile(player, spawn.center);
 

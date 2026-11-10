@@ -54,6 +54,7 @@ export const PACKED_UNIT_TYPES = [
   // DLC Geopolitics defenses. Do not change IDs 1-20: old replays depend on them.
   UnitType.Castle, // 21
   UnitType.IronDome, // 22
+  UnitType.Capital, // 23 - append only
 ] as const satisfies readonly UnitType[];
 
 // Enforce exhaustiveness at compile time, not only in tests: adding a unit to

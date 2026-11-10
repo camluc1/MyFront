@@ -33,6 +33,7 @@ export const UT_GAS_PLANT = "Gas Plant" as const;
 export const UT_DEFENSE_POST = "Defense Post" as const;
 export const UT_CASTLE = "Castle" as const;
 export const UT_IRON_DOME = "Iron Dome" as const;
+export const UT_CAPITAL = "Capital" as const;
 export const UT_SAM_LAUNCHER = "SAM Launcher" as const;
 export const UT_MISSILE_SILO = "Missile Silo" as const;
 
@@ -47,6 +48,7 @@ export const STRUCTURE_TYPES: ReadonlySet<string> = new Set([
   UT_DEFENSE_POST,
   UT_CASTLE,
   UT_IRON_DOME,
+  UT_CAPITAL,
   UT_SAM_LAUNCHER,
   UT_MISSILE_SILO,
   UT_FARM,
@@ -117,4 +119,5 @@ export const ALL_UNIT_TYPES = [
   UT_GAS_PLANT,
   UT_CASTLE,
   UT_IRON_DOME,
+  UT_CAPITAL,
 ] as const;

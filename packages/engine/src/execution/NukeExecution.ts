@@ -421,6 +421,9 @@ export class NukeExecution implements Execution {
       // The shield blocks even the fringe of a blast centred OUTSIDE it.
       if (owner.isPlayer() && coveredByDome(tile, owner))
         continue;
+      if (mg.config().isFunctionalGeopolitics() && owner.isPlayer() &&
+          owner.units(UnitType.Capital).some((u) =>
+            u.isActive() && u.tile() === tile)) continue;
       if (owner.isPlayer()) {
         owner.relinquish(tile);
         tilesPerPlayers.set(owner, (tilesPerPlayers.get(owner) ?? 0) + 1);
@@ -492,7 +495,8 @@ export class NukeExecution implements Execution {
         type === UnitType.HydrogenBomb ||
         type === UnitType.MIRVWarhead ||
         type === UnitType.MIRV ||
-        type === UnitType.SAMMissile
+        type === UnitType.SAMMissile ||
+        (type === UnitType.Capital && config.isFunctionalGeopolitics())
       ) {
         continue;
       }
