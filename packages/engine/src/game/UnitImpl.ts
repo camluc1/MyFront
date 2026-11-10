@@ -15,6 +15,9 @@ import {
   UnitUpdate,
 } from "@openfront/engine-api/game/GameUpdates";
 import { maxHealthWithVeterancy } from "@openfront/engine-lib/game/Veterancy";
+import { emptyShipyardLevels, SHIPYARD_MAX_LEVEL,
+  type ShipyardLevels, type ShipyardTrack } from "@openfront/engine-api/game/Shipyard";
+import { shipyardLevel } from "./ShipyardUpgrades";
 import { CASTLE_DEFENSE_ACTIVE_TICKS, CASTLE_DEFENSE_RECOVERY_TICKS } from "@openfront/engine-api/game/CastleDefense";
 import {
   snapshotType,
@@ -53,6 +56,7 @@ export class UnitImpl implements Unit {
   private _underConstruction: boolean = false;
   private _castleActiveUntilTick = 0;
   private _castleCooldownUntilTick = 0;
+  private _shipyardLevels: ShipyardLevels | undefined;
   private _lastOwner: PlayerImpl | null = null;
   private _troops: number;
   // Number of missiles in cooldown, if empty all missiles are ready.
@@ -96,6 +100,7 @@ export class UnitImpl implements Unit {
     if (this._type === UnitType.TransportShip) {
       this._transportShipState = { isRetreating: false, troops: 0 };
     }
+    if (this._type === UnitType.Shipyard) this._shipyardLevels = emptyShipyardLevels();
     if (this._type === UnitType.SAMLauncher) {
       this._samLauncherState = {
         startRange: this.mg.config().samRange(1),
@@ -117,6 +122,11 @@ export class UnitImpl implements Unit {
         veterancy: 0,
         veterancyProgress: 0,
       };
+    }
+    if (this._type === UnitType.Warship &&
+        this.mg.config().isFunctionalGeopolitics() &&
+        shipyardLevel(this._owner, "warshipHealth") > 0) {
+      this._health = toInt(this.maxHealth());
     }
     this._targetUnit =
       "targetUnit" in params ? (params.targetUnit ?? undefined) : undefined;
@@ -159,6 +169,20 @@ export class UnitImpl implements Unit {
 
   touch(): void {
     this.mg.addUpdate(this.toUpdate());
+  }
+
+  shipyardLevels(): ShipyardLevels | undefined {
+    return this._shipyardLevels ? { ...this._shipyardLevels } : undefined;
+  }
+  upgradeShipyard(track: ShipyardTrack): boolean {
+    if (!this.mg.config().isFunctionalGeopolitics() ||
+        this._type !== UnitType.Shipyard || !this._shipyardLevels ||
+        !this._active || this._underConstruction ||
+        this._shipyardLevels[track] >= SHIPYARD_MAX_LEVEL) return false;
+    this._shipyardLevels[track]++;
+    this.mg.bumpUnitsVersion();
+    this.mg.addUpdate(this.toUpdate());
+    return true;
   }
 
   castleDefenseState(): { activeUntilTick: number; cooldownUntilTick: number } {
@@ -225,6 +249,8 @@ export class UnitImpl implements Unit {
       hasTrainStation: this._hasTrainStation,
       trainType: this._trainType,
       loaded: this._loaded,
+      ...(this._type === UnitType.Shipyard && this._shipyardLevels
+        ? { shipyardLevels: this.shipyardLevels() } : {}),
       ...(this._type === UnitType.Castle && this._castleCooldownUntilTick > 0
         ? { castleDefense: this.castleDefenseState() } : {}),
     };
@@ -322,10 +348,16 @@ export class UnitImpl implements Unit {
   }
 
   maxHealth(): number {
-    const base = (this.info().maxHealth ?? 1) *
+    let base = (this.info().maxHealth ?? 1) *
       (this._type === UnitType.Warship &&
        this._warshipState?.supportShip === true &&
        this.mg.config().isFunctionalGeopolitics() ? 5 : 1);
+    if (this._type === UnitType.Warship &&
+        this._warshipState?.supportShip !== true &&
+        this.mg.config().isFunctionalGeopolitics()) {
+      base = Math.floor(base * (100 + 15 *
+        shipyardLevel(this._owner, "warshipHealth")) / 100);
+    }
     // veterancy() is 0 for non-warships, so this returns base for them.
     return maxHealthWithVeterancy(
       base,
@@ -908,6 +940,7 @@ export class UnitImpl implements Unit {
       deletionAt: this._deletionAt,
       castleActiveUntilTick: this._castleActiveUntilTick,
       castleCooldownUntilTick: this._castleCooldownUntilTick,
+      shipyardLevels: this._shipyardLevels ? { ...this._shipyardLevels } : null,
       samLauncherState: this._samLauncherState
         ? {
             upgradeStartTick: this._samLauncherState.upgradeStartTick,
@@ -962,6 +995,8 @@ export class UnitImpl implements Unit {
     this._deletionAt = s.deletionAt;
     this._castleActiveUntilTick = s.castleActiveUntilTick ?? 0;
     this._castleCooldownUntilTick = s.castleCooldownUntilTick ?? 0;
+    this._shipyardLevels = s.shipyardLevels ??
+      (this._type === UnitType.Shipyard ? emptyShipyardLevels() : undefined);
     this._samLauncherState = s.samLauncherState
       ? { ...s.samLauncherState }
       : undefined;
@@ -1022,6 +1057,8 @@ export const UnitSnapshot = snapshotType({
     deletionAt: zInt().nullable(),
     castleActiveUntilTick: zInt().optional(),
     castleCooldownUntilTick: zInt().optional(),
+    shipyardLevels: z.object({ merchantSpeed: zInt(), transportCapacity: zInt(),
+      warshipHealth: zInt(), warshipDamage: zInt() }).nullable().optional(),
     samLauncherState: z
       .object({
         upgradeStartTick: zInt().optional(),
