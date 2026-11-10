@@ -471,6 +471,11 @@ export class UnitImpl implements Unit {
 
     if (wasDestroyed) {
       this.displayMessageOnDeleted();
+      // A fuel-starved aircraft has no credited destroyer, but it still
+      // represents a permanent unit loss. Do not change classic stat paths.
+      if (destroyer === undefined && isAircraftType(this._type)) {
+        this.mg.stats().unitLose(this._owner, this._type);
+      }
       switch (this._type) {
         case UnitType.TransportShip:
         case UnitType.TradeShip:
