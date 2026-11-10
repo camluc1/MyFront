@@ -47,6 +47,7 @@ jobs:
           npx vitest run --project client \
             tests/client/render/gl/UltraNavalVisualContract.test.ts \
             tests/client/render/gl/UnitPassFleet.test.ts \
+            tests/client/render/gl/TsarExplosionVisual.test.ts \
             tests/client/render/gl/VesselMotionDynamics.test.ts \
             tests/client/render/gl/NavalWaypoint.test.ts
       - name: Check carrier rendering and pre-game player colors
