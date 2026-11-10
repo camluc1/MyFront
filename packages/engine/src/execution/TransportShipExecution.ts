@@ -16,6 +16,7 @@ import {
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
 import { Execution, Game, Player, Unit } from "../game/Game";
+import { shipyardLevel } from "../game/ShipyardUpgrades";
 import { targetTransportTile } from "../game/TransportShipUtils";
 import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
@@ -118,6 +119,15 @@ export class TransportShipExecution implements Execution {
       .config()
       .boatAttackAmount(this.attacker, this.target);
     this.troops = Math.min(this.troops, this.attacker.troops());
+    if (this.mg.config().isFunctionalGeopolitics()) {
+      // The functional transport starts with the existing default one-fifth
+      // dispatch capacity. Research buys 15% extra capacity per tier, not
+      // free troops: every soldier carried is still debited from the owner.
+      const level = shipyardLevel(this.attacker, "transportCapacity");
+      const baseCapacity = Math.floor(this.attacker.troops() / 5);
+      const maxCapacity = Math.floor(baseCapacity * (100 + level * 15) / 100);
+      this.troops = Math.min(this.troops, maxCapacity);
+    }
 
     this.dst = targetTransportTile(this.mg, this.attacker, this.ref);
 
