@@ -58,6 +58,7 @@ export const PACKED_UNIT_TYPES = [
   UnitType.Capital, // 23 - append only
   UnitType.Shipyard, // 24 - append only
   UnitType.Bismarck, // 25 - append only
+  UnitType.TsarBomba, // 26 - append only
 ] as const satisfies readonly UnitType[];
 
 // Enforce exhaustiveness at compile time, not only in tests: adding a unit to
