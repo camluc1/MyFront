@@ -30,7 +30,7 @@ describe("Geopolitics advanced defenses", () => {
     expect(castleCost(game, player, 1)).toBe(1_000_000n);
     expect(castleCost(game, player, 2)).toBe(1_500_000n);
     expect(castleCost(game, player, 3)).toBe(2_000_000n);
-    expect(game.unitInfo(UnitType.IronDome).cost(game, player)).toBe(10_000_000n);
+    expect(game.unitInfo(UnitType.IronDome).cost(game, player)).toBe(8_000_000n);
     expect(game.config().castleRange()).toBe(game.config().defensePostRange() * 2);
     expect(game.config().ironDomeRange()).toBe(Math.round(game.config().samRange(1) * 1.2));
     expect(game.config().castleRange()).toBe(60);
